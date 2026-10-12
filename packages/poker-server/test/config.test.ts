@@ -8,17 +8,26 @@ const valid = {
 };
 
 describe('loadConfig', () => {
-  it('reads the environment and defaults retention to 30 days', () => {
+  it('reads the environment, defaulting retention to 30 days and the key prefix to pokerji:', () => {
     expect(loadConfig(valid)).toEqual({
       databaseUrl: valid.DATABASE_URL,
       valkeyUrl: valid.VALKEY_URL,
       addressHmacSecret: valid.ADDRESS_HMAC_SECRET,
       retentionDays: 30,
+      keyPrefix: 'pokerji:',
     });
   });
 
-  it('accepts a retention override', () => {
-    expect(loadConfig({ ...valid, RETENTION_DAYS: '7' }).retentionDays).toBe(7);
+  it('accepts a retention override and a key prefix', () => {
+    const config = loadConfig({ ...valid, RETENTION_DAYS: '7', KEY_PREFIX: 'e2e-1:' });
+    expect(config.retentionDays).toBe(7);
+    expect(config.keyPrefix).toBe('e2e-1:');
+  });
+
+  it('rejects a key prefix that could collide with or escape its namespace', () => {
+    for (const bad of ['', 'pokerji', 'Has Space:', '*:', 'x'.repeat(40) + ':']) {
+      expect(() => loadConfig({ ...valid, KEY_PREFIX: bad })).toThrow(/KEY_PREFIX/);
+    }
   });
 
   it('names every missing or invalid variable', () => {

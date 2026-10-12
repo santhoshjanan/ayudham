@@ -7,6 +7,10 @@ const schema = z.object({
   VALKEY_URL: url,
   ADDRESS_HMAC_SECRET: z.string().min(32),
   RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  KEY_PREFIX: z
+    .string()
+    .regex(/^[a-z0-9:_-]{0,31}:$/)
+    .default('pokerji:'),
 });
 
 export interface Config {
@@ -15,6 +19,8 @@ export interface Config {
   /** Keys the HMAC that turns a client address into a rate-limit key. */
   addressHmacSecret: string;
   retentionDays: number;
+  /** Namespace for this app's Valkey keys. The production ACL user is limited to it. */
+  keyPrefix: string;
 }
 
 /** Reads configuration. The error names bad variables and never includes their values. */
@@ -29,5 +35,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     valkeyUrl: parsed.data.VALKEY_URL,
     addressHmacSecret: parsed.data.ADDRESS_HMAC_SECRET,
     retentionDays: parsed.data.RETENTION_DAYS,
+    keyPrefix: parsed.data.KEY_PREFIX,
   };
 }

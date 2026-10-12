@@ -25,3 +25,17 @@ export async function testDb(): Promise<{ db: Db; drop: () => Promise<void> }> {
 
 /** A key prefix no other test file shares. */
 export const testPrefix = () => `test:${randomBytes(6).toString('hex')}:`;
+
+/** An empty schema for code that runs its own migrations. */
+export async function testSchema(): Promise<{ schema: string; drop: () => Promise<void> }> {
+  const schema = `test_${randomBytes(6).toString('hex')}`;
+  const admin = createPool(DATABASE_URL);
+  await admin.query(`create schema ${schema}`);
+  return {
+    schema,
+    drop: async () => {
+      await admin.query(`drop schema ${schema} cascade`);
+      await admin.end();
+    },
+  };
+}
