@@ -1,0 +1,4 @@
+build/
+.svelte-kit/
+test-results/
+playwright-report/
