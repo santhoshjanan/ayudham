@@ -213,10 +213,14 @@ Optional. A room has no timer until the moderator sets a length (10 seconds to 1
 - The moderator picks one bundled track for the room, or none.
 - Each person has a sound toggle, off by default. Nothing plays for a person who has not turned it on. Volume and the toggle are kept in that browser's local storage and never sent to the server.
 - Music loops only while the countdown runs.
-- When the countdown reaches zero the music fades out over about two seconds and a short telegraph-style beep sounds. The beep is synthesised in the browser with the Web Audio API; it is not an audio file.
-- If the moderator stops the timer or reveals early, the music fades out with no beep.
+- The music fades out over the last two seconds of the countdown, so it is silent when the countdown reaches zero, and at zero a short telegraph-style beep sounds (three short tones and one long). The beep is synthesised in the browser with the Web Audio API; it is not an audio file.
+- The track starts from its beginning each time the countdown starts, and for a person who turns sound on part-way through.
+- If the moderator stops the timer or reveals early, the music fades out over about two seconds with no beep.
 - During the three-second reveal count, each beat has a soft synthesised tick for people with sound on.
-- Tracks are recordings released as public domain or CC0. Each track's source and licence is recorded in `apps/web/static/audio/LICENSES.md`. Files are served by the app and fetched only when a person turns sound on.
+- Tracks are recordings released under CC0 by whoever made the recording; a Public Domain Mark alone is not accepted. The four bundled tracks are Chopin's Nocturne Op. 9 No. 2 and Waltz Op. 64 No. 1 (Musopen) and the Aria and Variation 1 of Bach's Goldberg Variations (Kimiko Ishizaka). Each track's source, licence and checksum is recorded in `apps/web/static/audio/LICENSES.md`, and a browser test checks each served file against its row. Files are MP3, served by the app, and fetched only for a person who has sound on, in a room that has a track, while a countdown runs.
+- In a page the person has not yet touched (a newly opened tab with sound already on), nothing is played or queued; sound starts at their first click, tap or key press. Turning sound off closes the audio device.
+- Music stops at once for someone who is removed from the room.
+- The sound toggle is in the site bar while in a room, with a volume slider beside it on wider screens. Turning sound on plays one tick as confirmation.
 
 ### Theme
 

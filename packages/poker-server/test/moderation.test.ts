@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BUILT_IN_DECKS } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, MUSIC_TRACK_IDS } from '@pokerji/protocol';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   anonymiseMe,
@@ -119,6 +119,16 @@ describe('saveSettings', () => {
     });
     expect(await findRoomByCode(app.db, code)).toMatchObject({ deck: TEE, timerSeconds: 90 });
     expect(tab.room()).toMatchObject({ deck: TEE, timer: { seconds: 90 } });
+  });
+
+  it('saves a bundled track, and none again', async () => {
+    const { code, mo } = await setup();
+    const track = MUSIC_TRACK_IDS[0];
+    expect(track).toBeDefined();
+    expect(await saveSettings(app, mo, settings({ music: track }))).toEqual({ ok: true });
+    expect((await findRoomByCode(app.db, code))?.music).toBe(track);
+    expect(await saveSettings(app, mo, settings({ music: null }))).toEqual({ ok: true });
+    expect((await findRoomByCode(app.db, code))?.music).toBeNull();
   });
 
   it('is refused for someone who is not a moderator', async () => {

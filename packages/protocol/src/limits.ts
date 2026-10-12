@@ -17,7 +17,14 @@ export const PASSCODE_MAX = 64;
 export const CLOSE_TOO_MANY_CONNECTIONS = 4001;
 
 /**
- * Ids of the bundled music tracks. Empty until tracks are chosen and their
- * licences recorded; until then a room's music setting can only be "none".
+ * The bundled music. An id is also the file name: `/audio/<id>.mp3`. Every track
+ * needs a row in `apps/web/static/audio/LICENSES.md` showing a CC0 release by
+ * whoever made the recording; a browser test checks the row and the file agree.
  */
-export const MUSIC_TRACK_IDS: readonly string[] = [];
+export const MUSIC_TRACKS = [
+  { id: 'chopin-nocturne-op9-2', title: 'Chopin: Nocturne in E-flat major, Op. 9 No. 2' },
+  { id: 'chopin-waltz-op64-1', title: 'Chopin: “Minute” Waltz, Op. 64 No. 1' },
+  { id: 'bach-goldberg-aria', title: 'Bach: Goldberg Variations, Aria' },
+  { id: 'bach-goldberg-var1', title: 'Bach: Goldberg Variations, Variation 1' },
+] as const satisfies readonly { id: string; title: string }[];
+export const MUSIC_TRACK_IDS: readonly string[] = MUSIC_TRACKS.map((track) => track.id);

@@ -3,6 +3,7 @@
   import '@fontsource-variable/atkinson-hyperlegible-next';
   import '../app.css';
   import { roomBar } from '#lib/ui/roomBar.svelte.ts';
+  import SoundToggle from '#lib/ui/SoundToggle.svelte';
   import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
   import TileRipple from '#lib/ui/TileRipple.svelte';
   import type { LayoutProps } from './$types';
@@ -62,6 +63,7 @@
         <a href="/privacy">Privacy</a>
       </nav>
     {/if}
+    {#if roomBar.room}<SoundToggle />{/if}
     <ThemeToggle />
   </header>
   {@render children()}
@@ -139,13 +141,19 @@
   }
   @media (max-width: 34rem) {
     .bar {
-      gap: 0.5rem 0.75rem;
+      gap: 0.5rem;
+    }
+    /* The room's row shows your role under your own card, so the bar lets it go here. */
+    .you {
+      display: none;
+    }
+    .bar :global(.toggle) {
+      width: 2.25rem;
     }
     nav {
       gap: 0.75rem;
     }
     nav[aria-label='Site'] a:first-child,
-    .you-name,
     .copy span {
       display: none;
     }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BUILT_IN_DECKS } from '@pokerji/protocol';
+  import { BUILT_IN_DECKS, MUSIC_TRACKS } from '@pokerji/protocol';
   import { page } from '$app/state';
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { PageProps } from './$types';
@@ -42,7 +42,7 @@
   {/if}
 
   <section>
-    <h2>Deck and timer</h2>
+    <h2>Deck, timer and music</h2>
     <form method="POST" action="?/settings">
       <p>
         <label for="deck">Deck</label>
@@ -79,7 +79,20 @@
           value={data.timerSeconds ?? ''}
         />
       </p>
-      <p>Leave the timer empty for no timer. The deck can only change between rounds.</p>
+      <p class="hint">Leave the timer empty for no timer. The deck can only change between rounds.</p>
+      <p>
+        <label for="music">Music during the countdown</label>
+        <select id="music" name="music" value={data.music ?? ''}>
+          <option value="">None</option>
+          {#each MUSIC_TRACKS as track (track.id)}
+            <option value={track.id}>{track.title}</option>
+          {/each}
+        </select>
+      </p>
+      <p class="hint">
+        Music plays only while the timer runs, and only for people who have turned sound on in the
+        room. It fades out as the time runs out, and a short beep marks the end.
+      </p>
       <button>Save settings</button>
     </form>
   </section>
