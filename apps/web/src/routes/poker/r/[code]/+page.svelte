@@ -9,13 +9,16 @@
   <title>Planning poker · pokerji</title>
 </svelte:head>
 
-<main>
-  {#if data.joined}
+{#if data.joined}
+  <main class="bleed">
     <!-- Keyed, so moving to another room starts from a clean state. -->
     {#key data.code}
       <Room code={data.code} retentionDays={data.retentionDays} />
     {/key}
-  {:else}
+  
+  </main>
+{:else}
+  <main>
     <h1>Join the room</h1>
     {#if form?.message}
       <p role="alert">{form.message}</p>
@@ -40,5 +43,6 @@
       </p>
       <button>Join</button>
     </form>
-  {/if}
-</main>
+  
+  </main>
+{/if}

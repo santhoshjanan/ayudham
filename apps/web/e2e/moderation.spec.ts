@@ -182,7 +182,10 @@ test.describe('running a round', () => {
     await expect(mo.getByTestId('participants')).toContainText('Ann');
     await expect(ann.getByRole('button', { name: 'Remove Mo' })).toHaveCount(0);
 
+    await mo.getByRole('button', { name: 'Manage people' }).click();
     await mo.getByRole('button', { name: 'Remove Ann' }).click();
+    await expect(mo.getByRole('dialog')).toContainText('can join again');
+    await mo.getByRole('button', { name: 'Yes, remove' }).click();
     await expect(ann.getByRole('heading', { level: 1 })).toHaveText(
       'You are no longer in this room',
     );
@@ -195,7 +198,9 @@ test.describe('running a round', () => {
     const { page: mo, path } = await createRoom(browser, 'Mo');
     const { page: ann } = await joinRoom(browser, path, 'Ann');
     await expect(ann.getByRole('button', { name: 'Reveal' })).toHaveCount(0);
+    await mo.getByRole('button', { name: 'Manage people' }).click();
     await mo.getByRole('button', { name: 'Make Ann a moderator' }).click();
+    await mo.getByRole('button', { name: 'Yes, make moderator' }).click();
     await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
     await expect(ann.getByRole('link', { name: 'Settings' })).toBeVisible();
     // Moderators cannot remove each other.
@@ -387,7 +392,7 @@ test.describe('privacy page', () => {
     await expect(main).toContainText('We do not store your IP address');
     await expect(main).toContainText('a moderator can delete those rounds');
     await expect(main).toContainText('for up to an hour');
-    await expect(main).not.toContainText('theme');
+    await expect(main).toContainText('light or the dark theme');
   });
 });
 
@@ -397,7 +402,9 @@ test.describe('ownership', () => {
   }) => {
     const { page: mo, path } = await createRoom(browser, 'Mo');
     const { page: ann, context } = await joinRoom(browser, path, 'Ann');
+    await mo.getByRole('button', { name: 'Manage people' }).click();
     await mo.getByRole('button', { name: 'Make Ann a moderator' }).click();
+    await mo.getByRole('button', { name: 'Yes, make moderator' }).click();
     await expect(ann.getByRole('link', { name: 'Settings' })).toBeVisible();
 
     await ann.goto(`${path}/settings`);
@@ -427,7 +434,9 @@ test.describe('ownership', () => {
     const { page: mo, path } = await createRoom(browser, 'Mo');
     const { page: ann } = await joinRoom(browser, path, 'Ann');
     await expect(mo.getByTestId('participants')).toContainText('Mo not voted · owner');
+    await mo.getByRole('button', { name: 'Manage people' }).click();
     await mo.getByRole('button', { name: 'Make Ann a moderator' }).click();
+    await mo.getByRole('button', { name: 'Yes, make moderator' }).click();
     await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
 
     // Ann closes the room. She can still be demoted, because it does not depend on her being there.

@@ -95,6 +95,10 @@
     We set one cookie for each room you join. It keeps you in that room and does nothing else.
     It cannot be read by scripts and is sent only to this site.
   </p>
+  <p>
+    Your browser also remembers whether you chose the light or the dark theme. That choice stays
+    on your device and is never sent to us.
+  </p>
   <p><b>How:</b> there are no advertising, analytics or third-party cookies on this site.</p>
 
   <h2>What we do not collect</h2>

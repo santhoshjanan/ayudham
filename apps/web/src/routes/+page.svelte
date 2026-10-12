@@ -8,5 +8,4 @@
   <ul>
     <li><a href="/poker">Planning poker</a></li>
   </ul>
-  <p><a href="/privacy">Privacy</a></p>
 </main>
