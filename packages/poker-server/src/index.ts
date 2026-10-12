@@ -13,4 +13,5 @@ export * from './rooms.ts';
 export * from './secrets.ts';
 export * from './sessions.ts';
 export * from './socket.ts';
+export * from './upgrade.ts';
 export * from './validate.ts';
