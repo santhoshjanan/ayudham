@@ -10,3 +10,4 @@ export * from './registry.ts';
 export * from './rooms.ts';
 export * from './secrets.ts';
 export * from './sessions.ts';
+export * from './socket.ts';
