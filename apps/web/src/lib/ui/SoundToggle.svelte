@@ -32,6 +32,7 @@
       step="0.05"
       value={sound.volume}
       aria-label="Volume"
+      aria-valuetext="{Math.round(sound.volume * 100)}%"
       oninput={(event) => setVolume(Number(event.currentTarget.value))}
     />
   {/if}

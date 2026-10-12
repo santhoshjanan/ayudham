@@ -102,7 +102,8 @@
   <p>
     Your browser also remembers whether you chose the light or the dark theme, whether you turned
     sound on, and how loud. Those choices stay on your device and are never sent to us. Sound is
-    off until you turn it on, and no music is downloaded before that.
+    off until you turn it on, and no music is downloaded before that. When it is on and a room
+    plays music, your browser asks this site for the music file, as it does for any page.
   </p>
   <p class="how"><b>How:</b> there are no advertising, analytics or third-party cookies on this site.</p>
 

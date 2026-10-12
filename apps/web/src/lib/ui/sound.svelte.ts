@@ -34,6 +34,11 @@ const remember = (key: string, value: string) => {
 /** The audio device, opened on first use. Null when the browser has none or refuses. */
 const output = (): { context: AudioContext; master: GainNode } | null => {
   if (!sound.on) return null;
+  // After a reload sound may be on before the person has touched the page. Browsers
+  // hold audio back until they do, and notes asked for meanwhile would queue up and
+  // all play at the first click. So until then nothing is asked for at all; the room
+  // asks again several times a second, and the music starts once the page is touched.
+  if (navigator.userActivation?.hasBeenActive === false) return null;
   try {
     if (!context || !master) {
       context = new AudioContext();
@@ -46,15 +51,6 @@ const output = (): { context: AudioContext; master: GainNode } | null => {
     return { context, master };
   } catch {
     return null;
-  }
-};
-
-/** After a reload sound may be on with no gesture yet; the first one lets it start. */
-const wake = () => {
-  if (!sound.on) return;
-  if (context?.state === 'suspended') void context.resume().catch(() => undefined);
-  if (music && !music.fading && music.element.paused) {
-    void music.element.play().catch(() => undefined);
   }
 };
 
@@ -71,15 +67,20 @@ export function loadSound(): void {
   } catch {
     // No storage: sound stays off until turned on.
   }
-  document.addEventListener('pointerdown', wake);
-  document.addEventListener('keydown', wake);
 }
 
 export function setSound(on: boolean): void {
   sound.on = on;
   remember(SOUND_KEY, on ? '1' : '0');
-  if (on) tick();
-  else stopMusic();
+  if (on) {
+    tick();
+    return;
+  }
+  stopMusic();
+  // Off means the audio device is closed, not merely quiet.
+  void context?.close().catch(() => undefined);
+  context = null;
+  master = null;
 }
 
 export function setVolume(volume: number): void {
@@ -129,6 +130,9 @@ export function stopMusic(): void {
   if (!music) return;
   clearTimeout(music.done);
   music.element.pause();
+  // Dropping the source ends the download of a track that was barely played.
+  music.element.removeAttribute('src');
+  music.element.load();
   music.source.disconnect();
   music.gain.disconnect();
   music = null;

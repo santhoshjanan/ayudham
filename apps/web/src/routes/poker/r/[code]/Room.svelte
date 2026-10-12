@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { refreshAll } from '$app/navigation';
   import {
     CLOSE_TOO_MANY_CONNECTIONS,
@@ -169,7 +170,8 @@
   );
   // One soft tick for each of 3, 2, 1, for people with sound on.
   $effect(() => {
-    if (count !== null) tick();
+    // Only a new number ticks; turning sound on mid-count makes its own tick.
+    if (count !== null) untrack(tick);
   });
 
   // Music runs with the countdown and with nothing else. It is silent by the time
@@ -178,6 +180,11 @@
   const FADE_MS = 2_000;
   $effect(() => {
     if (!room) return;
+    // Removed, or closed by the server: the last snapshot is stale and its timer means nothing.
+    if (status === 'removed' || status === 'full' || status === 'replaced') {
+      stopMusic();
+      return;
+    }
     const endsAt = room.timer.endsAt;
     if (!sound.on || room.music === null || endsAt === null || room.phase !== 'voting') {
       fadeMusic(FADE_MS);

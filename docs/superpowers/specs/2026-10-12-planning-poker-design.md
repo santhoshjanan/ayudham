@@ -218,6 +218,8 @@ Optional. A room has no timer until the moderator sets a length (10 seconds to 1
 - If the moderator stops the timer or reveals early, the music fades out over about two seconds with no beep.
 - During the three-second reveal count, each beat has a soft synthesised tick for people with sound on.
 - Tracks are recordings released under CC0 by whoever made the recording; a Public Domain Mark alone is not accepted. The four bundled tracks are Chopin's Nocturne Op. 9 No. 2 and Waltz Op. 64 No. 1 (Musopen) and the Aria and Variation 1 of Bach's Goldberg Variations (Kimiko Ishizaka). Each track's source, licence and checksum is recorded in `apps/web/static/audio/LICENSES.md`, and a browser test checks each served file against its row. Files are MP3, served by the app, and fetched only for a person who has sound on, in a room that has a track, while a countdown runs.
+- In a page the person has not yet touched (a newly opened tab with sound already on), nothing is played or queued; sound starts at their first click, tap or key press. Turning sound off closes the audio device.
+- Music stops at once for someone who is removed from the room.
 - The sound toggle is in the site bar while in a room, with a volume slider beside it on wider screens. Turning sound on plays one tick as confirmation.
 
 ### Theme
