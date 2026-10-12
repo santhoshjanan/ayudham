@@ -3,6 +3,7 @@
   import '@fontsource-variable/atkinson-hyperlegible-next';
   import '../app.css';
   import { roomBar } from '#lib/ui/roomBar.svelte.ts';
+  import SoundToggle from '#lib/ui/SoundToggle.svelte';
   import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
   import TileRipple from '#lib/ui/TileRipple.svelte';
   import type { LayoutProps } from './$types';
@@ -62,6 +63,7 @@
         <a href="/privacy">Privacy</a>
       </nav>
     {/if}
+    {#if roomBar.room}<SoundToggle />{/if}
     <ThemeToggle />
   </header>
   {@render children()}

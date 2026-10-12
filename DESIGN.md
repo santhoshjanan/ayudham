@@ -327,6 +327,7 @@ The signature component.
 - **Turn:** each card rotates about its vertical axis in one 300 ms move, `cubic-bezier(0.16, 1, 0.3, 1)`. Every card turns on the same state change, so the row turns in unison.
 - **The beat:** only on a screen that watched the cards turn (`data-reveal="live"` on the room), never for someone who opens the room afterwards. 450 ms after the turn the Low flag is stamped on (it drops in from 1.8 times its size in 240 ms), its card dips 0.3rem and takes its red edge, and the Low name lands on the stage; High follows at 850 ms. A unanimous round has no flags: the verdict lands with the count's beat and the row hops, one card 45 ms after the next. Under reduced motion all of it is simply present.
 - **Outside the room:** `Scorecard.svelte` in `apps/web/src/lib/ui` is the one implementation. The home band shows a decorative row of five that turns once, 900 ms after the page opens.
+- **Sound:** the reveal count ticks once per number, and a countdown ends in a telegraph key (three short, one long) after the music has faded. All of it is off until a person turns it on.
 - **Away:** the card and name of someone who has left the tab drop to half opacity, with an Away badge.
 - **The break card:** a drawn cup in the numeral's stroke weight, not an emoji.
 

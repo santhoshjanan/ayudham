@@ -100,8 +100,9 @@
     It cannot be read by scripts and is sent only to this site.
   </p>
   <p>
-    Your browser also remembers whether you chose the light or the dark theme. That choice stays
-    on your device and is never sent to us.
+    Your browser also remembers whether you chose the light or the dark theme, whether you turned
+    sound on, and how loud. Those choices stay on your device and are never sent to us. Sound is
+    off until you turn it on, and no music is downloaded before that.
   </p>
   <p class="how"><b>How:</b> there are no advertising, analytics or third-party cookies on this site.</p>
 

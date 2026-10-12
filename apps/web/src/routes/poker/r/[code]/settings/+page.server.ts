@@ -36,6 +36,7 @@ export const load: PageServerLoad = async (event) => {
     values: room.deck.values.join(', '),
     specials: room.deck.specials.join(', '),
     timerSeconds: room.timerSeconds,
+    music: room.music,
     hasPasscode: room.passcodeHash !== null,
   };
 };
@@ -50,10 +51,11 @@ export const actions: Actions = {
         ? parseDeckText(String(form.get('values') ?? ''), String(form.get('specials') ?? ''))
         : (BUILT_IN_DECKS[deckId as BuiltInDeckId]?.deck ?? null);
     const timer = String(form.get('timer') ?? '').trim();
+    const music = String(form.get('music') ?? '');
     const result = await saveSettings(runtime().app, actor, {
       deck,
       timerSeconds: timer === '' ? null : Number(timer),
-      music: actor.room.music,
+      music: music === '' ? null : music,
     });
     if (result.ok) return { notice: 'Settings saved.' };
     if (result.reason === 'limited') return fail(429, { message: LIMITED });

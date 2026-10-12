@@ -10,6 +10,7 @@
   import { cssVar } from '#lib/ui/cssVar.ts';
   import Scorecard from '#lib/ui/Scorecard.svelte';
   import { roomBar } from '#lib/ui/roomBar.svelte.ts';
+  import { beep, fadeMusic, sound, startMusic, stopMusic, tick } from '#lib/ui/sound.svelte.ts';
 
   let { code, retentionDays }: { code: string; retentionDays: number } = $props();
 
@@ -102,6 +103,7 @@
           finish('full');
         } else if (message.type === 'timerExpired') {
           notice = 'Time is up.';
+          beep();
         } else if (message.type === 'error') {
           // Without this a refused action would simply do nothing.
           notice =
@@ -165,6 +167,28 @@
       ? Math.min(COUNT_FROM, Math.max(1, Math.ceil((room.revealAt - now) / 1000)))
       : null,
   );
+  // One soft tick for each of 3, 2, 1, for people with sound on.
+  $effect(() => {
+    if (count !== null) tick();
+  });
+
+  // Music runs with the countdown and with nothing else. It is silent by the time
+  // the clock reaches zero, so the beep that marks the end is heard clean; if the
+  // timer is stopped or the cards are revealed early it fades with no beep.
+  const FADE_MS = 2_000;
+  $effect(() => {
+    if (!room) return;
+    const endsAt = room.timer.endsAt;
+    if (!sound.on || room.music === null || endsAt === null || room.phase !== 'voting') {
+      fadeMusic(FADE_MS);
+      return;
+    }
+    const left = endsAt - now;
+    if (left <= FADE_MS) fadeMusic(Math.max(left, 100));
+    else startMusic(room.music);
+  });
+  $effect(() => stopMusic);
+
   const secondsLeft = $derived(
     room && room.timer.endsAt !== null
       ? Math.max(0, Math.ceil((room.timer.endsAt - now) / 1000))
