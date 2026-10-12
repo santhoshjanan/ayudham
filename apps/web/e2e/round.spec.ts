@@ -76,7 +76,8 @@ test('a spectator watches without a hand', async ({ browser }) => {
   const { page: mo, path } = await createRoom(browser, 'Mo');
   const { page: sam } = await joinRoom(browser, path, 'Sam', 'Spectator');
   await expect(sam.getByText('You are watching.')).toBeVisible();
-  await expect(sam.getByRole('button', { name: /^Vote / })).toHaveCount(0);
+  await expect(sam.getByRole('heading', { name: 'Your hand' })).toHaveCount(0);
+  await expect(sam.getByRole('button', { name: 'Vote 5', exact: true })).toHaveCount(0);
   await expect(mo.getByText('Watching')).toBeVisible();
   await expect(sam.getByRole('button', { name: 'Reveal' })).toHaveCount(0);
 });

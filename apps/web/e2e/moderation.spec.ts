@@ -142,3 +142,88 @@ test.describe('settings', () => {
     await expect(again.page.getByRole('alert')).toHaveText(refusal);
   });
 });
+
+test.describe('running a round', () => {
+  test('the timer counts down for everyone and says when time is up', async ({ browser }) => {
+    const { page: mo, path } = await createRoom(browser, 'Mo');
+    await expect(mo.getByTestId('timer')).toHaveCount(0);
+    await mo.goto(`${path}/settings`);
+    await mo.getByLabel('Timer in seconds').fill('10');
+    await mo.getByRole('button', { name: 'Save settings' }).click();
+    await mo.goto(path);
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+
+    await expect(ann.getByTestId('timer')).toHaveText('Timer: 10 seconds, not running');
+    await expect(ann.getByRole('button', { name: 'Start timer' })).toHaveCount(0);
+    await mo.getByRole('button', { name: 'Start timer' }).click();
+    await expect(ann.getByTestId('timer')).toContainText('remaining');
+    await expect(ann.getByText('Time is up.')).toBeVisible({ timeout: 15_000 });
+    // The timer never reveals on its own.
+    await expect(ann.getByTestId('result')).toHaveCount(0);
+  });
+
+  test('a moderator stops the timer', async ({ browser }) => {
+    const { page: mo, path } = await createRoom(browser, 'Mo');
+    await mo.goto(`${path}/settings`);
+    await mo.getByLabel('Timer in seconds').fill('60');
+    await mo.getByRole('button', { name: 'Save settings' }).click();
+    await mo.goto(path);
+    await mo.getByRole('button', { name: 'Start timer' }).click();
+    await expect(mo.getByTestId('timer')).toContainText('remaining');
+    await mo.getByRole('button', { name: 'Stop timer' }).click();
+    await expect(mo.getByTestId('timer')).toHaveText('Timer: 60 seconds, not running');
+  });
+
+  test('a moderator removes someone, who is told and cannot simply reconnect', async ({
+    browser,
+  }) => {
+    const { page: mo, path } = await createRoom(browser, 'Mo');
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+    await expect(mo.getByTestId('participants')).toContainText('Ann');
+    await expect(ann.getByRole('button', { name: 'Remove Mo' })).toHaveCount(0);
+
+    await mo.getByRole('button', { name: 'Remove Ann' }).click();
+    await expect(ann.getByRole('heading', { level: 1 })).toHaveText(
+      'You are no longer in this room',
+    );
+    await expect(mo.getByTestId('participants')).not.toContainText('Ann');
+    await ann.reload();
+    await expect(ann.getByRole('heading', { level: 1 })).toHaveText('Join the room');
+  });
+
+  test('a moderator makes someone a co-moderator', async ({ browser }) => {
+    const { page: mo, path } = await createRoom(browser, 'Mo');
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+    await expect(ann.getByRole('button', { name: 'Reveal' })).toHaveCount(0);
+    await mo.getByRole('button', { name: 'Make Ann a moderator' }).click();
+    await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
+    await expect(ann.getByRole('link', { name: 'Settings' })).toBeVisible();
+    // Moderators cannot remove each other.
+    await expect(mo.getByRole('button', { name: 'Remove Ann' })).toHaveCount(0);
+  });
+
+  test('someone switches between voting and watching', async ({ browser }) => {
+    const { page: mo, path } = await createRoom(browser, 'Mo');
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+    await vote(ann, '5');
+    await ann.getByRole('button', { name: 'Watch instead' }).click();
+    await expect(ann.getByText('You are watching.')).toBeVisible();
+    await expect(mo.getByText('Watching')).toBeVisible();
+    await expect(mo.getByTestId('participants')).not.toContainText('Ann');
+
+    await ann.getByRole('button', { name: 'Vote instead' }).click();
+    await expect(mo.getByTestId('participants')).toContainText('Ann not voted');
+  });
+
+  test('"Vote again" keeps the story and clears the votes', async ({ browser }) => {
+    const { page: mo } = await createRoom(browser, 'Mo');
+    await mo.getByLabel('Story title').fill('PROJ-9');
+    await mo.getByRole('button', { name: 'Set title' }).click();
+    await vote(mo, '5');
+    await mo.getByRole('button', { name: 'Reveal' }).click();
+    await expect(mo.getByTestId('result')).toContainText('Unanimous: 5', { timeout: 8_000 });
+    await mo.getByRole('button', { name: 'Vote again' }).click();
+    await expect(mo.getByRole('heading', { level: 1 })).toHaveText('PROJ-9');
+    await expect(mo.getByTestId('participants')).toContainText('Mo not voted');
+  });
+});
