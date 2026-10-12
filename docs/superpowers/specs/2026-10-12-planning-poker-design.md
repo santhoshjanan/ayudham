@@ -122,7 +122,7 @@ Room creation shows a recovery link once: `/poker/r/<code>/recover#m=<secret>`. 
 
 ### Removing someone
 
-Removal deletes the session and closes its socket. A moderator cannot remove themselves or another moderator. In a room without a passcode that person can rejoin through the link; the removal dialog says so and offers to set a passcode. Changing or setting a passcode deletes all non-moderator sessions.
+Removal deletes the session and closes its socket. A moderator cannot remove themselves or another moderator, and nobody can be removed during the three-second reveal count. In a room without a passcode that person can rejoin through the link; the removal dialog says so and offers to set a passcode. Changing or setting a passcode deletes all non-moderator sessions.
 
 ### Abuse limits
 
@@ -135,7 +135,7 @@ Defaults, all configurable:
 | Passcode failures per client per room | 5 per 10 minutes |
 | Passcode failures per room, all clients | 50 per hour |
 | WebSocket messages per connection | 30 per 10 seconds |
-| Participants per room | 50 |
+| Participants per room | 50, not counting moderators, who can always enter |
 | WebSocket message size | 2 KB |
 | Story title length | 200 characters |
 | Custom deck | up to 20 cards, 4 characters each |
@@ -176,11 +176,11 @@ Settings changes and deletions are form posts on the settings and history pages.
 - **Revealed.** All values are shown with statistics: average, lowest, highest, distribution, and whether the vote was unanimous. Lowest, highest and unanimity are taken from the order of the deck's value cards, so they work for non-numeric decks such as T-shirt sizes. The average is given only when every value card voted is a number. Special cards (`?`, break) appear in the distribution and in nothing else. The people holding the lowest and highest cards are identified unless the vote was unanimous. The round is written to Postgres at reveal. A reveal with no votes is not saved.
 - **New round.** Clears votes and returns to voting. Not available during the count.
 
-The story title can be changed only during voting.
+The story title can be changed only during voting. It is a single line of up to 200 characters, with no control characters or text-direction overrides.
 
 ### Decks
 
-A deck is an ordered list of value cards, lowest first, plus a list of special cards. Built in: Fibonacci, modified Fibonacci, T-shirt sizes, powers of two; each has the special cards `?` and a break card. A moderator can define a custom deck with at least two value cards. Changing the deck is allowed only between rounds: after a reveal, or during voting before anyone has voted. A deck change starts a new round and keeps the title.
+A deck is an ordered list of value cards, lowest first, plus a list of special cards. Built in: Fibonacci, modified Fibonacci, T-shirt sizes, powers of two; each has the special cards `?` and a break card. A moderator can define a custom deck with at least two value cards. Cards may contain letters, digits, punctuation and symbols only: no spaces, invisible or control characters, combining marks or text-direction overrides. Two cards that look the same after Unicode normalisation count as duplicates. Changing the deck is allowed only between rounds: after a reveal, or during voting before anyone has voted. A deck change starts a new round and keeps the title.
 
 ### Timer
 

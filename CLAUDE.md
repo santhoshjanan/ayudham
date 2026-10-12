@@ -4,7 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Greenfield. The repository has no code, no commits, and no chosen stack yet. There are no build, lint, or test commands — add them here (including how to run a single test) as soon as the toolchain is decided. Do not assume a framework, package manager, or hosting target; those are outputs of the brainstorming/spec step.
+Early build. `packages/protocol` and `packages/poker-engine` exist; the server and UI do not yet. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`.
+
+## Commands
+
+Package manager is pnpm (Node 24+).
+
+- Install: `pnpm install`
+- All tests: `pnpm test`
+- One package: `pnpm --filter @pokerji/poker-engine test`
+- One file: `pnpm --filter @pokerji/poker-engine exec vitest run test/rounds.test.ts`
+- One test by name: add `-t "part of the test name"` to the line above
+- Typecheck: `pnpm typecheck`
+- Format: `pnpm format` (check only: `pnpm format:check`)
+- Dev Postgres and Valkey: `docker compose up -d --wait` (stop: `docker compose down`; wipe data: `docker compose down -v`). Development only; production uses existing shared services.
+
+Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.
+
+## Architecture
+
+- `packages/protocol`: limits, decks, and WebSocket message schemas shared by server and browser.
+- `packages/poker-engine`: the room rules as a pure reducer, `apply(state, command, now)` returning `{ state, effects }`. No I/O, no clock, no framework. A host (the server) feeds it commands and carries out its effects.
+- Vote secrecy is enforced in one place, `snapshotFor` in the engine. Anything that sends room state to a browser must go through it.
 
 ## What this is
 

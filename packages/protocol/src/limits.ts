@@ -1,0 +1,14 @@
+export const MAX_PARTICIPANTS = 50;
+export const MAX_MESSAGE_BYTES = 2048;
+export const TITLE_MAX = 200;
+export const NAME_MIN = 1;
+export const NAME_MAX = 30;
+export const DECK_MAX_CARDS = 20;
+export const CARD_MAX_CHARS = 4;
+export const TIMER_MIN_SECONDS = 10;
+export const TIMER_MAX_SECONDS = 600;
+export const REVEAL_COUNT_MS = 3_000;
+export const AWAY_DROP_MS = 600_000;
+export const ROOM_UNLOAD_MS = 300_000;
+export const PASSCODE_MIN = 4;
+export const PASSCODE_MAX = 64;
