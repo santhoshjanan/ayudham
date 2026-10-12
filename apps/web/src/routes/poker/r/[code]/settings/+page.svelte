@@ -1,6 +1,7 @@
 <script lang="ts">
   import { BUILT_IN_DECKS } from '@pokerji/protocol';
   import { page } from '$app/state';
+  import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
@@ -32,11 +33,12 @@
 
   {#if form && 'recoveryToken' in form && form.recoveryToken}
     <p>Save this link now. It is shown only once, and the previous link no longer works.</p>
-    <p>
+    <div class="copy-row">
       <code data-testid="recovery-link"
         >{page.url.origin}/poker/r/{data.code}/recover#m={form.recoveryToken}</code
       >
-    </p>
+      <CopyButton label="Copy moderator link" text={`${page.url.origin}/poker/r/${data.code}/recover#m=${form.recoveryToken}`} />
+    </div>
   {/if}
 
   <section>

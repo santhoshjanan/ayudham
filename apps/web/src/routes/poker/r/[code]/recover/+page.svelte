@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
@@ -46,11 +47,12 @@
       The link you just used no longer works: a moderator link works once. Save this new one. It
       is shown only now.
     </p>
-    <p>
+    <div class="copy-row">
       <code data-testid="recovery-link"
         >{page.url.origin}/poker/r/{data.code}/recover#m={form.recoveryToken}</code
       >
-    </p>
+      <CopyButton label="Copy moderator link" text={`${page.url.origin}/poker/r/${data.code}/recover#m=${form.recoveryToken}`} />
+    </div>
     <p><a href="/poker/r/{data.code}">Open the room</a></p>
   {:else}
     {#if form && 'message' in form}

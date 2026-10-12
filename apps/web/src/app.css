@@ -218,6 +218,15 @@ select {
   padding: 0.6rem 0.7rem;
   min-height: 2.75rem;
 }
+/* The deck menu draws its own arrow, so it matches the other controls. */
+select {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8c93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.1rem;
+}
 input:not([type='radio'], [type='checkbox'], [type='hidden']):hover,
 select:hover {
   border-color: var(--ink-soft);
@@ -262,9 +271,13 @@ button:hover:not(:disabled) {
 button:active:not(:disabled) {
   transform: translateY(1px);
 }
+/* Disabled is drawn, not faded: a faded control turns to mud on the dark theme. */
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  color: var(--ink-soft);
+  background: transparent;
+  border-color: var(--line);
+  border-style: dashed;
 }
 
 /* The one primary action on a screen. */
@@ -280,6 +293,14 @@ form:not([action]) > button:hover:not(:disabled),
 form[action='?/join'] > button:hover:not(:disabled) {
   background: var(--action-hover);
   color: var(--action-ink);
+}
+
+.primary:disabled,
+form:not([action]) > button:disabled,
+form[action='?/join'] > button:disabled {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--line);
 }
 
 /* Destructive actions are the only buttons that carry the flag colour. */
@@ -437,8 +458,10 @@ main form > p {
   color: var(--ink-soft);
   font-size: 0.95rem;
 }
-.inactive {
-  opacity: 0.5;
+/* Fields that do not apply right now recede; the hint that says how to use them does not. */
+.inactive label,
+.inactive input {
+  opacity: 0.55;
 }
 
 /* "How it is kept": the mechanism beside each privacy promise. */
@@ -534,4 +557,37 @@ main form > p {
 .claims dd {
   margin: 0;
   color: var(--ink-soft);
+}
+
+/* A role is a marked badge, never text beside the name, so a name cannot pose as one. */
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge.owner {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ground);
+}
+.badge.quiet {
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+
+.copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: start;
+}
+.copy-row code {
+  flex: 1 1 18rem;
 }

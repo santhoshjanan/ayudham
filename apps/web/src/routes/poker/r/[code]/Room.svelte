@@ -2,11 +2,13 @@
   import { refreshAll } from '$app/navigation';
   import {
     CLOSE_TOO_MANY_CONNECTIONS,
+    REVEAL_COUNT_MS,
     type ClientMessage,
     type RoomSnapshot,
     type ServerMessage,
   } from '@pokerji/protocol';
   import { cssVar } from '#lib/ui/cssVar.ts';
+  import { roomBar } from '#lib/ui/roomBar.svelte.ts';
 
   let { code, retentionDays }: { code: string; retentionDays: number } = $props();
 
@@ -18,7 +20,6 @@
   let notice = $state('');
   let now = $state(Date.now());
   let titleDraft = $state('');
-  let copied = $state(false);
   // A removal or promotion waiting for the moderator to confirm it.
   let pending = $state<{ kind: 'remove' | 'promote'; person: Person } | null>(null);
   let dialog = $state<HTMLDialogElement>();
@@ -133,6 +134,16 @@
     };
   });
 
+  // The site bar shows this room's link, pages and who you are. Browser only.
+  $effect(() => {
+    roomBar.room = room
+      ? { code, name: room.you.name, owner: room.you.owner, moderator: room.you.moderator }
+      : null;
+    return () => {
+      roomBar.room = null;
+    };
+  });
+
   // The confirmation dialog follows `pending`.
   $effect(() => {
     if (!dialog) return;
@@ -140,9 +151,12 @@
     if (!pending && dialog.open) dialog.close();
   });
 
+  // The count is 3, 2, 1 and never more: this page's clock ticks every 200 ms,
+  // so without the cap the first instant could round up to 4.
+  const COUNT_FROM = REVEAL_COUNT_MS / 1000;
   const count = $derived(
     room?.phase === 'counting' && room.revealAt !== null
-      ? Math.max(1, Math.ceil((room.revealAt - now) / 1000))
+      ? Math.min(COUNT_FROM, Math.max(1, Math.ceil((room.revealAt - now) / 1000)))
       : null,
   );
   const secondsLeft = $derived(
@@ -184,6 +198,13 @@
     return parts.join('');
   };
 
+  /** Who holds the low and the high card, for the stage: "Mo", "Mo and Ann", "Mo, Ann and 2 more". */
+  const namesOf = (ids: readonly string[]): string => {
+    const names = (room?.participants ?? []).filter((p) => ids.includes(p.id)).map((p) => p.name);
+    if (names.length <= 2) return names.join(' and ');
+    return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+  };
+
   const cardState = (person: Person): 'up' | 'down' | 'empty' => {
     if (room?.phase === 'revealed') return person.vote !== null ? 'up' : 'empty';
     return person.hasVoted ? 'down' : 'empty';
@@ -204,16 +225,6 @@
   const setTitle = (event: SubmitEvent) => {
     event.preventDefault();
     send({ type: 'setTitle', title: titleDraft });
-  };
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(`${location.origin}/poker/r/${code}`);
-      copied = true;
-      setTimeout(() => (copied = false), 2_000);
-    } catch {
-      // The address bar still has the link.
-    }
   };
 
   const confirmPending = () => {
@@ -256,13 +267,23 @@
 {#snippet reveal()}
   <button
     type="button"
-    class="primary reveal"
+    class="reveal"
+    class:primary={room?.phase !== 'revealed'}
     disabled={!live || !room || room.phase !== 'voting'}
     onclick={() => send({ type: 'reveal' })}>Reveal</button
   >
 {/snippet}
 
-{#snippet otherControls()}
+{#snippet newRound()}
+  <button
+    type="button"
+    class:primary={room?.phase === 'revealed'}
+    disabled={!live || !room || room.phase === 'counting'}
+    onclick={() => send({ type: 'newRound', keepTitle: false })}>New round</button
+  >
+{/snippet}
+
+{#snippet otherControls(withNewRound: boolean)}
   {#if room}
     <div class="pair">
       <button
@@ -270,11 +291,7 @@
         disabled={!live || room.phase === 'counting'}
         onclick={() => send({ type: 'newRound', keepTitle: true })}>Vote again</button
       >
-      <button
-        type="button"
-        disabled={!live || room.phase === 'counting'}
-        onclick={() => send({ type: 'newRound', keepTitle: false })}>New round</button
-      >
+      {#if withNewRound}{@render newRound()}{/if}
     </div>
     {#if room.timer.seconds !== null}
       {#if room.timer.endsAt === null}
@@ -351,20 +368,6 @@
     class:voter={room.you.role === 'voter'}
     class:barred={room.you.moderator && !wide}
   >
-    <nav class="roombar" aria-label="Room">
-      <button type="button" class="link" onclick={copyLink}>
-        {copied ? 'Link copied' : 'Copy room link'}
-      </button>
-      <a href="/poker/r/{code}/history">History</a>
-      {#if room.you.moderator}
-        <a href="/poker/r/{code}/settings">Settings</a>
-      {/if}
-      <span class="you">
-        {room.you.name}
-        {@render badge(room.you)}
-      </span>
-    </nav>
-
     {#if status === 'reconnecting'}
       <p class="banner" data-testid="status" role="status">Connection lost. Reconnecting…</p>
     {/if}
@@ -386,24 +389,35 @@
           <p class="notice" role="status">{notice}</p>
         {/if}
 
-        {#if room.phase === 'revealed' && room.result}
-          <section class="result" data-testid="result" aria-live="polite">
-            <h2 class="sr-only">Result</h2>
-            {#if room.result.low === null}
-              <p class="verdict">No estimates were given.</p>
-            {:else if room.result.unanimous}
-              <p class="verdict">Unanimous: {room.result.low}</p>
-            {:else}
-              <p class="verdict">Low {room.result.low}, High {room.result.high}</p>
-            {/if}
-            {#if room.result.average !== null}
-              <p class="average">Average {Math.round(room.result.average * 10) / 10}</p>
-            {/if}
-            {#if room.saveStatus === 'failed'}
-              <p class="unsaved" role="status">This round is not saved yet. Retrying.</p>
-            {/if}
-          </section>
-        {/if}
+        <!-- Always present, so the stage is the same height before and after the reveal
+             and nothing below it moves when the cards turn. -->
+        <div class="result-slot">
+          {#if room.phase === 'revealed' && room.result}
+            <section class="result" data-testid="result" aria-live="polite">
+              <h2 class="sr-only">Result</h2>
+              {#if room.result.low === null}
+                <p class="verdict">No estimates were given.</p>
+              {:else if room.result.unanimous}
+                <p class="verdict">Unanimous: {room.result.low}</p>
+              {:else}
+                <p class="verdict">Low {room.result.low}, High {room.result.high}</p>
+              {/if}
+              {#if room.result.average !== null}
+                <p class="average">Average {Math.round(room.result.average * 10) / 10}</p>
+              {/if}
+              {#if room.result.lowIds.length > 0}
+                <!-- Who speaks first. -->
+                <p class="who">
+                  <span>Low: <b>{namesOf(room.result.lowIds)}</b></span>
+                  <span>High: <b>{namesOf(room.result.highIds)}</b></span>
+                </p>
+              {/if}
+              {#if room.saveStatus === 'failed'}
+                <p class="unsaved" role="status">This round is not saved yet. Retrying.</p>
+              {/if}
+            </section>
+          {/if}
+        </div>
       </div>
 
       {#if count !== null}
@@ -508,7 +522,7 @@
         <aside class="rail" aria-labelledby="moderator-heading">
           <h2 id="moderator-heading">Moderator</h2>
           {@render reveal()}
-          {@render otherControls()}
+          {@render otherControls(true)}
         </aside>
       {/if}
     </div>
@@ -519,10 +533,15 @@
           <section class="modbar" aria-labelledby="moderator-bar-heading">
             <h2 id="moderator-bar-heading" class="sr-only">Moderator</h2>
             {#if moreOpen}
-              <div class="sheet">{@render otherControls()}</div>
+              <!-- After a reveal, New round is the bar's main button, so it is not repeated here. -->
+              <div class="sheet">{@render otherControls(room.phase !== 'revealed')}</div>
             {/if}
             <div class="modbar-row">
-              {@render reveal()}
+              {#if room.phase === 'revealed'}
+                {@render newRound()}
+              {:else}
+                {@render reveal()}
+              {/if}
               <button
                 type="button"
                 aria-expanded={moreOpen}
@@ -613,34 +632,6 @@
     --pad-bar: 5rem;
   }
 
-  /* ---- Room bar ---- */
-  .roombar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem 1.25rem;
-    padding: 0.35rem clamp(1rem, 4vw, 2.5rem);
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
-    font-size: 0.95rem;
-  }
-  .roombar a {
-    padding-block: 0.4rem;
-  }
-  .roombar .link {
-    min-height: 2.25rem;
-    padding: 0.25rem 0.75rem;
-    border-width: 1px;
-    font-size: inherit;
-  }
-  .you {
-    margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 650;
-  }
-
   .banner {
     margin: 0;
     border-radius: 0;
@@ -710,6 +701,22 @@
     border-color: var(--action);
     color: var(--action-ink);
     font-weight: 650;
+  }
+  @media (min-width: 40rem) {
+    .result-slot {
+      min-height: 5.25rem;
+    }
+  }
+  .who {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.1rem 1.5rem;
+    font-size: 1.1rem;
+    color: var(--stage-ink-soft);
+  }
+  .who b {
+    color: var(--stage-ink);
   }
   .result {
     display: flex;
@@ -930,29 +937,6 @@
     font-size: 0.8rem;
   }
 
-  /* A role is a marked badge, never text beside the name, so a name cannot pose as one. */
-  .badge {
-    display: inline-block;
-    padding: 0.05rem 0.4rem;
-    border: 1px solid currentColor;
-    border-radius: 3px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    line-height: 1.5;
-    white-space: nowrap;
-  }
-  .badge.owner {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: var(--ground);
-  }
-  .badge.quiet {
-    border-style: dashed;
-    color: var(--ink-soft);
-  }
-
   .manage {
     display: grid;
     gap: 0.25rem;
@@ -1061,6 +1045,10 @@
     padding-inline: 0.4rem;
     white-space: nowrap;
   }
+  /* With "New round" in the bar, "Vote again" has the row to itself. */
+  .pair:has(> :only-child) {
+    grid-template-columns: 1fr;
+  }
   .rail button[aria-pressed='true'] {
     background: var(--ink);
     color: var(--ground);
@@ -1113,9 +1101,12 @@
     grid-template-columns: 1fr auto;
     gap: 0.6rem;
   }
-  .modbar-row .reveal {
+  .modbar-row > :first-child {
     min-height: 3rem;
+    font-family: var(--font-display);
+    font-weight: 800;
     font-size: 1.35rem;
+    letter-spacing: 0.03em;
   }
   .sheet {
     display: grid;
@@ -1150,6 +1141,13 @@
     box-shadow: var(--shadow);
     transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   }
+  /* A card you cannot play now stays a card: white, with its numeral receded. */
+  .hand-card:disabled {
+    background: var(--card);
+    color: #94a1a6;
+    border: 1.5px solid var(--card-edge);
+    box-shadow: none;
+  }
   .hand-card:hover:not(:disabled) {
     background: var(--card);
     color: var(--card-ink);
@@ -1176,6 +1174,10 @@
     .stage {
       min-height: clamp(10rem, 26dvh, 15rem);
     }
+    /* The stage is shorter here, so the numeral is sized to fit it whole, beat included. */
+    .count {
+      font-size: clamp(5rem, 16dvh, 8.5rem);
+    }
     .row {
       --card-w: 4.25rem;
       gap: 1.1rem 0.6rem;
@@ -1184,15 +1186,13 @@
       --card-w: 3rem;
     }
     .hand {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.25rem;
+      gap: 0.6rem;
+      padding-block: 0.5rem;
     }
     .watch {
-      align-self: end;
-    }
-    .room.voter {
-      --pad-hand: 10.5rem;
+      padding-inline: 0.6rem;
+      font-size: 0.85rem;
+      white-space: nowrap;
     }
   }
 

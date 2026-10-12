@@ -1,6 +1,7 @@
 <script lang="ts">
   import { BUILT_IN_DECKS } from '@pokerji/protocol';
   import { page } from '$app/state';
+  import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
@@ -29,11 +30,12 @@
       cookies, you need this link. Whoever opens it becomes the owner, so keep it private. It works
       once: whoever uses it is given a new one. It is shown only now.
     </p>
-    <p>
+    <div class="copy-row">
       <code data-testid="recovery-link"
         >{page.url.origin}/poker/r/{form.created.code}/recover#m={form.created.recoveryToken}</code
       >
-    </p>
+      <CopyButton label="Copy moderator link" text={`${page.url.origin}/poker/r/${form.created.code}/recover#m=${form.created.recoveryToken}`} />
+    </div>
     </section>
   </main>
 {:else}
