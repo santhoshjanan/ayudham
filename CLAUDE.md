@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Every behaviour in the spec works in a browser, in plain markup: create, join, vote, reveal, timer, removing and promoting people, settings, passcodes, moderator recovery, history, removing your name, deleting a room, and the privacy page. What remains is the designed interface (Impeccable, "Judges' Row", both themes, audio) and release (Dockerfile, Traefik notes, final security audit). The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`.
+Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). What remains is sound (the opt-in music during the countdown, ticks and the beep) and release (Dockerfile, Traefik notes, final security audit). The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
 
 ## Commands
 
@@ -56,6 +56,19 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - A room has exactly one owner (a database index enforces it): its creator, or whoever last used the moderator link. Only the owner can delete the room, replace the moderator link, or demote a moderator; `deleteRoomNow` and `regenerateRecovery` check `actor.session.owner`, and demotion is the `demoteModerator` flow on the settings page (there is no room message for it, so it works on moderators who are not connected). The moderator link is replaced each time it is used. In the live room, a joiner whose session says `owner` clears that flag from everyone else, and `transferOwnership` clears it even when the new owner is absent: the stored owner is the truth. Every other moderator power is shared.
 - `MUSIC_TRACK_IDS` in `packages/protocol` is empty until tracks are chosen and licensed; until then the only valid music setting is none.
 - Browser tests give each browser context its own client address (`visitor()` in the spec files), so they do not trip the per-address rate limits. Use it for every new context.
+
+## Design
+
+`DESIGN.md` is the record of the visual system; read it before any UI change. It was derived from the built app, so if the two disagree, check which is wrong before changing either. The rules most often at stake:
+
+- Colour is rationed. Pool aqua is the stage and the bands. Yellow is the one next step on a screen and moves with it (Reveal, then New round). Red is only High, Low and destructive actions, always with the word.
+- No inline styles (the Content Security Policy forbids them): no `style` attributes, no Svelte `transition:`, `in:`, `out:` or `animate:`. Dynamic values go through the `cssVar` action in `apps/web/src/lib/ui/cssVar.ts`.
+- Both themes are built to the same standard. Check any change in light and dark.
+- The stage keeps one height through the reveal, so nothing below it moves when the cards turn.
+- Roles are badges, never text beside a name.
+- Tokens live in `apps/web/src/app.css`; do not add raw colours in components.
+- To look at the result: with a build listening on 127.0.0.1:4398 (see `apps/web/scripts/smoke.sh` for the environment), `node scripts/capture.mjs` and `node scripts/capture-pages.mjs` from `apps/web` write screenshots of every state to `apps/web/.impeccable/review/`.
+- Design work goes through the Impeccable skill. The direction contract is in `apps/web/.impeccable/surfaces/`.
 
 ## What this is
 

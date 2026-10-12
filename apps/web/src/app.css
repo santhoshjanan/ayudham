@@ -21,6 +21,8 @@
   --ink: #111417;
   --ink-soft: #3f5158;
   --line: #c5d3d8;
+  /* The edge of a field: dark enough to be seen as a boundary. */
+  --field-line: #6c8088;
   --stage: #0e6f8c;
   --stage-deep: #0a566d;
   --stage-ink: #ffffff;
@@ -50,6 +52,7 @@
     --ink: #eef3f4;
     --ink-soft: #a8babf;
     --line: #2c373c;
+    --field-line: #71848b;
     --stage: #0a5d76;
     --stage-deep: #07475b;
     --stage-ink: #ffffff;
@@ -77,6 +80,7 @@
   --ink: #eef3f4;
   --ink-soft: #a8babf;
   --line: #2c373c;
+  --field-line: #71848b;
   --stage: #0a5d76;
   --stage-deep: #07475b;
   --stage-ink: #ffffff;
@@ -137,7 +141,12 @@ body {
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
-  border-radius: 2px;
+}
+/* On the pool (the bar, the bands, the stage) ink would vanish, so the ring is yellow there. */
+.bar :focus-visible,
+.band :focus-visible,
+.stage :focus-visible {
+  outline-color: var(--action);
 }
 
 h1,
@@ -213,7 +222,7 @@ select {
   font: inherit;
   color: var(--ink);
   background: var(--surface);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--field-line);
   border-radius: var(--radius);
   padding: 0.6rem 0.7rem;
   min-height: 2.75rem;
@@ -229,7 +238,7 @@ select {
 }
 input:not([type='radio'], [type='checkbox'], [type='hidden']):hover,
 select:hover {
-  border-color: var(--ink-soft);
+  border-color: var(--ink);
 }
 input::placeholder {
   color: var(--ink-soft);
