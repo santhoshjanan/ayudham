@@ -2,8 +2,6 @@ import type { Joiner } from '@pokerji/poker-engine';
 import { MAX_MESSAGE_BYTES, parseClientMessage, type ErrorCode } from '@pokerji/protocol';
 import type { Connection, RoomHost } from './host.ts';
 
-export const MESSAGE_LIMIT = { max: 30, windowMs: 10_000 };
-
 /** Unparseable or over-rate messages a socket may send before it is closed. */
 export const MAX_STRIKES = 3;
 
@@ -20,18 +18,11 @@ export interface Socket {
  * untrusted: it is size-checked, rate-limited and parsed before the room
  * sees it. Actions the room refuses are not counted as abuse.
  */
-export function attachSocket(
-  host: RoomHost,
-  joiner: Joiner,
-  socket: Socket,
-  now: () => number,
-): void {
+export function attachSocket(host: RoomHost, joiner: Joiner, socket: Socket): void {
   const connection: Connection = {
     send: (text) => socket.send(text),
     close: () => socket.close(),
   };
-  let windowStart = now();
-  let inWindow = 0;
   let strikes = 0;
   let closed = false;
 
@@ -46,13 +37,8 @@ export function attachSocket(
 
   socket.onMessage((text) => {
     if (closed) return;
-    const time = now();
-    if (time - windowStart >= MESSAGE_LIMIT.windowMs) {
-      windowStart = time;
-      inWindow = 0;
-    }
-    inWindow += 1;
-    if (inWindow > MESSAGE_LIMIT.max) return strike('rate_limited');
+    // The budget belongs to the participant, so opening more sockets does not multiply it.
+    if (!host.allowMessage(joiner.id)) return strike('rate_limited');
     if (Buffer.byteLength(text) > MAX_MESSAGE_BYTES) return strike('invalid');
     const message = parseClientMessage(text);
     if (!message) return strike('invalid');

@@ -44,7 +44,7 @@ function setup() {
   const moTab = fakeConnection();
   host.connect(mo, moTab.connection);
   const annSocket = fakeSocket();
-  attachSocket(host, ann, annSocket.socket, clock.now);
+  attachSocket(host, ann, annSocket.socket);
   return { host, clock, moTab, annSocket };
 }
 
@@ -105,6 +105,19 @@ describe('attachSocket', () => {
     annSocket.say({ type: 'clearVote' });
     expect(annSocket.errors()).toEqual(['rate_limited']);
     expect(moTab.room().participants.find((p) => p.id === 'a')?.hasVoted).toBe(false);
+  });
+
+  it('shares one budget between all of a participant\u2019s sockets', () => {
+    const { host, annSocket } = setup();
+    const second = fakeSocket();
+    attachSocket(host, ann, second.socket);
+    for (let i = 0; i < MESSAGE_LIMIT.max / 2; i += 1) {
+      annSocket.say({ type: 'vote', card: '5' });
+      second.say({ type: 'vote', card: '8' });
+    }
+    expect([...annSocket.errors(), ...second.errors()]).toEqual([]);
+    second.say({ type: 'vote', card: '3' });
+    expect(second.errors()).toEqual(['rate_limited']);
   });
 
   it('closes a socket that keeps flooding', () => {

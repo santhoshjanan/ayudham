@@ -131,6 +131,70 @@ describe('RoomRegistry', () => {
     expect(instance.get(row.id)).toBe(host);
   });
 
+  it('keeps ticking every room while one room\u2019s lock check is slow', async () => {
+    const { instance, clock } = registry('a', testPrefix());
+    const slowRow = room();
+    await instance.open(slowRow);
+    const host = await instance.open(room());
+    const tab = fakeConnection();
+    host?.connect(mo, tab.connection);
+    const slow = (
+      instance as unknown as { live: Map<string, { lock: { refresh: () => Promise<boolean> } }> }
+    ).live.get(slowRow.id);
+    if (slow) slow.lock.refresh = () => new Promise<boolean>(() => undefined);
+
+    clock.advance(1_000);
+    void instance.sweep();
+    host?.receive('m', { type: 'reveal' });
+    clock.advance(3_000);
+    void instance.sweep();
+    expect(tab.room().phase).toBe('revealed');
+  });
+
+  it('releases the lock when the host cannot be built', async () => {
+    const prefix = testPrefix();
+    const row = room();
+    const broken = new RoomRegistry({
+      kv,
+      owner: 'a',
+      now: () => 0,
+      lockPrefix: prefix,
+      makeHost: () => {
+        throw new Error('cannot build');
+      },
+    });
+    await expect(broken.open(row)).rejects.toThrow('cannot build');
+    expect(await registry('b', prefix).instance.open(row)).not.toBeNull();
+  });
+
+  it('saves a room\u2019s queued rounds when it is closed', async () => {
+    const prefix = testPrefix();
+    const row = room();
+    const clock = fakeClock();
+    const storage = fakeStore();
+    storage.failSaves(1);
+    const instance = new RoomRegistry({
+      kv,
+      owner: 'a',
+      now: clock.now,
+      lockPrefix: prefix,
+      makeHost: (made) =>
+        new RoomHost(
+          { deck: made.deck, timerSeconds: null, music: null },
+          { store: storage.store, now: clock.now, newId: () => 'id', report: () => undefined },
+        ),
+    });
+    const host = await instance.open(row);
+    host?.connect(mo, fakeConnection().connection);
+    host?.receive('m', { type: 'vote', card: '5' });
+    host?.receive('m', { type: 'reveal' });
+    clock.advance(3_000);
+    await instance.sweep();
+    expect(storage.rounds).toHaveLength(0);
+    await instance.close(row.id);
+    expect(storage.rounds).toHaveLength(1);
+  });
+
   it('closes one room on request and releases its lock', async () => {
     const prefix = testPrefix();
     const row = room();

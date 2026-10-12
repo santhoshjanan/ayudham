@@ -9,9 +9,17 @@ export function createPool(databaseUrl: string, schema?: string): Db {
   if (schema !== undefined && !SCHEMA_NAME.test(schema)) {
     throw new Error('Invalid schema name');
   }
-  return new pg.Pool({
+  const pool = new pg.Pool({
     connectionString: databaseUrl,
     max: 10,
+    // Fail fast instead of queueing without limit while Postgres is down.
+    connectionTimeoutMillis: 5_000,
+    statement_timeout: 10_000,
+    idle_in_transaction_session_timeout: 10_000,
     ...(schema === undefined ? {} : { options: `-c search_path=${schema}` }),
   });
+  // An idle connection dropped by Postgres (restart, failover) emits 'error' on the pool.
+  // Without a listener that is an uncaught exception; the pool replaces the connection itself.
+  pool.on('error', () => undefined);
+  return pool;
 }

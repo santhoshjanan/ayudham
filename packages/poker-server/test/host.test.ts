@@ -1,6 +1,6 @@
 import { BUILT_IN_DECKS, MAX_PARTICIPANTS, ROOM_UNLOAD_MS } from '@pokerji/protocol';
 import { describe, expect, it } from 'vitest';
-import { RoomHost } from '../src/index.ts';
+import { MAX_CONNECTIONS_PER_PARTICIPANT, RoomHost } from '../src/index.ts';
 import { fakeClock, fakeConnection, fakeStore, flush } from './fakes.ts';
 
 const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true } as const;
@@ -93,7 +93,7 @@ describe('RoomHost', () => {
 
   it('saves both rounds, in order, when a second is revealed before the store recovers', async () => {
     const context = setup();
-    context.storage.failSaves(2);
+    context.storage.failSaves(1);
     context.host.receive('m', { type: 'setTitle', title: 'first' });
     context.host.receive('a', { type: 'vote', card: '8' });
     await reveal(context);
@@ -102,6 +102,7 @@ describe('RoomHost', () => {
     context.host.receive('a', { type: 'vote', card: '5' });
     await reveal(context);
     expect(context.storage.rounds).toHaveLength(0);
+    expect(context.annTab.room().saveStatus).toBe('failed');
 
     context.clock.advance(5_000);
     context.host.tick();
@@ -228,6 +229,97 @@ describe('RoomHost', () => {
     context.host.tick();
     await flush();
     expect(context.host.shouldUnload()).toBe(true);
+  });
+
+  it('caps one participant at four connections, closing the oldest', () => {
+    const { host, annTab } = setup();
+    expect(MAX_CONNECTIONS_PER_PARTICIPANT).toBe(4);
+    const extra = [fakeConnection(), fakeConnection(), fakeConnection()];
+    for (const tab of extra) host.connect(ann, tab.connection);
+    expect(annTab.isClosed()).toBe(false);
+    const fifth = fakeConnection();
+    host.connect(ann, fifth.connection);
+    expect(annTab.isClosed()).toBe(true);
+    expect(extra.every((tab) => !tab.isClosed())).toBe(true);
+    expect(fifth.room().you.id).toBe('a');
+  });
+
+  it('gives each participant one message budget per window, whatever the number of tabs', () => {
+    const { host, clock } = setup();
+    const results = Array.from({ length: 31 }, () => host.allowMessage('a'));
+    expect(results.filter(Boolean)).toHaveLength(30);
+    expect(results.at(-1)).toBe(false);
+    expect(host.allowMessage('m')).toBe(true);
+    clock.advance(10_000);
+    expect(host.allowMessage('a')).toBe(true);
+  });
+
+  it('retries a failed session delete, and keeps the removed person out meanwhile', async () => {
+    const { host, storage, clock } = setup();
+    let failures = 1;
+    const deleteSession = storage.store.deleteSession;
+    storage.store.deleteSession = async (id) => {
+      if (failures > 0) {
+        failures -= 1;
+        throw new Error('database unavailable');
+      }
+      await deleteSession(id);
+    };
+    host.receive('m', { type: 'removeParticipant', participantId: 'a' });
+    await flush();
+    expect(storage.calls).not.toContain('delete:a');
+
+    const back = fakeConnection();
+    host.connect(ann, back.connection);
+    expect(back.sent).toEqual([{ type: 'removed' }]);
+    expect(back.isClosed()).toBe(true);
+
+    clock.advance(5_000);
+    host.tick();
+    await flush();
+    expect(storage.calls).toContain('delete:a');
+  });
+
+  it('keeps an evicted person out', () => {
+    const { host } = setup();
+    host.evict(['a']);
+    const back = fakeConnection();
+    host.connect(ann, back.connection);
+    expect(back.isClosed()).toBe(true);
+  });
+
+  it('gives up on a write that keeps failing, so the queue and the room are not stuck', async () => {
+    const context = setup();
+    context.storage.failSaves(10_000);
+    context.host.receive('a', { type: 'vote', card: '8' });
+    await reveal(context);
+    context.host.disconnect('m', context.moTab.connection);
+    context.host.disconnect('a', context.annTab.connection);
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      context.clock.advance(5_000);
+      context.host.tick();
+      await flush();
+    }
+    expect(context.storage.rounds).toHaveLength(0);
+    expect(context.problems).toContain('write abandoned');
+    expect(context.host.shouldUnload()).toBe(true);
+  });
+
+  it('saves what is queued on shutdown and refuses connections afterwards', async () => {
+    const context = setup();
+    context.storage.failSaves(1);
+    context.host.receive('a', { type: 'vote', card: '8' });
+    await reveal(context);
+    expect(context.storage.rounds).toHaveLength(0);
+
+    await context.host.shutdown();
+    expect(context.storage.rounds).toHaveLength(1);
+    expect(context.annTab.isClosed()).toBe(true);
+
+    const late = fakeConnection();
+    context.host.connect(mo, late.connection);
+    expect(late.isClosed()).toBe(true);
+    expect(late.sent).toEqual([]);
   });
 
   it('closes every connection on closeAll', () => {

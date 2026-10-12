@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { createPool, migrate, type Db } from '../src/index.ts';
 
-const DATABASE_URL =
+export const DATABASE_URL =
   process.env.TEST_DATABASE_URL ?? 'postgres://pokerji:pokerji_dev@127.0.0.1:5432/pokerji';
 
 export const VALKEY_URL = process.env.TEST_VALKEY_URL ?? 'redis://:pokerji_dev@127.0.0.1:6379';

@@ -28,6 +28,7 @@ export class RoomRegistry {
   private readonly ttlMs: number;
   private readonly live = new Map<string, LiveRoom>();
   private readonly opening = new Map<string, Promise<RoomHost | null>>();
+  private sweeping = false;
 
   constructor(deps: RegistryDeps) {
     this.deps = deps;
@@ -49,23 +50,26 @@ export class RoomRegistry {
     return attempt;
   }
 
-  /** Call at least every 250 ms: ticks hosts, keeps locks alive, unloads idle rooms. */
+  /**
+   * Call at least every 250 ms. Every host is ticked first and synchronously,
+   * so a slow Valkey can never delay a reveal or a timer. Lock upkeep and
+   * unloading then run concurrently, and never overlap with a previous sweep.
+   */
   async sweep(): Promise<void> {
-    for (const [roomId, entry] of [...this.live]) {
-      entry.host.tick();
-      if (entry.host.shouldUnload()) {
-        this.live.delete(roomId);
-        await entry.lock.release().catch(() => undefined);
-        continue;
+    for (const entry of [...this.live.values()]) {
+      try {
+        entry.host.tick();
+      } catch {
+        // One room failing must not stop the others being ticked.
       }
-      if (this.deps.now() - entry.refreshedAt < this.ttlMs / 3) continue;
-      entry.refreshedAt = this.deps.now();
-      // If Valkey cannot be reached the room keeps running; only a lost lock stops it.
-      const held = await entry.lock.refresh().catch(() => true);
-      if (!held) {
-        this.live.delete(roomId);
-        entry.host.closeAll();
-      }
+    }
+    if (this.sweeping) return;
+    this.sweeping = true;
+    try {
+      const now = this.deps.now();
+      await Promise.all([...this.live].map(([roomId, entry]) => this.upkeep(roomId, entry, now)));
+    } finally {
+      this.sweeping = false;
     }
   }
 
@@ -73,12 +77,30 @@ export class RoomRegistry {
     const entry = this.live.get(roomId);
     if (!entry) return;
     this.live.delete(roomId);
-    entry.host.closeAll();
+    await entry.host.shutdown();
     await entry.lock.release().catch(() => undefined);
   }
 
   async closeEverything(): Promise<void> {
-    for (const roomId of [...this.live.keys()]) await this.close(roomId);
+    await Promise.all([...this.live.keys()].map((roomId) => this.close(roomId)));
+  }
+
+  private async upkeep(roomId: string, entry: LiveRoom, now: number): Promise<void> {
+    if (entry.host.shouldUnload()) {
+      this.live.delete(roomId);
+      await entry.host.shutdown();
+      await entry.lock.release().catch(() => undefined);
+      return;
+    }
+    if (now - entry.refreshedAt < this.ttlMs / 3) return;
+    entry.refreshedAt = now;
+    // If Valkey cannot be reached the room keeps running; only a lost lock stops it.
+    const held = await entry.lock.refresh().catch(() => true);
+    // The entry may have been closed or replaced while we waited.
+    if (!held && this.live.get(roomId) === entry) {
+      this.live.delete(roomId);
+      await entry.host.shutdown();
+    }
   }
 
   private async load(room: RoomRow): Promise<RoomHost | null> {
@@ -90,8 +112,13 @@ export class RoomRegistry {
       this.deps.lockPrefix ?? KEY_PREFIX,
     );
     if (!lock) return null;
-    const host = this.deps.makeHost(room);
-    this.live.set(room.id, { host, lock, refreshedAt: this.deps.now() });
-    return host;
+    try {
+      const host = this.deps.makeHost(room);
+      this.live.set(room.id, { host, lock, refreshedAt: this.deps.now() });
+      return host;
+    } catch (error) {
+      await lock.release().catch(() => undefined);
+      throw error;
+    }
   }
 }
