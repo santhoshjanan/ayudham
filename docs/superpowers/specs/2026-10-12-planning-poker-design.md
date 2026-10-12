@@ -122,7 +122,7 @@ Room creation shows a recovery link once: `/poker/r/<code>/recover#m=<secret>`. 
 
 ### Removing someone
 
-Removal deletes the session and closes its socket. A moderator cannot remove themselves or another moderator, and nobody can be removed during the three-second reveal count. In a room without a passcode that person can rejoin through the link; the removal dialog says so and offers to set a passcode. Changing or setting a passcode deletes all non-moderator sessions.
+Removal deletes the session and closes its socket. The live room also refuses that session from then on, so the removal holds even if the database write is delayed. A moderator cannot remove themselves or another moderator, and nobody can be removed during the three-second reveal count. In a room without a passcode that person can rejoin through the link; the removal dialog says so and offers to set a passcode. Changing or setting a passcode deletes all non-moderator sessions.
 
 ### Abuse limits
 
@@ -134,7 +134,8 @@ Defaults, all configurable:
 | Join attempts per client | 30 per 10 minutes |
 | Passcode failures per client per room | 5 per 10 minutes |
 | Passcode failures per room, all clients | 50 per hour |
-| WebSocket messages per connection | 30 per 10 seconds |
+| WebSocket messages per participant, across all their connections | 30 per 10 seconds |
+| Connections per participant | 4; a fifth closes the oldest |
 | Participants per room | 50, not counting moderators, who can always enter |
 | WebSocket message size | 2 KB |
 | Story title length | 200 characters |
@@ -234,7 +235,7 @@ Rate-limit counters and room locks under the `pokerji:` prefix. No names, titles
 
 - **Automatic.** A daily job hard-deletes rooms whose last activity is more than 30 days old.
 - **Moderator.** Delete one round, clear all history, or delete the room. Immediate.
-- **Participant.** "Remove my name from history" clears the voter name on their votes in that room; they show as "Anonymous".
+- **Participant.** "Remove my name from history" clears the voter name on their votes in that room; they show as "Anonymous". It works only for votes cast under the session they are using now. Someone who was removed, or signed out by a passcode change, comes back as a new participant and cannot reach their earlier votes; a moderator can delete those rounds for them. The privacy page says so.
 
 Deleted data persists in Postgres backups until they rotate. The rotation period is a configured value shown on the privacy page.
 
@@ -246,7 +247,7 @@ Plain-language statement of: what is stored, for how long, who can see it, the o
 
 | Failure | Behaviour |
 |---|---|
-| Postgres unavailable | Room creation and joins fail with a clear page. Live rounds continue. A reveal that cannot be saved is marked "not saved" in the room and retried. |
+| Postgres unavailable | Room creation and joins fail with a clear page. Live rounds continue. A reveal that cannot be saved is marked "not saved" in the room and retried every five seconds for ten minutes, then abandoned and reported. Removals, promotions and role changes are retried the same way. On shutdown one last attempt is made to save what is queued. |
 | Valkey unavailable | Room creation, joins and passcode attempts are refused, because limits cannot be enforced. Rooms already live continue. |
 | Invalid or unauthorized message | Dropped; repeated offences close the connection. |
 | Unknown room or wrong passcode | Same generic response. |

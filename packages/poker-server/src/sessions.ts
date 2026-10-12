@@ -1,0 +1,90 @@
+import type { Role } from '@pokerji/protocol';
+import type { Db } from './db.ts';
+
+export interface SessionRow {
+  id: string;
+  roomId: string;
+  name: string;
+  role: Role;
+  moderator: boolean;
+}
+
+const COLUMNS = `id, room_id as "roomId", name, role, moderator`;
+
+export async function insertSession(
+  db: Db,
+  session: { roomId: string; tokenHash: string; name: string; role: Role; moderator: boolean },
+): Promise<SessionRow> {
+  const result = await db.query<SessionRow>(
+    `insert into sessions (room_id, token_hash, name, role, moderator)
+     values ($1, $2, $3, $4, $5) returning ${COLUMNS}`,
+    [session.roomId, session.tokenHash, session.name, session.role, session.moderator],
+  );
+  return result.rows[0] as SessionRow;
+}
+
+/** Looks a session up by its token hash, within one room, and records that it was seen. */
+export async function findSession(
+  db: Db,
+  roomId: string,
+  tokenHash: string,
+): Promise<SessionRow | null> {
+  const result = await db.query<SessionRow>(
+    `update sessions set last_seen_at = now()
+     where room_id = $1 and token_hash = $2 returning ${COLUMNS}`,
+    [roomId, tokenHash],
+  );
+  return result.rows[0] ?? null;
+}
+
+/*
+ * Every change below names the room as well as the session, so a mistake in a
+ * caller can never act on another room's session. Each returns whether a row matched.
+ */
+
+export async function setSessionRole(
+  db: Db,
+  roomId: string,
+  id: string,
+  role: Role,
+): Promise<boolean> {
+  const result = await db.query('update sessions set role = $3 where id = $2 and room_id = $1', [
+    roomId,
+    id,
+    role,
+  ]);
+  return result.rowCount === 1;
+}
+
+export async function setSessionModerator(db: Db, roomId: string, id: string): Promise<boolean> {
+  const result = await db.query(
+    'update sessions set moderator = true where id = $2 and room_id = $1',
+    [roomId, id],
+  );
+  return result.rowCount === 1;
+}
+
+export async function deleteSession(db: Db, roomId: string, id: string): Promise<boolean> {
+  const result = await db.query('delete from sessions where id = $2 and room_id = $1', [
+    roomId,
+    id,
+  ]);
+  return result.rowCount === 1;
+}
+
+/** Signs out everyone except moderators. Used when a passcode is set or changed. */
+export async function deleteNonModeratorSessions(db: Db, roomId: string): Promise<string[]> {
+  const result = await db.query<{ id: string }>(
+    'delete from sessions where room_id = $1 and not moderator returning id',
+    [roomId],
+  );
+  return result.rows.map((row) => row.id);
+}
+
+export async function countSessions(db: Db, roomId: string): Promise<number> {
+  const result = await db.query<{ count: number }>(
+    'select count(*)::int as count from sessions where room_id = $1',
+    [roomId],
+  );
+  return result.rows[0]?.count ?? 0;
+}

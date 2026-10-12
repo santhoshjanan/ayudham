@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Early build. `packages/protocol` and `packages/poker-engine` exist; the server and UI do not yet. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`.
+Early build. `packages/protocol`, `packages/poker-engine` and `packages/poker-server` exist; the SvelteKit app and UI do not yet. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`.
 
 ## Commands
 
@@ -18,6 +18,7 @@ Package manager is pnpm (Node 24+).
 - Typecheck: `pnpm typecheck`
 - Format: `pnpm format` (check only: `pnpm format:check`)
 - Dev Postgres and Valkey: `docker compose up -d --wait` (stop: `docker compose down`; wipe data: `docker compose down -v`). Development only; production uses existing shared services.
+- `packages/poker-server` tests need those services running. Each test file uses its own throwaway Postgres schema and Valkey key prefix, so they never touch development data.
 
 Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.
 
@@ -26,6 +27,10 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - `packages/protocol`: limits, decks, and WebSocket message schemas shared by server and browser.
 - `packages/poker-engine`: the room rules as a pure reducer, `apply(state, command, now)` returning `{ state, effects }`. No I/O, no clock, no framework. A host (the server) feeds it commands and carries out its effects.
 - Vote secrecy is enforced in one place, `snapshotFor` in the engine. Anything that sends room state to a browser must go through it.
+- `packages/poker-server`: everything that touches Postgres, Valkey, the clock or a socket, with no web framework. `RoomHost` is one live room: it owns the engine state, sends each connection its own snapshot, and carries out engine effects. `RoomRegistry` loads hosts under a Valkey lock and unloads idle ones. `attachSocket` puts one untrusted socket behind size, rate and parse checks.
+- A participant's id is their session id. Saved rounds get their own generated id so a retried save cannot store a round twice.
+- `report(problem)` receives fixed strings only. Never pass it, or log, room codes, names, titles, votes, tokens or client addresses.
+- Rate limits fail closed when Valkey is unreachable; live rooms keep running.
 
 ## What this is
 
