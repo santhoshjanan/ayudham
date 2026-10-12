@@ -282,3 +282,57 @@ test.describe('history', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Join the room');
   });
 });
+
+test.describe('moderator recovery', () => {
+  test('the moderator link makes a joined person a moderator', async ({ browser }) => {
+    const { path, recovery } = await createRoom(browser, 'Mo');
+    expect(recovery).toMatch(new RegExp(`^${path}/recover#m=[A-Za-z0-9_-]{43}$`));
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+    await expect(ann.getByRole('button', { name: 'Reveal' })).toHaveCount(0);
+
+    await ann.goto(recovery);
+    const become = ann.getByRole('button', { name: 'Become a moderator' });
+    await expect(become).toBeEnabled();
+    // The secret leaves the address bar as soon as the page has read it.
+    await expect(ann).toHaveURL(new RegExp(`${path}/recover$`));
+    await become.click();
+    await expect(ann).toHaveURL(new RegExp(`${path}$`));
+    await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
+  });
+
+  test('a wrong secret is refused', async ({ browser }) => {
+    const { path } = await createRoom(browser, 'Mo');
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+    await expect(ann.getByTestId('participants')).toContainText('Ann');
+    await ann.goto(`${path}/recover#m=${'x'.repeat(43)}`);
+    await ann.getByRole('button', { name: 'Become a moderator' }).click();
+    await expect(ann.getByRole('alert')).toContainText('That link did not work');
+  });
+
+  test('someone who has not joined is asked to join first', async ({ browser }) => {
+    const { path, recovery } = await createRoom(browser, 'Mo');
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto(recovery);
+    await expect(page.getByText('Join the room first')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Become a moderator' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Join the room' })).toHaveAttribute('href', path);
+  });
+
+  test('a new moderator link replaces the old one', async ({ browser }) => {
+    const { page: mo, path, recovery } = await createRoom(browser, 'Mo');
+    await mo.goto(`${path}/settings`);
+    await mo.getByRole('button', { name: 'Make a new moderator link' }).click();
+    const fresh = (await mo.getByTestId('recovery-link').textContent())?.trim() ?? '';
+    expect(fresh).not.toBe(recovery);
+
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+    await expect(ann.getByTestId('participants')).toContainText('Ann');
+    await ann.goto(recovery);
+    await ann.getByRole('button', { name: 'Become a moderator' }).click();
+    await expect(ann.getByRole('alert')).toContainText('That link did not work');
+    await ann.goto(fresh);
+    await ann.getByRole('button', { name: 'Become a moderator' }).click();
+    await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
+  });
+});
