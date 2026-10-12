@@ -1,6 +1,7 @@
 export * from './config.ts';
 export * from './db.ts';
 export * from './history.ts';
+export * from './host.ts';
 export * from './kv.ts';
 export * from './limiter.ts';
 export * from './lock.ts';
