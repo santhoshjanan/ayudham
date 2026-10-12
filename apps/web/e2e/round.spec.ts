@@ -1,7 +1,17 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
+// Each browser context is a different visitor with its own address, so the
+// tests do not trip the per-address limits on each other's behalf.
+let visitors = 0;
+const visitor = () => {
+  visitors += 1;
+  return {
+    extraHTTPHeaders: { 'x-forwarded-for': `10.${visitors >> 8}.${visitors & 255}.${1}` },
+  };
+};
+
 async function createRoom(browser: Browser, name: string) {
-  const context = await browser.newContext();
+  const context = await browser.newContext(visitor());
   const page = await context.newPage();
   await page.goto('/poker');
   await page.getByLabel('Your name').fill(name);
@@ -15,7 +25,7 @@ async function createRoom(browser: Browser, name: string) {
 }
 
 async function joinRoom(browser: Browser, path: string, name: string, role = 'Voter') {
-  const context = await browser.newContext();
+  const context = await browser.newContext(visitor());
   const page = await context.newPage();
   await page.goto(path);
   await page.getByLabel('Your name').fill(name);
@@ -122,7 +132,7 @@ test('pages carry the security headers, and the policy does not break the app', 
   expect(headers['x-robots-tag']).toContain('noindex');
 
   const violations: string[] = [];
-  const context = await browser.newContext();
+  const context = await browser.newContext(visitor());
   const page = await context.newPage();
   page.on('console', (message) => {
     if (/Content Security Policy/i.test(message.text())) violations.push(message.text());

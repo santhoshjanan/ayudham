@@ -124,8 +124,12 @@
 </script>
 
 {#if status === 'removed'}
-  <h1>You were removed from this room</h1>
-  <p>Ask the moderator if you think this was a mistake.</p>
+  <h1>You are no longer in this room</h1>
+  <p>
+    A moderator removed you, or set a passcode. <a href="/poker/r/{code}" data-sveltekit-reload
+      >Join again</a
+    > with the room link, and the passcode if there is one.
+  </p>
 {:else if status === 'full'}
   <h1>This room is full</h1>
   <p>A room holds 50 people. Try again when someone has left.</p>

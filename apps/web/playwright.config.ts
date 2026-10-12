@@ -21,6 +21,9 @@ export default defineConfig({
       HOST: '127.0.0.1',
       INSECURE_HTTP: '1',
       PROTOCOL_HEADER: 'x-forwarded-proto',
+      // The tests give each browser context its own address through this header.
+      ADDRESS_HEADER: 'x-forwarded-for',
+      XFF_DEPTH: '1',
       DATABASE_URL:
         process.env.DATABASE_URL ?? 'postgres://pokerji:pokerji_dev@127.0.0.1:5432/pokerji',
       VALKEY_URL: process.env.VALKEY_URL ?? 'redis://:pokerji_dev@127.0.0.1:6379',
