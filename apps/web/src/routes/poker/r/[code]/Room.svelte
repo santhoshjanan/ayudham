@@ -501,6 +501,17 @@
           </section>
         {/if}
 
+        {#if room.you.role === 'voter'}
+          <p class="spectating">
+            You are voting.
+            <button
+              type="button"
+              class="switch"
+              disabled={!live || room.phase === 'counting'}
+              onclick={() => send({ type: 'setRole', role: 'spectator' })}>Watch instead</button
+            >
+          </p>
+        {/if}
         {#if room.you.role === 'spectator'}
           <p class="spectating">You are watching.</p>
           <p>
@@ -521,8 +532,13 @@
       {#if room.you.moderator && wide}
         <aside class="rail" aria-labelledby="moderator-heading">
           <h2 id="moderator-heading">Moderator</h2>
-          {@render reveal()}
-          {@render otherControls(true)}
+          <!-- The large slot always holds the next thing to do. -->
+          {#if room.phase === 'revealed'}
+            {@render newRound()}
+          {:else}
+            {@render reveal()}
+          {/if}
+          {@render otherControls(room.phase !== 'revealed')}
         </aside>
       {/if}
     </div>
@@ -565,12 +581,6 @@
                 >
               {/each}
             </div>
-            <button
-              type="button"
-              class="watch"
-              disabled={!live || room.phase === 'counting'}
-              onclick={() => send({ type: 'setRole', role: 'spectator' })}>Watch instead</button
-            >
           </section>
         {/if}
       </div>
@@ -701,6 +711,10 @@
     border-color: var(--action);
     color: var(--action-ink);
     font-weight: 650;
+  }
+  /* Reserved at every width, so nothing below the stage moves when the cards turn. */
+  .result-slot {
+    min-height: 4.25rem;
   }
   @media (min-width: 40rem) {
     .result-slot {
@@ -1009,6 +1023,13 @@
     margin-top: 2rem;
     font-weight: 650;
   }
+  .switch {
+    margin-left: 0.5rem;
+    min-height: 2.25rem;
+    padding: 0.2rem 0.75rem;
+    border-width: 1px;
+    font-size: 0.9rem;
+  }
   .recording {
     margin-top: 2.5rem;
     max-width: 60ch;
@@ -1029,7 +1050,9 @@
     margin: 0 0 0.2rem;
     font-size: 1.25rem;
   }
-  .reveal {
+  /* The rail's first control is the next thing to do: Reveal, then New round. */
+  .reveal,
+  .rail > button:first-of-type {
     font-family: var(--font-display);
     font-weight: 800;
     font-size: 1.5rem;
@@ -1122,7 +1145,8 @@
     display: flex;
     gap: 0.5rem;
     overflow-x: auto;
-    padding: 0.6rem 0.25rem 0.35rem;
+    padding: 0.6rem 0.4rem 0.35rem;
+    scroll-padding-inline: 0.4rem;
     scrollbar-width: thin;
     flex: 1;
   }
@@ -1161,13 +1185,6 @@
       0 0 0 3px var(--action),
       var(--shadow);
   }
-  .watch {
-    flex: none;
-    min-height: 2.25rem;
-    padding: 0.25rem 0.75rem;
-    border-width: 1px;
-    font-size: 0.9rem;
-  }
 
 
   @media (max-width: 40rem) {
@@ -1188,11 +1205,6 @@
     .hand {
       gap: 0.6rem;
       padding-block: 0.5rem;
-    }
-    .watch {
-      padding-inline: 0.6rem;
-      font-size: 0.85rem;
-      white-space: nowrap;
     }
   }
 
