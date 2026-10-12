@@ -1,0 +1,267 @@
+# Planning Poker — Design
+
+Date: 2026-10-12
+Status: awaiting review
+
+## 1. Purpose
+
+A public, free, realtime planning poker service. It is the first tool in a suite of small team tools ("pokerji"). Anyone can create a room, share its link, and estimate stories with their team without signing up.
+
+Security and privacy outrank feature scope and delivery speed. Every choice below that stores, transmits or exposes data is deliberate.
+
+### Success criteria
+
+- A team can go from opening the site to a revealed round in under a minute, with no account.
+- No participant, moderator included, can learn another person's vote before reveal.
+- The service stores only what this document lists, for no longer than it states.
+- The whole service is one container next to an existing Postgres and Valkey.
+
+### Out of scope for v1
+
+Accounts and sign-in; a story backlog; CSV import/export; Jira, GitHub or other integrations; end-to-end encryption; languages other than English; running more than one app instance; a suite shell beyond a minimal home page.
+
+## 2. Architecture
+
+### Stack
+
+- TypeScript throughout, on the current Node LTS.
+- SvelteKit (latest stable, Svelte 5) with the Node adapter. Pages are server-rendered and each surface has its own URL.
+- WebSockets via the `ws` library, attached to the same HTTP server through a custom Node entry file that also mounts SvelteKit's handler. One process, one port.
+- Postgres for rooms, sessions and round history.
+- Valkey for rate-limit counters and the per-room instance lock.
+- pnpm workspaces.
+
+### Repository layout
+
+```
+apps/web               SvelteKit app: all suite routes, custom server entry,
+                       WebSocket endpoint, persistence, retention job
+packages/poker-engine  room rules as plain TypeScript; no framework, no I/O
+packages/protocol      WebSocket message schemas shared by server and browser
+packages/ui            design tokens and shared Svelte components
+```
+
+`poker-engine` takes commands and returns new state plus events. It knows nothing about sockets, cookies or SQL, so it is testable in isolation. `apps/web` owns all I/O. Later suite tools add routes to `apps/web` and their own engine package.
+
+### Pages
+
+| URL | Surface |
+|---|---|
+| `/` | Suite home listing the tools |
+| `/poker` | Create a room |
+| `/poker/r/<code>` | Join form, then the live room |
+| `/poker/r/<code>/history` | Past rounds |
+| `/poker/r/<code>/settings` | Moderator settings |
+| `/poker/r/<code>/recover` | Moderator recovery (secret in URL fragment) |
+| `/poker/r/<code>/ws` | WebSocket endpoint |
+| `/privacy` | What is stored and for how long |
+
+All `/poker/r/` responses carry `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex` and `Cache-Control: no-store`.
+
+### Deployment
+
+- One container image containing the server and built assets.
+- Traefik (existing) terminates TLS and routes to the container. The app speaks plain HTTP inside Docker.
+- The container joins the existing shared Docker network to reach Postgres and Valkey. It publishes no ports to the host.
+- A dedicated Postgres database and role, with no rights on other databases.
+- A dedicated Valkey ACL user restricted to the `pokerji:` key prefix.
+- Configuration and secrets come from environment variables only.
+- The client address is read from Traefik's forwarded header, and only when the request comes from a configured trusted proxy address.
+- Deployment notes must state that Traefik access logging for this router should be disabled or have the request path redacted, because the room code is in the path.
+
+### Scaling position
+
+v1 runs one instance. Each live room is claimed by an instance through a Valkey lock with a heartbeat. That lock is the hook for adding instances later without changing the client protocol; multi-instance routing itself is not built.
+
+## 3. Room and security model
+
+### Identifiers and secrets
+
+| Item | Form | Stored as |
+|---|---|---|
+| Room code | 12 random characters from `[A-Za-z0-9]` (~71 bits), from a CSPRNG | Plain (it is the lookup key) |
+| Session token | 256 random bits in a cookie | SHA-256 hash |
+| Moderator recovery secret | 256 random bits, shown once in a link fragment | SHA-256 hash |
+| Passcode (optional) | Chosen by the moderator, 4–64 characters | Argon2id hash |
+
+The room link is the secret. The optional passcode is a second factor the moderator can add.
+
+### Session cookie
+
+One cookie per room: `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/poker/r/<code>`, rolling 30-day lifetime. `Lax` rather than `Strict` so that following an invite link from a chat app still presents an existing session. Cross-site request forgery is covered by SvelteKit's origin check on form posts and an explicit `Origin` check on the WebSocket upgrade.
+
+### Roles
+
+A session is a voter or a spectator, and may additionally be a moderator. The room creator is a moderator. Moderators can promote others, so a room is not stuck when its creator is away.
+
+| Action | Moderator | Voter | Spectator |
+|---|---|---|---|
+| Vote | If also a voter | Yes | No |
+| See who has voted before reveal (not values) | Yes | Yes | Yes |
+| Set story title, reveal, new round, start/stop timer | Yes | No | No |
+| Change deck, timer length, music track, passcode | Yes | No | No |
+| Remove a participant, promote a co-moderator | Yes | No | No |
+| Delete a round, all history, or the room | Yes | No | No |
+| Switch self between voter and spectator | Yes | Yes | Yes |
+| Anonymise own past votes | Yes | Yes | Yes |
+
+### Vote secrecy
+
+Before the Revealed phase, including during the reveal count, the server never sends a vote value to anyone except the person who cast it. This holds for moderators and spectators. It is enforced where snapshots are built, and covered by a dedicated test.
+
+### Joining
+
+1. `/poker/r/<code>` without a valid session renders a join form: display name (1–30 characters), voter or spectator, and a passcode field.
+2. The form and its failure response are identical whether the room does not exist, has no passcode, or the passcode is wrong. Room existence is never disclosed.
+3. On success the server creates a session, sets the cookie and redirects to the room.
+4. The join form states: votes are recorded under the display name you enter and kept for 30 days after the room's last use.
+
+### Moderator recovery
+
+Room creation shows a recovery link once: `/poker/r/<code>/recover#m=<secret>`. The fragment is not sent to the server on navigation; the page posts it in a request body. A valid secret sets the moderator flag on the caller's session. Moderators can regenerate the secret in settings, which invalidates the old link.
+
+### Removing someone
+
+Removal deletes the session and closes its socket. A moderator cannot remove themselves or another moderator. In a room without a passcode that person can rejoin through the link; the removal dialog says so and offers to set a passcode. Changing or setting a passcode deletes all non-moderator sessions.
+
+### Abuse limits
+
+Defaults, all configurable:
+
+| Limit | Value |
+|---|---|
+| Room creations per client | 10 per hour |
+| Join attempts per client | 30 per 10 minutes |
+| Passcode failures per client per room | 5 per 10 minutes |
+| Passcode failures per room, all clients | 50 per hour |
+| WebSocket messages per connection | 30 per 10 seconds |
+| Participants per room | 50 |
+| WebSocket message size | 2 KB |
+| Story title length | 200 characters |
+| Custom deck | up to 20 cards, 4 characters each |
+
+Limits are keyed in Valkey by an HMAC of the client address with a server secret, with a TTL matching the window. The address is never written to Postgres or logs.
+
+### Browser hardening
+
+- Content Security Policy via SvelteKit with per-request nonces; `default-src 'self'`; no third-party origins for scripts, styles, fonts, images, media or connections.
+- `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, HSTS.
+- Display names, titles and card values are rendered as text only. No `{@html}` on user input.
+- No analytics, trackers, external fonts or third-party scripts.
+
+## 4. Realtime protocol
+
+### Connection
+
+After joining, the room page opens a WebSocket to `/poker/r/<code>/ws`. The upgrade is accepted only with a valid session cookie for that room and an `Origin` equal to the site's origin. The server sends a snapshot immediately.
+
+### Authority
+
+The server is the only authority. Each incoming message is checked against its schema, the sender's role and the round's state. Invalid or unauthorized messages are dropped and count against the rate limit; repeated offences close the connection.
+
+### Messages
+
+Browser to server: `vote`, `clearVote`, `setRole` (voter/spectator), `setTitle`, `reveal`, `newRound` (keep or clear title), `startTimer`, `stopTimer`, `removeParticipant`, `promote`.
+
+Server to browser: `snapshot` (full room state for that recipient), `timerExpired`, `removed`, `error`.
+
+A snapshot is sent to every connection after every state change. It contains the participant list with role, presence and has-voted flags; the title; the deck; the round phase; the server's current time; the reveal time and timer deadline; the recipient's own vote; and, once revealed, all votes and statistics. Full per-recipient snapshots are used instead of incremental updates because rooms are small.
+
+Settings changes and deletions are form posts on the settings and history pages. After one succeeds, the server pushes a fresh snapshot to the room.
+
+### Round lifecycle
+
+- **Voting.** Votes and the title live in memory only. Voters may change or clear their vote.
+- **Counting.** When a moderator sends `reveal`, votes lock and the server sets a reveal time three seconds ahead. Snapshots carry the phase and that time, and still no vote values. A running timer is stopped. The count cannot be cancelled. At the reveal time the server moves to Revealed.
+- **Revealed.** All values are shown with statistics: average, lowest, highest, distribution, and whether the vote was unanimous. Lowest, highest and unanimity are taken from the order of the deck's value cards, so they work for non-numeric decks such as T-shirt sizes. The average is given only when every value card voted is a number. Special cards (`?`, break) appear in the distribution and in nothing else. The people holding the lowest and highest cards are identified unless the vote was unanimous. The round is written to Postgres at reveal. A reveal with no votes is not saved.
+- **New round.** Clears votes and returns to voting. Not available during the count.
+
+The story title can be changed only during voting.
+
+### Decks
+
+A deck is an ordered list of value cards, lowest first, plus a list of special cards. Built in: Fibonacci, modified Fibonacci, T-shirt sizes, powers of two; each has the special cards `?` and a break card. A moderator can define a custom deck with at least two value cards. Changing the deck is allowed only between rounds: after a reveal, or during voting before anyone has voted. A deck change starts a new round and keeps the title.
+
+### Timer
+
+Optional. A room has no timer until the moderator sets a length (10 seconds to 10 minutes). The moderator chooses each round whether to start it. The server holds the deadline; browsers draw the countdown from it. On expiry the server sends `timerExpired`. Reveal is never automatic.
+
+### Music and sound
+
+- The moderator picks one bundled track for the room, or none.
+- Each person has a sound toggle, off by default. Nothing plays for a person who has not turned it on. Volume and the toggle are kept in that browser's local storage and never sent to the server.
+- Music loops only while the countdown runs.
+- When the countdown reaches zero the music fades out over about two seconds and a short telegraph-style beep sounds. The beep is synthesised in the browser with the Web Audio API; it is not an audio file.
+- If the moderator stops the timer or reveals early, the music fades out with no beep.
+- During the three-second reveal count, each beat has a soft synthesised tick for people with sound on.
+- Tracks are recordings released as public domain or CC0. Each track's source and licence is recorded in `apps/web/static/audio/LICENSES.md`. Files are served by the app and fetched only when a person turns sound on.
+
+### Theme
+
+Light and dark themes. The first visit follows the device preference; a toggle overrides it. The choice is kept in that browser's local storage and never sent to the server. It is applied before first paint by a small inline script carrying the page's CSP nonce.
+
+### Presence, reconnects and restarts
+
+- A dropped connection marks the participant away and keeps their vote. The browser reconnects with increasing delays and shows a banner meanwhile.
+- A participant away for ten minutes is dropped from the live list. Their session remains valid.
+- A room unloads from memory five minutes after its last connection closes, releasing its lock.
+- A server restart loses unrevealed votes and the current title of rounds in progress. This is intended: they are never written to disk.
+
+## 5. Data and retention
+
+### Postgres
+
+| Table | Columns of note |
+|---|---|
+| `rooms` | internal id, code (unique), deck, timer length, music track, passcode hash, recovery secret hash, created, last active |
+| `sessions` | id, room, token hash, display name, role, moderator flag, last seen |
+| `rounds` | id, room, title, revealed at |
+| `votes` | round, session (nullable), voter name (nullable), card value |
+
+Votes carry a copy of the voter's name so history survives the session being removed. Deleting a room cascades to everything under it.
+
+### Valkey
+
+Rate-limit counters and room locks under the `pokerji:` prefix. No names, titles or votes.
+
+### Never stored
+
+- Unrevealed votes and the title of a round in progress.
+- Client addresses, in Postgres or logs.
+- Room codes, display names, titles and vote values in logs. Logs refer to rooms by internal id.
+
+### Deletion
+
+- **Automatic.** A daily job hard-deletes rooms whose last activity is more than 30 days old.
+- **Moderator.** Delete one round, clear all history, or delete the room. Immediate.
+- **Participant.** "Remove my name from history" clears the voter name on their votes in that room; they show as "Anonymous".
+
+Deleted data persists in Postgres backups until they rotate. The rotation period is a configured value shown on the privacy page.
+
+### Privacy page
+
+Plain-language statement of: what is stored, for how long, who can see it, the one functional cookie per room, local-storage use for sound and theme preferences, backup rotation, and the absence of analytics and third parties.
+
+## 6. Failure behaviour
+
+| Failure | Behaviour |
+|---|---|
+| Postgres unavailable | Room creation and joins fail with a clear page. Live rounds continue. A reveal that cannot be saved is marked "not saved" in the room and retried. |
+| Valkey unavailable | Room creation, joins and passcode attempts are refused, because limits cannot be enforced. Rooms already live continue. |
+| Invalid or unauthorized message | Dropped; repeated offences close the connection. |
+| Unknown room or wrong passcode | Same generic response. |
+| Connection lost | Banner and automatic reconnection. |
+| Audio blocked or fails to load | Silent; the countdown is unaffected. |
+
+## 7. Testing
+
+- **Engine unit tests:** round lifecycle, statistics, timer, deck rules.
+- **Authorization matrix:** every message type as every role, asserting only permitted ones change state.
+- **Vote secrecy:** multi-client tests asserting no pre-reveal snapshot contains another person's vote value.
+- **Integration:** the server against real Postgres and Valkey from Docker Compose, covering create, join, passcode, indistinguishable failures, rate limits, recovery, removal, anonymisation, deletion and the retention job.
+- **End to end:** Playwright with two browsers through a full round, including timer expiry.
+- **Process:** test-first. UI direction through Impeccable. Octopus code review at checkpoints and an Octopus security audit before first deployment.
+
+## 8. Development environment
+
+Docker Compose provides local Postgres and Valkey for development and CI. Production uses the existing shared services; nothing in the repo starts databases in production.
