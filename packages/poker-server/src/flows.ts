@@ -1,4 +1,4 @@
-import { BUILT_IN_DECKS, PASSCODE_MAX, roleSchema } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, NAME_MAX, PASSCODE_MAX, roleSchema } from '@pokerji/protocol';
 import type { Db } from './db.ts';
 import { KEY_PREFIX, type Kv } from './kv.ts';
 import { LIMITS, overLimit, withinLimit } from './limiter.ts';
@@ -11,7 +11,14 @@ import {
   newToken,
   passcodeMatches,
 } from './secrets.ts';
-import { countSessions, findSession, insertSession, type SessionRow } from './sessions.ts';
+import {
+  countSessions,
+  deleteStalestSession,
+  findSession,
+  insertSession,
+  sessionNames,
+  type SessionRow,
+} from './sessions.ts';
 import { deckIdSchema, nameSchema, normaliseAddress, roomCodeSchema } from './validate.ts';
 
 export interface FlowDeps {
@@ -38,6 +45,20 @@ const isUniqueViolation = (error: unknown) =>
 let dummyHash: Promise<string> | undefined;
 /** A real Argon2 hash that no passcode matches, verified against when there is nothing else to check. */
 const dummy = () => (dummyHash ??= hashPasscode('pokerji: there is no such passcode'));
+
+/**
+ * The name to store: the one asked for, or that name with a number when someone
+ * in the room already has it. Compared without regard to case, so nobody can
+ * pose as a colleague by re-using their name.
+ */
+function distinctName(name: string, taken: ReadonlySet<string>): string {
+  if (!taken.has(name.toLowerCase())) return name;
+  for (let n = 2; ; n += 1) {
+    const suffix = ` ${n}`;
+    const candidate = `${name.slice(0, NAME_MAX - suffix.length)}${suffix}`;
+    if (!taken.has(candidate.toLowerCase())) return candidate;
+  }
+}
 
 export type CreateResult =
   | { ok: true; code: string; sessionToken: string; recoveryToken: string }
@@ -120,14 +141,19 @@ export async function joinRoomFlow(
   }
   if (!room || !admitted) return REFUSED;
 
+  // A full room makes space by signing out whoever was seen longest ago, so a
+  // room cannot be filled for good with sessions nobody uses. Moderators are kept.
   const limit = deps.maxSessionsPerRoom ?? DEFAULT_MAX_SESSIONS;
-  if ((await countSessions(deps.db, room.id)) >= limit) return REFUSED;
+  const full = (await countSessions(deps.db, room.id)) >= limit;
+  if (full && !(await deleteStalestSession(deps.db, room.id))) return REFUSED;
+
+  const taken = new Set((await sessionNames(deps.db, room.id)).map((n) => n.toLowerCase()));
 
   const sessionToken = newToken();
   await insertSession(deps.db, {
     roomId: room.id,
     tokenHash: hashToken(sessionToken),
-    name: name.data,
+    name: distinctName(name.data, taken),
     role: role.data,
     moderator: false,
   });

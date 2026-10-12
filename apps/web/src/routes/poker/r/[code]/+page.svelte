@@ -11,7 +11,10 @@
 
 <main>
   {#if data.joined}
-    <Room code={data.code} />
+    <!-- Keyed, so moving to another room starts from a clean state. -->
+    {#key data.code}
+      <Room code={data.code} />
+    {/key}
   {:else}
     <h1>Join the room</h1>
     {#if form?.message}

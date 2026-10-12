@@ -134,3 +134,31 @@ test('pages carry the security headers, and the policy does not break the app', 
   await expect(page.getByTestId('participants')).toContainText('Mo');
   expect(violations).toEqual([]);
 });
+
+test('someone who takes a name already in use is given a numbered one', async ({ browser }) => {
+  const { page: mo, path } = await createRoom(browser, 'Mo');
+  const { page: copy } = await joinRoom(browser, path, 'mo');
+  await expect(copy.getByTestId('participants')).toContainText('mo 2');
+  await expect(mo.getByTestId('participants')).toContainText('mo 2');
+});
+
+test('a fifth tab closes the oldest, which says why instead of reconnecting', async ({
+  browser,
+}) => {
+  const { page: first, path, context } = await createRoom(browser, 'Mo');
+  const others: Page[] = [];
+  for (let i = 0; i < 4; i += 1) {
+    const page = await context.newPage();
+    await page.goto(path);
+    await expect(page.getByTestId('participants')).toContainText('Mo');
+    others.push(page);
+  }
+  await expect(first.getByRole('heading', { level: 1 })).toHaveText(
+    'This room is open in too many tabs',
+  );
+  // It stays that way: it does not reconnect and push another tab out.
+  await first.waitForTimeout(2_500);
+  for (const page of others) {
+    await expect(page.getByTestId('participants')).toContainText('Mo');
+  }
+});

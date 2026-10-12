@@ -121,6 +121,30 @@ describe('createUpgradeHandler', () => {
     expect(await connect(path, { token: sessionToken, origin: null })).toEqual(refused);
   });
 
+  it('still admits a valid session after a flood of refused attempts from the same address', async () => {
+    const { code, sessionToken } = await room();
+    const path = `/poker/r/${code}/ws`;
+    const flood = Array.from({ length: 80 }, () =>
+      connect(path, { origin: 'https://evil.example' }),
+    );
+    await Promise.all(flood);
+    const outcome = await connect(path, { token: sessionToken });
+    if (!outcome.opened) throw new Error(`refused with ${outcome.status}`);
+    outcome.socket.close();
+  });
+
+  it('closes the oldest of five tabs with a code that says why', async () => {
+    const { code, sessionToken } = await room();
+    const path = `/poker/r/${code}/ws`;
+    const first = await connect(path, { token: sessionToken });
+    if (!first.opened) throw new Error('refused');
+    const closed = closeCode(first.socket);
+    const others = [];
+    for (let i = 0; i < 4; i += 1) others.push(await connect(path, { token: sessionToken }));
+    expect(await closed).toBe(4001);
+    for (const other of others) if (other.opened) other.socket.close();
+  });
+
   it('closes a socket that sends a binary frame', async () => {
     const { code, sessionToken } = await room();
     const outcome = await connect(`/poker/r/${code}/ws`, { token: sessionToken });

@@ -106,6 +106,14 @@ describe('createApp', () => {
     await until(async () => (await lookup())?.session.role === 'spectator');
   });
 
+  it('can be started and stopped more than once without failing', async () => {
+    const extra = createApp(config(), { schema, report: () => undefined });
+    await extra.start();
+    await extra.start();
+    await extra.stop();
+    await expect(extra.stop()).resolves.toBeUndefined();
+  });
+
   it('deletes rooms past the retention period when it starts', async () => {
     const stale = await insertRoom(app.db, {
       code: 'StaleRoom001',

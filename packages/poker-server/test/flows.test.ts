@@ -165,11 +165,51 @@ describe('joinRoomFlow', () => {
     expect(await join(flow, code)).toEqual({ ok: false, reason: 'refused' });
   });
 
-  it('refuses a join when the room already holds its maximum of sessions', async () => {
-    const flow = deps({ maxSessionsPerRoom: 2 });
-    const { code } = await room(flow);
-    expect((await join(flow, code)).ok).toBe(true);
+  it('makes room for a new person by signing out whoever was seen longest ago', async () => {
+    const flow = deps({ maxSessionsPerRoom: 3 });
+    const { code, sessionToken: moderator } = await room(flow);
+    const first = await join(flow, code, { name: 'Ann' });
+    const second = await join(flow, code, { name: 'Bo' });
+    if (!first.ok || !second.ok) throw new Error('join failed');
+    // Bo has just been seen again; Ann has not.
+    await resumeSession(flow, { code, token: second.sessionToken });
+
+    const third = await join(flow, code, { name: 'Cy' });
+    expect(third.ok).toBe(true);
+    expect(await resumeSession(flow, { code, token: first.sessionToken })).toBeNull();
+    expect(await resumeSession(flow, { code, token: second.sessionToken })).not.toBeNull();
+    expect(await resumeSession(flow, { code, token: moderator })).not.toBeNull();
+  });
+
+  it('never signs out a moderator to make room', async () => {
+    const flow = deps({ maxSessionsPerRoom: 1 });
+    const { code, sessionToken } = await room(flow);
     expect(await join(flow, code)).toEqual({ ok: false, reason: 'refused' });
+    expect(await resumeSession(flow, { code, token: sessionToken })).not.toBeNull();
+  });
+
+  it('numbers a name that is already taken, so nobody can pose as someone else', async () => {
+    const flow = deps();
+    const { code } = await room(flow);
+    const names = [];
+    for (const name of ['Mo', 'mo', 'Ann', '\uff2d\uff4f']) {
+      const joined = await join(flow, code, { name });
+      if (!joined.ok) throw new Error('join failed');
+      const resumed = await resumeSession(flow, { code, token: joined.sessionToken });
+      names.push(resumed?.session.name);
+    }
+    expect(names).toEqual(['Mo 2', 'mo 3', 'Ann', 'Mo 4']);
+  });
+
+  it('keeps a numbered name within the length limit', async () => {
+    const flow = deps();
+    const { code } = await room(flow);
+    const long = 'x'.repeat(30);
+    await join(flow, code, { name: long });
+    const again = await join(flow, code, { name: long });
+    if (!again.ok) throw new Error('join failed');
+    const resumed = await resumeSession(flow, { code, token: again.sessionToken });
+    expect(resumed?.session.name).toBe(`${'x'.repeat(28)} 2`);
   });
 });
 

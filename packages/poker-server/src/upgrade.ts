@@ -5,9 +5,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { App } from './app.ts';
 import { resumeSession } from './flows.ts';
 import { withinLimit } from './limiter.ts';
-import { addressKey } from './secrets.ts';
 import { attachSocket, type Socket } from './socket.ts';
-import { normaliseAddress } from './validate.ts';
 
 export const SESSION_COOKIE = 'pj_session';
 
@@ -77,7 +75,7 @@ function adapt(ws: WebSocket): Socket {
       }
       ws.send(text);
     },
-    close: () => ws.close(),
+    close: (code) => ws.close(code),
     onMessage: (handler) => {
       ws.on('message', (data, isBinary) => {
         if (isBinary) {
@@ -112,19 +110,21 @@ export function createUpgradeHandler(
       return refuse(socket);
     }
 
-    const client = addressKey(
-      app.flows.addressSecret,
-      normaliseAddress(requestAddress(req, options.env)),
-    );
-    if (!(await withinLimit(app.kv, `ws:${client}`, UPGRADE_LIMIT, app.flows.keyPrefix))) {
-      return refuse(socket);
-    }
-
+    // Authenticate first, then limit per session. A limit counted per address
+    // before authentication would let anyone on the same network lock a team
+    // out of its room by sending refused attempts.
     const resumed = await resumeSession(app.flows, {
       code,
       token: readCookie(req.headers.cookie, SESSION_COOKIE),
     });
     if (!resumed) return refuse(socket);
+    const allowed = await withinLimit(
+      app.kv,
+      `ws:${resumed.session.id}`,
+      UPGRADE_LIMIT,
+      app.flows.keyPrefix,
+    );
+    if (!allowed) return refuse(socket);
     const host = await app.registry.open(resumed.room);
     if (!host) return refuse(socket);
 

@@ -18,7 +18,7 @@ export const actions: Actions = {
         ? fail(400, { message: 'Enter a name of 1 to 30 characters and choose a deck.' })
         : fail(429, { message: 'A room could not be created right now. Try again later.' });
     }
-    event.cookies.set(SESSION_COOKIE, result.sessionToken, sessionCookie(event.url, result.code));
+    event.cookies.set(SESSION_COOKIE, result.sessionToken, sessionCookie(result.code));
     // Shown once. It is never stored in readable form and cannot be shown again.
     return { created: { code: result.code, recoveryToken: result.recoveryToken } };
   },

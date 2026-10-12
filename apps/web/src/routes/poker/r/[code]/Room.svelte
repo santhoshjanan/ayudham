@@ -1,10 +1,18 @@
 <script lang="ts">
-  import type { ClientMessage, RoomSnapshot, ServerMessage } from '@pokerji/protocol';
+  import { refreshAll } from '$app/navigation';
+  import {
+    CLOSE_TOO_MANY_CONNECTIONS,
+    type ClientMessage,
+    type RoomSnapshot,
+    type ServerMessage,
+  } from '@pokerji/protocol';
 
   let { code }: { code: string } = $props();
 
+  type Status = 'connecting' | 'open' | 'reconnecting' | 'removed' | 'full' | 'replaced';
+
   let room = $state<RoomSnapshot | null>(null);
-  let status = $state<'connecting' | 'open' | 'reconnecting' | 'removed'>('connecting');
+  let status = $state<Status>('connecting');
   let notice = $state('');
   let now = $state(Date.now());
   let titleDraft = $state('');
@@ -13,47 +21,61 @@
   // The server's clock minus this browser's, so countdowns agree on every screen.
   let clockOffset = 0;
 
-  const send = (message: ClientMessage) => {
-    if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+  const live = $derived(status === 'open');
+
+  const send = (message: ClientMessage): boolean => {
+    if (socket?.readyState !== WebSocket.OPEN) return false;
+    socket.send(JSON.stringify(message));
+    return true;
   };
 
   $effect(() => {
     const path = `/poker/r/${code}/ws`;
-    let stopped = false;
+    // Set when the server has told us not to come back: retrying would be pointless or harmful.
+    let finished = false;
     let failures = 0;
     let retry: ReturnType<typeof setTimeout> | undefined;
+
+    const finish = (reason: Status) => {
+      finished = true;
+      status = reason;
+    };
 
     const connect = () => {
       const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
       const ws = new WebSocket(`${scheme}://${location.host}${path}`);
       socket = ws;
-      ws.onopen = () => {
-        failures = 0;
-        status = 'open';
-      };
       ws.onmessage = (event) => {
         const message = JSON.parse(String(event.data)) as ServerMessage;
         if (message.type === 'snapshot') {
+          // Only a snapshot proves the connection works; an accepted socket can still be closed at once.
+          failures = 0;
+          status = 'open';
           room = message.room;
           clockOffset = message.room.serverNow - Date.now();
           notice = '';
         } else if (message.type === 'removed') {
-          stopped = true;
-          status = 'removed';
+          finish('removed');
+        } else if (message.type === 'error' && message.code === 'room_full') {
+          finish('full');
         } else if (message.type === 'timerExpired') {
           notice = 'Time is up.';
         }
       };
-      ws.onclose = () => {
-        if (stopped) return;
-        failures += 1;
-        // The session is no longer accepted: go back to the join form.
-        if (failures > 5) {
-          location.reload();
+      ws.onclose = (event) => {
+        if (finished) return;
+        if (event.code === CLOSE_TOO_MANY_CONNECTIONS) {
+          finish('replaced');
           return;
         }
+        failures += 1;
         status = 'reconnecting';
-        retry = setTimeout(connect, Math.min(500 * 2 ** failures, 10_000));
+        // Keep trying for as long as it takes, more slowly each time. Every third
+        // failure, ask the server whether this session still exists: if it does
+        // not, the page data changes and the join form replaces this component.
+        // If the server cannot be reached the check simply fails and we carry on.
+        if (failures % 3 === 0) refreshAll().catch(() => undefined);
+        retry = setTimeout(connect, Math.min(500 * 2 ** Math.min(failures, 5), 15_000));
       };
     };
 
@@ -63,7 +85,7 @@
     }, 200);
 
     return () => {
-      stopped = true;
+      finished = true;
       clearTimeout(retry);
       clearInterval(clock);
       socket?.close();
@@ -79,16 +101,37 @@
   const voters = $derived(room ? room.participants.filter((p) => p.role === 'voter') : []);
   const spectators = $derived(room ? room.participants.filter((p) => p.role === 'spectator') : []);
 
+  /** Everything shown after a voter's name, as one string so its spacing is exact. */
+  const labelFor = (person: RoomSnapshot['participants'][number]): string => {
+    if (!room) return '';
+    const parts: string[] = [];
+    if (room.phase === 'revealed') {
+      parts.push(`: ${person.vote ?? 'no vote'}`);
+      if (room.result?.highIds.includes(person.id)) parts.push(' (High)');
+      if (room.result?.lowIds.includes(person.id)) parts.push(' (Low)');
+    } else {
+      parts.push(person.hasVoted ? ' voted' : ' not voted');
+    }
+    if (person.moderator) parts.push(' · moderator');
+    if (!person.present) parts.push(' · away');
+    return parts.join('');
+  };
+
   const setTitle = (event: SubmitEvent) => {
     event.preventDefault();
-    send({ type: 'setTitle', title: titleDraft });
-    titleDraft = '';
+    if (send({ type: 'setTitle', title: titleDraft })) titleDraft = '';
   };
 </script>
 
 {#if status === 'removed'}
   <h1>You were removed from this room</h1>
   <p>Ask the moderator if you think this was a mistake.</p>
+{:else if status === 'full'}
+  <h1>This room is full</h1>
+  <p>A room holds 50 people. Try again when someone has left.</p>
+{:else if status === 'replaced'}
+  <h1>This room is open in too many tabs</h1>
+  <p>You have it open in more than four places. Close one, then reload this page.</p>
 {:else if !room}
   <p data-testid="status" role="status">Connecting…</p>
 {:else}
@@ -134,16 +177,8 @@
     <ul data-testid="participants">
       {#each voters as person (person.id)}
         <li>
-          {#if room.phase === 'revealed'}
-            {person.name}: {person.vote ?? 'no vote'}
-            {#if room.result?.highIds.includes(person.id)}(High){/if}
-            {#if room.result?.lowIds.includes(person.id)}(Low){/if}
-          {:else}
-            {person.name}
-            {person.hasVoted ? 'voted' : 'not voted'}
-          {/if}
-          {#if person.moderator}· moderator{/if}
-          {#if !person.present}· away{/if}
+          <!-- The name has its own element, so a name can never be mistaken for a label. -->
+          <b>{person.name}</b><span>{labelFor(person)}</span>
         </li>
       {/each}
     </ul>
@@ -151,7 +186,7 @@
       <h2>Watching</h2>
       <ul>
         {#each spectators as person (person.id)}
-          <li>{person.name}{person.moderator ? ' · moderator' : ''}</li>
+          <li><b>{person.name}</b><span>{person.moderator ? ' · moderator' : ''}</span></li>
         {/each}
       </ul>
     {/if}
@@ -165,7 +200,7 @@
           type="button"
           aria-label="Vote {card}"
           aria-pressed={room.you.vote === card}
-          disabled={room.phase !== 'voting'}
+          disabled={!live || room.phase !== 'voting'}
           onclick={() => send({ type: 'vote', card })}>{card}</button
         >
       {/each}
@@ -180,16 +215,16 @@
       <form onsubmit={setTitle}>
         <label for="title">Story title</label>
         <input id="title" bind:value={titleDraft} maxlength="200" />
-        <button disabled={room.phase !== 'voting'}>Set title</button>
+        <button disabled={!live || room.phase !== 'voting'}>Set title</button>
       </form>
       <button
         type="button"
-        disabled={room.phase !== 'voting'}
+        disabled={!live || room.phase !== 'voting'}
         onclick={() => send({ type: 'reveal' })}>Reveal</button
       >
       <button
         type="button"
-        disabled={room.phase === 'counting'}
+        disabled={!live || room.phase === 'counting'}
         onclick={() => send({ type: 'newRound', keepTitle: false })}>New round</button
       >
     </section>

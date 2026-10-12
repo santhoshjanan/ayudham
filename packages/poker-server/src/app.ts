@@ -72,31 +72,37 @@ export function createApp(config: Config, options: AppOptions = {}): App {
       () => report('retention'),
     );
 
+  const begin = async () => {
+    await migrate(db, options.migrationsDir);
+    await retain();
+    timers = [
+      // Not awaited: a slow sweep must never delay the next tick.
+      setInterval(() => {
+        registry.sweep().catch(() => report('sweep'));
+      }, SWEEP_MS),
+      setInterval(() => {
+        void retain();
+      }, RETENTION_MS),
+    ];
+    for (const timer of timers) timer.unref();
+  };
+  const end = async () => {
+    for (const timer of timers) clearInterval(timer);
+    timers = [];
+    await registry.closeEverything();
+    await db.end();
+    kv.disconnect();
+  };
+  let started: Promise<void> | undefined;
+  let stopped: Promise<void> | undefined;
+
   return {
     db,
     kv,
     registry,
     flows: { db, kv, addressSecret: config.addressHmacSecret, keyPrefix: config.keyPrefix },
-    async start() {
-      await migrate(db, options.migrationsDir);
-      await retain();
-      timers = [
-        // Not awaited: a slow sweep must never delay the next tick.
-        setInterval(() => {
-          registry.sweep().catch(() => report('sweep'));
-        }, SWEEP_MS),
-        setInterval(() => {
-          void retain();
-        }, RETENTION_MS),
-      ];
-      for (const timer of timers) timer.unref();
-    },
-    async stop() {
-      for (const timer of timers) clearInterval(timer);
-      timers = [];
-      await registry.closeEverything();
-      await db.end();
-      kv.disconnect();
-    },
+    // Each happens once however often it is asked for, as when two signals arrive at shutdown.
+    start: () => (started ??= begin()),
+    stop: () => (stopped ??= end()),
   };
 }
