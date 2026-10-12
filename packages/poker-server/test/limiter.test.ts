@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { createKv, LIMITS, withinLimit } from '../src/index.ts';
+import { createKv, LIMITS, overLimit, withinLimit } from '../src/index.ts';
 import { testPrefix, VALKEY_URL } from './services.ts';
 
 const kv = createKv(VALKEY_URL);
@@ -56,5 +56,29 @@ describe('withinLimit', () => {
       passcodeClient: { max: 5, windowSeconds: 600 },
       passcodeRoom: { max: 50, windowSeconds: 3_600 },
     });
+  });
+});
+
+describe('overLimit', () => {
+  it('reads a counter without adding to it', async () => {
+    const limit = { max: 2, windowSeconds: 60 };
+    expect(await overLimit(kv, 'o1', limit, prefix)).toBe(false);
+    await withinLimit(kv, 'o1', limit, prefix);
+    expect(await overLimit(kv, 'o1', limit, prefix)).toBe(false);
+    await withinLimit(kv, 'o1', limit, prefix);
+    expect(await overLimit(kv, 'o1', limit, prefix)).toBe(true);
+    expect(await overLimit(kv, 'o1', limit, prefix)).toBe(true);
+    expect(await kv.get(`${prefix}rl:o1`)).toBe('2');
+  });
+
+  it('says over the limit when Valkey cannot be reached', async () => {
+    const unreachable = createKv('redis://127.0.0.1:1');
+    try {
+      expect(await overLimit(unreachable, 'o2', { max: 100, windowSeconds: 60 }, prefix)).toBe(
+        true,
+      );
+    } finally {
+      unreachable.disconnect();
+    }
   });
 });

@@ -1,5 +1,6 @@
 export * from './config.ts';
 export * from './db.ts';
+export * from './flows.ts';
 export * from './history.ts';
 export * from './host.ts';
 export * from './kv.ts';
