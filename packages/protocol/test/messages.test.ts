@@ -16,7 +16,6 @@ describe('parseClientMessage', () => {
     [{ type: 'stopTimer' }],
     [{ type: 'removeParticipant', participantId: 'p1' }],
     [{ type: 'promote', participantId: 'p1' }],
-    [{ type: 'demote', participantId: 'p1' }],
   ])('accepts %j', (message) => {
     expect(parse(message)).toEqual(message);
   });
@@ -63,6 +62,8 @@ describe('parseClientMessage', () => {
     [{ type: 'promote', participantId: '' }],
     [{ type: 'promote', participantId: 'x'.repeat(65) }],
     [{ type: 'reveal', force: true }],
+    // Demotion is done by the owner on the settings page, never by a room message.
+    [{ type: 'demote', participantId: 'p1' }],
   ])('rejects %j', (message) => {
     expect(parse(message)).toBeNull();
   });

@@ -39,7 +39,6 @@ export interface HostStore {
   saveRound(round: RoundToSave): Promise<void>;
   setRole(sessionId: string, role: Role): Promise<void>;
   setModerator(sessionId: string): Promise<void>;
-  clearModerator(sessionId: string): Promise<void>;
   deleteSession(sessionId: string): Promise<void>;
 }
 
@@ -155,6 +154,11 @@ export class RoomHost {
     this.dispatch({ type: 'grantModerator', id });
   }
 
+  /** Reflects a demotion the caller has already stored. */
+  revokeModerator(id: string): void {
+    this.dispatch({ type: 'revokeModerator', id });
+  }
+
   /** Reflects a change of owner the caller has already stored. */
   transferOwnership(id: string): void {
     this.dispatch({ type: 'transferOwnership', id });
@@ -235,9 +239,6 @@ export class RoomHost {
         return;
       case 'persistModerator':
         this.enqueue(() => store.setModerator(effect.id), 'save moderator');
-        return;
-      case 'persistDemotion':
-        this.enqueue(() => store.clearModerator(effect.id), 'save demotion');
         return;
       case 'deleteSession':
         this.removed.add(effect.id);

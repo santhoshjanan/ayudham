@@ -138,13 +138,20 @@ describe('RoomHost', () => {
     expect(moTab.room().participants.map((p) => p.id)).toEqual(['m']);
   });
 
-  it('saves role changes, promotions and demotions', async () => {
+  it('saves role changes and promotions', async () => {
     const { host, storage } = setup();
     host.receive('a', { type: 'setRole', role: 'spectator' });
     host.receive('m', { type: 'promote', participantId: 'a' });
-    host.receive('m', { type: 'demote', participantId: 'a' });
     await flush();
-    expect(storage.calls).toEqual(['role:a:spectator', 'moderator:a', 'demote:a']);
+    expect(storage.calls).toEqual(['role:a:spectator', 'moderator:a']);
+  });
+
+  it('shows a demotion to everyone at once', () => {
+    const { host, annTab } = setup();
+    host.receive('m', { type: 'promote', participantId: 'a' });
+    expect(annTab.room().you.moderator).toBe(true);
+    host.revokeModerator('a');
+    expect(annTab.room().you.moderator).toBe(false);
   });
 
   it('shows a change of owner to everyone at once', () => {

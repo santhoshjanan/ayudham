@@ -107,6 +107,28 @@
 
   {#if data.owner}
     <section>
+      <h2>Moderators</h2>
+      {#if data.coModerators.length === 0}
+        <p>You are the only moderator. You can make someone a moderator from the room.</p>
+      {:else}
+        <p>
+          These people can run rounds and change settings and the passcode. Only you, as the
+          owner, can take those rights away.
+        </p>
+        <ul>
+          {#each data.coModerators as person (person.id)}
+            <li>
+              <b>{person.name}</b>
+              <form method="POST" action="?/demote">
+                <input type="hidden" name="session" value={person.id} />
+                <button>Remove moderator rights from {person.name}</button>
+              </form>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+    <section>
       <h2>Moderator link</h2>
       <p>
         The moderator link makes whoever opens it the owner of this room, so you can take the room

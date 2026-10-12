@@ -11,6 +11,7 @@ import {
   setSessionRole,
   transferOwnership,
   clearSessionModerator,
+  listCoModerators,
   type Db,
 } from '../src/index.ts';
 import { testDb } from './services.ts';
@@ -152,10 +153,54 @@ describe('sessions', () => {
       moderator: true,
     });
 
-    // The owner cannot be demoted; another moderator can.
+    // The owner's session cannot be deleted, and the owner cannot be demoted; another moderator can.
+    expect(await deleteSession(db, roomId, second.id)).toBe(false);
+    expect(await listCoModerators(db, roomId)).toEqual([{ id: first.id, name: 'Mo' }]);
     expect(await clearSessionModerator(db, roomId, second.id)).toBe(false);
     expect(await clearSessionModerator(db, roomId, first.id)).toBe(true);
     expect(await findSession(db, roomId, 'th-own-1')).toMatchObject({ moderator: false });
+  });
+
+  it('keeps exactly one owner when two people take the room at the same moment', async () => {
+    const { id: roomId } = await room();
+    await insertSession(db, {
+      roomId,
+      tokenHash: 'th-race-0',
+      name: 'Mo',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
+    const people = [];
+    for (const name of ['Ann', 'Bo', 'Cy', 'Di']) {
+      people.push(
+        await insertSession(db, {
+          roomId,
+          tokenHash: `th-race-${name}`,
+          name,
+          role: 'voter',
+          moderator: false,
+        }),
+      );
+    }
+    const results = await Promise.all(people.map((p) => transferOwnership(db, roomId, p.id)));
+    expect(results).toEqual([true, true, true, true]);
+    const owners = await db.query('select 1 from sessions where room_id = $1 and owner', [roomId]);
+    expect(owners.rowCount).toBe(1);
+  });
+
+  it('refuses a stored owner who is not a moderator', async () => {
+    const { id: roomId } = await room();
+    await expect(
+      insertSession(db, {
+        roomId,
+        tokenHash: 'th-bad-owner',
+        name: 'Zed',
+        role: 'voter',
+        moderator: false,
+        owner: true,
+      }),
+    ).rejects.toThrow();
   });
 
   it('does not move ownership to a session of another room, and leaves the owner in place', async () => {

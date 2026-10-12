@@ -24,7 +24,12 @@ import {
   type RoomRow,
 } from './rooms.ts';
 import { hashPasscode, hashToken, newToken, tokenMatches } from './secrets.ts';
-import { transferOwnership, type SessionRow } from './sessions.ts';
+import {
+  clearSessionModerator,
+  listCoModerators,
+  transferOwnership,
+  type SessionRow,
+} from './sessions.ts';
 import { passcodeSchema } from './validate.ts';
 
 /**
@@ -141,24 +146,56 @@ export async function regenerateRecovery(
 }
 
 /**
- * Makes a joined person the room's owner if they hold the room's recovery
- * secret. Whoever was the owner stays a moderator. Attempts are limited per
- * session, so one person's wrong guesses cannot block anyone else.
+ * Makes a joined person the room's owner if they hold the room's moderator
+ * link secret. Whoever was the owner stays a moderator. The secret is replaced
+ * every time it is used, and the new one returned once: a link that has been
+ * used is spent, so a copy of it is worth nothing afterwards. Attempts are
+ * limited per session, so one person's wrong guesses cannot block anyone else.
  */
 export async function recoverModerator(
   app: App,
   input: { actor: Actor; recoveryToken: unknown },
-): Promise<boolean> {
+): Promise<{ ok: true; recoveryToken: string } | { ok: false }> {
+  const FAILED = { ok: false } as const;
   const { room, session } = input.actor;
-  if (!(await allowed(app, `recover:${session.id}`, CHANGE_LIMITS.recover))) return false;
+  if (!(await allowed(app, `recover:${session.id}`, CHANGE_LIMITS.recover))) return FAILED;
   const token = input.recoveryToken;
-  if (typeof token !== 'string' || token.length > 128) return false;
-  if (!tokenMatches(token, room.recoveryHash)) return false;
+  if (typeof token !== 'string' || token.length > 128) return FAILED;
+  if (!tokenMatches(token, room.recoveryHash)) return FAILED;
   if (!session.owner) {
-    if (!(await transferOwnership(app.db, room.id, session.id))) return false;
+    if (!(await transferOwnership(app.db, room.id, session.id))) return FAILED;
     app.registry.get(room.id)?.transferOwnership(session.id);
   }
-  return true;
+  const recoveryToken = newToken();
+  await setRecoveryHash(app.db, room.id, hashToken(recoveryToken));
+  return { ok: true, recoveryToken };
+}
+
+/** The moderators the owner may demote. Empty for anyone who is not the owner. */
+export async function coModerators(
+  app: App,
+  actor: Actor,
+): Promise<{ id: string; name: string }[]> {
+  if (!actor.session.owner) return [];
+  return listCoModerators(app.db, actor.room.id);
+}
+
+/**
+ * Takes moderator rights away from someone. Owner only. It is stored first and
+ * then shown in the live room, and it works whether or not that person is
+ * connected: a moderator who has left the room can still act over HTTP.
+ */
+export async function demoteModerator(
+  app: App,
+  actor: Actor,
+  sessionId: unknown,
+): Promise<FlowOutcome> {
+  if (!actor.session.owner) return REFUSED;
+  if (typeof sessionId !== 'string' || !UUID.test(sessionId)) return INVALID;
+  if (!(await allowed(app, `settings:${actor.room.id}`, CHANGE_LIMITS.settings))) return LIMITED;
+  if (!(await clearSessionModerator(app.db, actor.room.id, sessionId))) return INVALID;
+  app.registry.get(actor.room.id)?.revokeModerator(sessionId);
+  return OK;
 }
 
 /** Deletes the room and everything in it, now. Live connections are closed first. */

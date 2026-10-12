@@ -56,23 +56,15 @@ export function handleClient(
       const target = find(state, message.participantId);
       // Not during the count: votes are locked, and removing a voter would alter the result.
       const locked = state.phase === 'counting';
-      if (!actor.moderator || locked || !target || target.id === from || target.moderator) {
+      // The owner can never be removed; a moderator must be demoted by the owner first.
+      const protectedTarget = target !== undefined && (target.moderator || target.owner);
+      if (!actor.moderator || locked || !target || target.id === from || protectedTarget) {
         return deny(state, from);
       }
       return ok(without(state, [target.id]), [
         { type: 'send', to: target.id, message: { type: 'removed' } },
         { type: 'close', id: target.id },
         { type: 'deleteSession', id: target.id },
-      ]);
-    }
-    case 'demote': {
-      // Only the owner can take moderator rights away, and never from themselves.
-      const target = find(state, message.participantId);
-      if (!actor.owner || !target || target.id === from || !target.moderator) {
-        return deny(state, from);
-      }
-      return ok(patch(state, target.id, { moderator: false }), [
-        { type: 'persistDemotion', id: target.id },
       ]);
     }
     case 'promote': {

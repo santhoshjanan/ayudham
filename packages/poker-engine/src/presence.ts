@@ -3,20 +3,29 @@ import { find, ok, patch, without } from './outcome.ts';
 import type { Effect, Joiner, Outcome, RoomState } from './state.ts';
 
 export function join(state: RoomState, joiner: Joiner): Outcome {
-  if (find(state, joiner.id)) {
-    return ok(patch(state, joiner.id, { present: true, awaySince: null }));
+  // The session a joiner arrives with is the stored truth about who owns the
+  // room. If it says owner, nobody else in the live room is.
+  const base: RoomState = joiner.owner
+    ? {
+        ...state,
+        participants: state.participants.map((p) =>
+          p.id === joiner.id ? { ...p, owner: true, moderator: true } : { ...p, owner: false },
+        ),
+      }
+    : state;
+  if (find(base, joiner.id)) {
+    return ok(patch(base, joiner.id, { present: true, awaySince: null }));
   }
-  // Moderators are exempt from the cap: a full room must never lock out the people who run it.
-  if (!joiner.moderator && state.participants.length >= MAX_PARTICIPANTS) {
+  if (!joiner.moderator && base.participants.length >= MAX_PARTICIPANTS) {
     return ok(state, [
       { type: 'send', to: joiner.id, message: { type: 'error', code: 'room_full' } },
       { type: 'close', id: joiner.id },
     ]);
   }
   return ok({
-    ...state,
+    ...base,
     participants: [
-      ...state.participants,
+      ...base.participants,
       { ...joiner, owner: joiner.owner ?? false, present: true, awaySince: null, vote: null },
     ],
   });

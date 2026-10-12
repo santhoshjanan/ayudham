@@ -22,8 +22,8 @@
     <h3>Save your moderator link</h3>
     <p>
       You own this room from this browser. To own it from another device, or if you clear your
-      cookies, you need this link. Whoever opens it becomes the owner, so keep it private. It is
-      shown only once.
+      cookies, you need this link. Whoever opens it becomes the owner, so keep it private. It works
+      once: whoever uses it is given a new one. It is shown only now.
     </p>
     <p>
       <code data-testid="recovery-link"

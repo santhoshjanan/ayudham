@@ -163,15 +163,6 @@
       >Remove {person.name}</button
     >
   {/if}
-  {#if room && room.you.owner && person.moderator && person.id !== room.you.id}
-    <!-- Only the owner can take moderator rights away. -->
-    <button
-      type="button"
-      disabled={!live}
-      onclick={() => send({ type: 'demote', participantId: person.id })}
-      >Remove moderator rights from {person.name}</button
-    >
-  {/if}
 {/snippet}
 
 {#if status === 'removed'}

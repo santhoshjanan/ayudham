@@ -316,8 +316,21 @@ test.describe('moderator recovery', () => {
     // The secret leaves the address bar as soon as the page has read it.
     await expect(ann).toHaveURL(new RegExp(`${path}/recover$`));
     await become.click();
-    await expect(ann).toHaveURL(new RegExp(`${path}$`));
+    // The used link is spent; a replacement is shown once.
+    await expect(ann.getByRole('heading', { level: 2 })).toHaveText(
+      'You are now the owner of this room',
+    );
+    const replacement = (await ann.getByTestId('recovery-link').textContent())?.trim() ?? '';
+    expect(replacement).toMatch(/#m=[A-Za-z0-9_-]{43}$/);
+    expect(replacement).not.toBe(recovery);
+    expect(ann.url()).not.toContain('#m=');
+    await ann.getByRole('link', { name: 'Open the room' }).click();
     await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
+
+    // Using the first link again does nothing.
+    await ann.goto(recovery);
+    await ann.getByRole('button', { name: 'Become the owner' }).click();
+    await expect(ann.getByRole('alert')).toContainText('That link did not work');
   });
 
   test('a wrong secret is refused', async ({ browser }) => {
@@ -355,6 +368,7 @@ test.describe('moderator recovery', () => {
     await expect(ann.getByRole('alert')).toContainText('That link did not work');
     await ann.goto(fresh);
     await ann.getByRole('button', { name: 'Become the owner' }).click();
+    await ann.getByRole('link', { name: 'Open the room' }).click();
     await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
   });
 });
@@ -407,20 +421,26 @@ test.describe('ownership', () => {
     await expect(mo.getByTestId('participants')).toContainText('Mo');
   });
 
-  test('the owner takes moderator rights away again', async ({ browser }) => {
+  test('the owner takes moderator rights away again, from the settings page', async ({
+    browser,
+  }) => {
     const { page: mo, path } = await createRoom(browser, 'Mo');
     const { page: ann } = await joinRoom(browser, path, 'Ann');
     await expect(mo.getByTestId('participants')).toContainText('Mo not voted · owner');
     await mo.getByRole('button', { name: 'Make Ann a moderator' }).click();
     await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
-    // A co-moderator has no such button for the owner.
-    await expect(ann.getByRole('button', { name: 'Remove moderator rights from Mo' })).toHaveCount(
-      0,
-    );
 
+    // Ann closes the room. She can still be demoted, because it does not depend on her being there.
+    await ann.goto('/privacy');
+    await mo.goto(`${path}/settings`);
     await mo.getByRole('button', { name: 'Remove moderator rights from Ann' }).click();
-    await expect(ann.getByRole('button', { name: 'Reveal' })).toHaveCount(0);
-    await ann.reload();
+    await expect(mo.getByRole('status')).toHaveText('Moderator rights removed.');
+    await expect(mo.getByText('You are the only moderator.')).toBeVisible();
+
+    const refusedPage = await ann.goto(`${path}/settings`);
+    expect(refusedPage?.status()).toBe(403);
+    await ann.goto(path);
+    await expect(ann.getByTestId('participants')).toContainText('Ann');
     await expect(ann.getByRole('button', { name: 'Reveal' })).toHaveCount(0);
   });
 
@@ -432,6 +452,7 @@ test.describe('ownership', () => {
     await expect(ann.getByTestId('participants')).toContainText('Ann');
     await ann.goto(recovery);
     await ann.getByRole('button', { name: 'Become the owner' }).click();
+    await ann.getByRole('link', { name: 'Open the room' }).click();
     await expect(ann.getByTestId('participants')).toContainText('Ann not voted · owner');
     await expect(mo.getByTestId('participants')).toContainText('Mo not voted · moderator');
     await expect(mo.getByRole('button', { name: 'Reveal' })).toBeVisible();

@@ -5,8 +5,10 @@ import {
   anonymiseMe,
   clearRoomHistory,
   createApp,
+  coModerators,
   createRoomFlow,
   deleteHistoryRound,
+  demoteModerator,
   deleteRoomNow,
   findRoomByCode,
   joinRoomFlow,
@@ -261,12 +263,58 @@ describe('recovery', () => {
     host?.connect(joiner(ann), annTab.connection);
     host?.connect(joiner(mo), moTab.connection);
 
-    expect(await recoverModerator(app, { actor: ann, recoveryToken })).toBe(true);
+    expect(await recoverModerator(app, { actor: ann, recoveryToken })).toMatchObject({ ok: true });
     expect((await who(annToken)).session).toMatchObject({ moderator: true, owner: true });
     // The previous owner stays a moderator and is no longer the owner.
     expect((await who(moToken)).session).toMatchObject({ moderator: true, owner: false });
     expect(annTab.room().you).toMatchObject({ moderator: true, owner: true });
     expect(moTab.room().you).toMatchObject({ moderator: true, owner: false });
+  });
+
+  it('replaces the link every time it is used, so a used link is worth nothing', async () => {
+    const { ann, mo, who, annToken, moToken, recoveryToken } = await setup();
+    const taken = await recoverModerator(app, { actor: ann, recoveryToken });
+    if (!taken.ok) throw new Error('recovery failed');
+    expect(taken.recoveryToken).not.toBe(recoveryToken);
+    // The old owner tries the link they still have: it is spent.
+    const room = (await who(moToken)).room;
+    expect(await recoverModerator(app, { actor: await who(moToken), recoveryToken })).toEqual({
+      ok: false,
+    });
+    expect((await who(annToken)).session.owner).toBe(true);
+    // The new link works, once.
+    const back = await recoverModerator(app, {
+      actor: await who(moToken),
+      recoveryToken: taken.recoveryToken,
+    });
+    expect(back.ok).toBe(true);
+    expect((await who(moToken)).session.owner).toBe(true);
+    expect(room.id).toBe(mo.room.id);
+  });
+
+  it('lets the owner demote a moderator, connected or not, and nobody else', async () => {
+    const { mo, who, annToken } = await setup();
+    const annId = (await who(annToken)).session.id;
+    const host = await app.registry.open(mo.room);
+    const annTab = fakeConnection();
+    host?.connect(joiner(mo), fakeConnection().connection);
+    host?.connect(joiner(await who(annToken)), annTab.connection);
+    host?.receive(mo.session.id, { type: 'promote', participantId: annId });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(await coModerators(app, mo)).toEqual([{ id: annId, name: 'Ann' }]);
+    expect(await coModerators(app, await who(annToken))).toEqual([]);
+
+    // A co-moderator cannot demote, and the owner cannot be demoted.
+    expect(await demoteModerator(app, await who(annToken), mo.session.id)).toEqual(refused);
+    expect(await demoteModerator(app, mo, mo.session.id)).toEqual(invalid);
+    expect(await demoteModerator(app, mo, 'not-an-id')).toEqual(invalid);
+
+    // Ann leaves the live room; she can still be demoted.
+    host?.disconnect(annId, annTab.connection);
+    expect(await demoteModerator(app, mo, annId)).toEqual({ ok: true });
+    expect((await who(annToken)).session.moderator).toBe(false);
+    expect(await setPasscode(app, await who(annToken), 'open sesame')).toEqual(refused);
+    expect(await coModerators(app, mo)).toEqual([]);
   });
 
   it('gives a co-moderator none of the owner’s powers', async () => {
@@ -292,7 +340,9 @@ describe('recovery', () => {
   it('refuses a wrong, missing or malformed secret', async () => {
     const { ann, who, annToken, annAddress } = await setup();
     for (const bad of ['wrong', '', null, 42, 'x'.repeat(500)]) {
-      expect(await recoverModerator(app, { actor: ann, recoveryToken: bad })).toBe(false);
+      expect(await recoverModerator(app, { actor: ann, recoveryToken: bad })).toEqual({
+        ok: false,
+      });
     }
     expect((await who(annToken)).session).toMatchObject({ moderator: false, owner: false });
   });
@@ -302,7 +352,7 @@ describe('recovery', () => {
     const second = await setup();
     expect(
       await recoverModerator(app, { actor: second.ann, recoveryToken: first.recoveryToken }),
-    ).toBe(false);
+    ).toEqual({ ok: false });
   });
 
   it('stops answering one session after thirty attempts, without blocking others at that address', async () => {
@@ -311,21 +361,21 @@ describe('recovery', () => {
     for (let i = 0; i < 30; i += 1) {
       await recoverModerator(app, { actor: ann, recoveryToken: 'wrong' });
     }
-    expect(await recoverModerator(app, { actor: ann, recoveryToken })).toBe(false);
-    expect(await recoverModerator(app, { actor: mo, recoveryToken })).toBe(true);
+    expect(await recoverModerator(app, { actor: ann, recoveryToken })).toEqual({ ok: false });
+    expect(await recoverModerator(app, { actor: mo, recoveryToken })).toMatchObject({ ok: true });
   });
 
   it('replaces the secret: the old link stops working and the new one works', async () => {
-    const { mo, ann, annAddress, recoveryToken } = await setup();
+    const { mo, ann, recoveryToken } = await setup();
     const made = await regenerateRecovery(app, mo);
     if (!made.ok) throw new Error('not regenerated');
     expect(made.recoveryToken).not.toBe(recoveryToken);
 
     const fresh = { room: (await findRoomByCode(app.db, ann.room.code))!, session: ann.session };
-    expect(await recoverModerator(app, { actor: fresh, recoveryToken })).toBe(false);
-    expect(await recoverModerator(app, { actor: fresh, recoveryToken: made.recoveryToken })).toBe(
-      true,
-    );
+    expect(await recoverModerator(app, { actor: fresh, recoveryToken })).toEqual({ ok: false });
+    expect(
+      await recoverModerator(app, { actor: fresh, recoveryToken: made.recoveryToken }),
+    ).toMatchObject({ ok: true });
   });
 
   it('only the owner can replace the secret', async () => {

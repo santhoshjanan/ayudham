@@ -57,6 +57,7 @@ export type Command =
   | { type: 'evict'; ids: readonly string[] }
   | { type: 'grantModerator'; id: string }
   | { type: 'transferOwnership'; id: string }
+  | { type: 'revokeModerator'; id: string }
   | { type: 'roundSaved'; seq: number; ok: boolean };
 
 export type Effect =
@@ -71,7 +72,6 @@ export type Effect =
     }
   | { type: 'persistRole'; id: string; role: Role }
   | { type: 'persistModerator'; id: string }
-  | { type: 'persistDemotion'; id: string }
   | { type: 'deleteSession'; id: string };
 
 export interface Outcome {

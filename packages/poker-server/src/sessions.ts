@@ -80,10 +80,11 @@ export async function setSessionModerator(db: Db, roomId: string, id: string): P
 }
 
 export async function deleteSession(db: Db, roomId: string, id: string): Promise<boolean> {
-  const result = await db.query('delete from sessions where id = $2 and room_id = $1', [
-    roomId,
-    id,
-  ]);
+  // The owner's session is never deleted this way: a room must keep its owner.
+  const result = await db.query(
+    'delete from sessions where id = $2 and room_id = $1 and not owner',
+    [roomId, id],
+  );
   return result.rowCount === 1;
 }
 
@@ -168,6 +169,8 @@ export async function transferOwnership(db: Db, roomId: string, id: string): Pro
   const client = await db.connect();
   try {
     await client.query('begin');
+    // Two people using the moderator link at once take turns here.
+    await client.query('select 1 from rooms where id = $1 for update', [roomId]);
     await client.query('update sessions set owner = false where room_id = $1 and owner', [roomId]);
     const made = await client.query(
       'update sessions set owner = true, moderator = true where id = $2 and room_id = $1',
@@ -185,4 +188,18 @@ export async function transferOwnership(db: Db, roomId: string, id: string): Pro
   } finally {
     client.release();
   }
+}
+
+/** The room's moderators other than its owner: the people the owner may demote. */
+export async function listCoModerators(
+  db: Db,
+  roomId: string,
+): Promise<{ id: string; name: string }[]> {
+  const result = await db.query<{ id: string; name: string }>(
+    `select id, name from sessions
+     where room_id = $1 and moderator and not owner
+     order by created_at, id`,
+    [roomId],
+  );
+  return result.rows;
 }

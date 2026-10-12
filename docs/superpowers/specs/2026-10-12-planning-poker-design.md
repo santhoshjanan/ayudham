@@ -102,6 +102,9 @@ Every room has exactly one owner. The person who creates the room is its owner.
 - The owner is always a moderator and cannot be demoted or removed.
 - Using the moderator link makes that person the owner. Whoever was the owner stays a moderator.
 - A moderator must be demoted by the owner before they can be removed from the room.
+- The owner demotes from the settings page, which lists the room's moderators. It works whether or not that person is connected, because a moderator who has left the room can still change settings.
+- A moderator link works once. Using it replaces it, and the new link is shown once to the new owner. A copy of a used link is worth nothing.
+- The owner's session is never deleted by removal, by a passcode change, or to make room in a full room.
 - Everything else a moderator can do, every moderator can do: run rounds, change settings and the passcode, promote, and remove people who are not moderators.
 
 This replaces the earlier arrangement in which all moderators were equal and none could be demoted.

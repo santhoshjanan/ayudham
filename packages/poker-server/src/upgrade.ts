@@ -135,7 +135,8 @@ export function createUpgradeHandler(
     });
     if (!still) return refuse(socket);
 
-    const { id, name, role, moderator, owner } = resumed.session;
+    // The re-checked row, so a change of owner or moderator made meanwhile is not missed.
+    const { id, name, role, moderator, owner } = still.session;
     server.handleUpgrade(req, socket, head, (ws) => {
       attachSocket(host, { id, name, role, moderator, owner }, adapt(ws));
     });

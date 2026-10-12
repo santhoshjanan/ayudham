@@ -20,8 +20,9 @@ export function apply(state: RoomState, command: Command, now: number): Outcome 
         ? ok(patch(state, command.id, { moderator: true }))
         : ok(state);
     case 'transferOwnership':
-      // The new owner is also a moderator. The previous owner keeps moderator rights.
-      if (!find(state, command.id)) return ok(state);
+      // The host has stored a change of owner. Everyone else stops being the
+      // owner whether or not the new owner is in the live room right now; the
+      // previous owner keeps moderator rights.
       return ok({
         ...state,
         participants: state.participants.map((p) => ({
@@ -29,6 +30,14 @@ export function apply(state: RoomState, command: Command, now: number): Outcome 
           owner: p.id === command.id,
           moderator: p.id === command.id ? true : p.moderator,
         })),
+      });
+    case 'revokeModerator':
+      // The host has stored a demotion by the owner. The owner cannot be demoted.
+      return ok({
+        ...state,
+        participants: state.participants.map((p) =>
+          p.id === command.id && !p.owner ? { ...p, moderator: false } : p,
+        ),
       });
     case 'client':
       return handleClient(state, command.from, command.message, now);

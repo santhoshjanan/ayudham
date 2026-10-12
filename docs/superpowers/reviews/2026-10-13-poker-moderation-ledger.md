@@ -39,3 +39,16 @@ Final: minor (deferred): a browser's synced or global history may keep the addre
 Final: minor (deferred): rate-limit counters for a deleted room's passcode stay in Valkey for up to an hour.
 Final: minor (deferred): no per-room cap on saved rounds (history display is capped at 200).
 Final: minor (deferred): no test for the settings/saving race at the route level, a wrong DELETE confirmation, clear-history or remove-passcode through the page; the ten-second timer test and the delete-room test depend on real time.
+Owner decision 2026-10-13: the room's creator is its owner. Implemented after the main review, with a focused Octopus security audit of that one commit.
+Ownership audit: no Critical or High. 3 Medium, 4 Low, 1 Informational. It confirmed there is no client path to ownership and that owner-only actions are checked in the flows and the engine.
+Ownership: fixed a displaced owner keeping owner powers in the live room when the new owner was not connected (Medium) — "takes ownership from the old owner even when the new owner is not in the live room", "believes the stored owner when they join, so there is never a second one" GREEN
+Ownership: fixed the owner's session being deletable, which left a room nobody could delete (Medium) — deleteSession refuses the owner; the engine refuses to remove the owner; a database check keeps the owner a moderator — "never lets the owner be removed, whoever asks", "refuses a stored owner who is not a moderator" GREEN
+Ownership: fixed a moderator who has left the live room being impossible to demote (Medium) — demotion is now a flow on the settings page that lists moderators from the database — "lets the owner demote a moderator, connected or not, and nobody else" and a browser test GREEN
+Ownership: fixed a demotion that could be lost if its queued write failed (Low) — it is stored before the live room is told
+Ownership: fixed the moderator link staying valid after use (Low) — it is replaced each time it is used and the new one shown once — "replaces the link every time it is used, so a used link is worth nothing" and a browser test GREEN
+Ownership: fixed two people using the link at once getting an error (Low) — "keeps exactly one owner when two people take the room at the same moment" GREEN
+Ownership: fixed the WebSocket upgrade using a session row read before the room loaded (Low)
+Ownership: Ruling: there is no room message for demotion; the engine's client "demote" message was removed and replaced by a host command — one path, stored first — cost if wrong: the owner demotes from settings rather than from the room.
+Ownership: Ruling: whoever holds the moderator link can take the room, and a thief who uses it gets the replacement link, locking the real owner out — this is inherent in a no-accounts design; the pages that show the link say it makes its holder the owner and must be kept private — cost if wrong: none beyond the design's stated limit.
+Ownership: minor (deferred): the previous owner is not told in the room that ownership moved, beyond their label changing.
+Ownership: minor (deferred): with more than one server instance a transfer or demotion handled on one would not reach a live room on another (v1 runs one instance).

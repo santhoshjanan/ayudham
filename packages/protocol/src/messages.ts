@@ -25,7 +25,6 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('stopTimer') }),
   z.strictObject({ type: z.literal('removeParticipant'), participantId }),
   z.strictObject({ type: z.literal('promote'), participantId }),
-  z.strictObject({ type: z.literal('demote'), participantId }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 

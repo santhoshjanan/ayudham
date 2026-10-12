@@ -1,6 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import {
+  coModerators,
   deleteRoomNow,
+  demoteModerator,
   parseDeckText,
   regenerateRecovery,
   removePasscode,
@@ -23,10 +25,13 @@ const OWNER_ONLY = 'Only the owner of this room can do that.';
 const LIMITED = 'Too many changes in a short time. Wait a few minutes and try again.';
 
 export const load: PageServerLoad = async (event) => {
-  const { room, session } = await moderatorOf(event);
+  const actor = await moderatorOf(event);
+  const { room, session } = actor;
   return {
     code: room.code,
     owner: session.owner,
+    // Empty unless the caller is the owner.
+    coModerators: await coModerators(runtime().app, actor),
     deckId: builtInId(room.deck),
     values: room.deck.values.join(', '),
     specials: room.deck.specials.join(', '),
@@ -99,6 +104,17 @@ export const actions: Actions = {
     }
     // Shown once. The old link no longer works.
     return { notice: 'New moderator link made.', recoveryToken: result.recoveryToken };
+  },
+
+  demote: async (event) => {
+    const actor = await moderatorOf(event);
+    const form = await event.request.formData();
+    const result = await demoteModerator(runtime().app, actor, form.get('session'));
+    if (result.ok) return { notice: 'Moderator rights removed.' };
+    if (result.reason === 'limited') return fail(429, { message: LIMITED });
+    return fail(result.reason === 'refused' ? 403 : 400, {
+      message: result.reason === 'refused' ? OWNER_ONLY : 'That person is not a moderator.',
+    });
   },
 
   delete: async (event) => {
