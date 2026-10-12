@@ -52,9 +52,9 @@ describe('deckIdSchema and passcodeSchema', () => {
   });
 
   it('bound the passcode length', () => {
-    expect(ok(passcodeSchema, 'abcd')).toBe(true);
+    expect(ok(passcodeSchema, 'abcdefgh')).toBe(true);
     expect(ok(passcodeSchema, 'x'.repeat(64))).toBe(true);
-    expect(ok(passcodeSchema, 'abc')).toBe(false);
+    expect(ok(passcodeSchema, 'abcdefg')).toBe(false);
     expect(ok(passcodeSchema, 'x'.repeat(65))).toBe(false);
   });
 });
