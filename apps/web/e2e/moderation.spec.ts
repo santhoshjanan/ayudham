@@ -227,3 +227,58 @@ test.describe('running a round', () => {
     await expect(mo.getByTestId('participants')).toContainText('Mo not voted');
   });
 });
+
+test.describe('history', () => {
+  async function playRound(browser: Browser) {
+    const { page: mo, path } = await createRoom(browser, 'Mo');
+    const { page: ann } = await joinRoom(browser, path, 'Ann');
+    await mo.getByLabel('Story title').fill('PROJ-1 Login');
+    await mo.getByRole('button', { name: 'Set title' }).click();
+    await vote(mo, '3');
+    await vote(ann, '8');
+    await mo.getByRole('button', { name: 'Reveal' }).click();
+    await expect(mo.getByTestId('result')).toContainText('Low 3, High 8', { timeout: 8_000 });
+    return { mo, ann, path };
+  }
+
+  test('a finished round appears in history for everyone in the room', async ({ browser }) => {
+    const { ann, path } = await playRound(browser);
+    await ann.getByRole('link', { name: 'History' }).click();
+    await expect(ann).toHaveURL(new RegExp(`${path}/history$`));
+    const round = ann.getByTestId('round');
+    await expect(round).toHaveCount(1);
+    await expect(round).toContainText('PROJ-1 Login');
+    await expect(round).toContainText('Low 3, High 8, average 5.5');
+    await expect(round).toContainText('Mo: 3');
+    await expect(round).toContainText('Ann: 8');
+    await expect(ann.getByRole('button', { name: 'Delete this round' })).toHaveCount(0);
+  });
+
+  test('someone removes their own name, and only theirs', async ({ browser }) => {
+    const { mo, ann, path } = await playRound(browser);
+    await ann.goto(`${path}/history`);
+    await ann.getByRole('button', { name: 'Remove my name from history' }).click();
+    await expect(ann.getByRole('status')).toContainText('Your name was removed from 1 vote');
+    await mo.goto(`${path}/history`);
+    const round = mo.getByTestId('round');
+    await expect(round).toContainText('Anonymous: 8');
+    await expect(round).toContainText('Mo: 3');
+    await expect(round).not.toContainText('Ann');
+  });
+
+  test('a moderator deletes a round', async ({ browser }) => {
+    const { mo, path } = await playRound(browser);
+    await mo.goto(`${path}/history`);
+    await mo.getByRole('button', { name: 'Delete this round' }).click();
+    await expect(mo.getByTestId('round')).toHaveCount(0);
+    await expect(mo.getByText('No rounds have been saved yet.')).toBeVisible();
+  });
+
+  test('history is only for people in the room', async ({ browser }) => {
+    const { path } = await playRound(browser);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto(`${path}/history`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Join the room');
+  });
+});
