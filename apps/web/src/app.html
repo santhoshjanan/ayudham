@@ -3,6 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Applies a saved theme before first paint, so a page never flashes the wrong one. -->
+    <script nonce="%sveltekit.nonce%">
+      try {
+        var saved = localStorage.getItem('pj-theme');
+        if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+      } catch (error) {}
+    </script>
     %sveltekit.head%
   </head>
   <body>

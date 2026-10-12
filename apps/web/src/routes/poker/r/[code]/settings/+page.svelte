@@ -1,6 +1,7 @@
 <script lang="ts">
   import { BUILT_IN_DECKS } from '@pokerji/protocol';
   import { page } from '$app/state';
+  import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
@@ -14,9 +15,14 @@
   <title>Room settings · pokerji</title>
 </svelte:head>
 
+<header class="band">
+  <div class="band-inner">
+    <a class="back" href="/poker/r/{data.code}">Back to the room</a>
+    <h1>Room settings</h1>
+  </div>
+</header>
+
 <main>
-  <p><a href="/poker/r/{data.code}">Back to the room</a></p>
-  <h1>Room settings</h1>
 
   {#if form && 'notice' in form}
     <p role="status">{form.notice}</p>
@@ -27,11 +33,12 @@
 
   {#if form && 'recoveryToken' in form && form.recoveryToken}
     <p>Save this link now. It is shown only once, and the previous link no longer works.</p>
-    <p>
+    <div class="copy-row">
       <code data-testid="recovery-link"
         >{page.url.origin}/poker/r/{data.code}/recover#m={form.recoveryToken}</code
       >
-    </p>
+      <CopyButton label="Copy moderator link" text={`${page.url.origin}/poker/r/${data.code}/recover#m=${form.recoveryToken}`} />
+    </div>
   {/if}
 
   <section>
@@ -46,18 +53,21 @@
           <option value="custom">Custom</option>
         </select>
       </p>
-      {#if deckId === 'custom'}
+      <div class="custom" class:inactive={deckId !== 'custom'}>
         <p>
           <label for="values">Value cards</label>
           <input id="values" name="values" value={data.values} />
         </p>
-        <p>Lowest first, separated by commas or spaces. Up to 4 characters each.</p>
+        <p class="hint">
+          Used when the deck above is set to Custom. Lowest first, separated by commas or spaces,
+          up to 4 characters each.
+        </p>
         <p>
           <label for="specials">Special cards</label>
           <input id="specials" name="specials" value={data.specials} />
         </p>
         <p>Cards that are not estimates, such as ? for "not sure". They are left out of results.</p>
-      {/if}
+      </div>
       <p>
         <label for="timer">Timer in seconds</label>
         <input
@@ -106,6 +116,7 @@
   </section>
 
   {#if data.owner}
+    <div class="owner-only">
     <section>
       <h2>Moderators</h2>
       {#if data.coModerators.length === 0}
@@ -152,6 +163,7 @@
         <button>Delete this room</button>
       </form>
     </section>
+    </div>
   {:else}
     <section>
       <h2>Owner's settings</h2>

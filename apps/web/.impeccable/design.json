@@ -1,0 +1,892 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-13T00:00:00Z",
+  "title": "Design System: pokerji",
+  "extensions": {
+    "colorMeta": {
+      "stage": {
+        "role": "primary",
+        "displayName": "Pool Aqua",
+        "theme": "light",
+        "canonical": "#0e6f8c",
+        "tonalRamp": [
+          "oklch(15.0% 0.092 225)",
+          "oklch(26.0% 0.092 225)",
+          "oklch(38.0% 0.092 225)",
+          "oklch(50.0% 0.092 225)",
+          "oklch(62.0% 0.092 225)",
+          "oklch(74.0% 0.092 225)",
+          "oklch(85.0% 0.092 225)",
+          "oklch(95.0% 0.092 225)"
+        ]
+      },
+      "stage-deep": {
+        "role": "primary",
+        "displayName": "Deep Water",
+        "theme": "light",
+        "canonical": "#0a566d",
+        "tonalRamp": [
+          "oklch(15.0% 0.076 225)",
+          "oklch(26.0% 0.076 225)",
+          "oklch(38.0% 0.076 225)",
+          "oklch(50.0% 0.076 225)",
+          "oklch(62.0% 0.076 225)",
+          "oklch(74.0% 0.076 225)",
+          "oklch(85.0% 0.076 225)",
+          "oklch(95.0% 0.076 225)"
+        ]
+      },
+      "stage-ink": {
+        "role": "primary",
+        "displayName": "Lane White",
+        "theme": "both",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 90)",
+          "oklch(26.0% 0.000 90)",
+          "oklch(38.0% 0.000 90)",
+          "oklch(50.0% 0.000 90)",
+          "oklch(62.0% 0.000 90)",
+          "oklch(74.0% 0.000 90)",
+          "oklch(85.0% 0.000 90)",
+          "oklch(95.0% 0.000 90)"
+        ]
+      },
+      "stage-ink-soft": {
+        "role": "primary",
+        "displayName": "Splash",
+        "theme": "light",
+        "canonical": "#cfe9f1",
+        "tonalRamp": [
+          "oklch(15.0% 0.030 218)",
+          "oklch(26.0% 0.030 218)",
+          "oklch(38.0% 0.030 218)",
+          "oklch(50.0% 0.030 218)",
+          "oklch(62.0% 0.030 218)",
+          "oklch(74.0% 0.030 218)",
+          "oklch(85.0% 0.030 218)",
+          "oklch(95.0% 0.030 218)"
+        ]
+      },
+      "action": {
+        "role": "secondary",
+        "displayName": "Signal Yellow",
+        "theme": "both",
+        "canonical": "#f4c20d",
+        "tonalRamp": [
+          "oklch(15.0% 0.169 90)",
+          "oklch(26.0% 0.169 90)",
+          "oklch(38.0% 0.169 90)",
+          "oklch(50.0% 0.169 90)",
+          "oklch(62.0% 0.169 90)",
+          "oklch(74.0% 0.169 90)",
+          "oklch(85.0% 0.169 90)",
+          "oklch(95.0% 0.169 90)"
+        ]
+      },
+      "action-hover": {
+        "role": "secondary",
+        "displayName": "Signal Yellow, hover",
+        "theme": "both",
+        "canonical": "#ffd43a",
+        "tonalRamp": [
+          "oklch(15.0% 0.165 92)",
+          "oklch(26.0% 0.165 92)",
+          "oklch(38.0% 0.165 92)",
+          "oklch(50.0% 0.165 92)",
+          "oklch(62.0% 0.165 92)",
+          "oklch(74.0% 0.165 92)",
+          "oklch(85.0% 0.165 92)",
+          "oklch(95.0% 0.165 92)"
+        ]
+      },
+      "action-ink": {
+        "role": "secondary",
+        "displayName": "Ink on Yellow",
+        "theme": "both",
+        "canonical": "#111417",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 248)",
+          "oklch(26.0% 0.008 248)",
+          "oklch(38.0% 0.008 248)",
+          "oklch(50.0% 0.008 248)",
+          "oklch(62.0% 0.008 248)",
+          "oklch(74.0% 0.008 248)",
+          "oklch(85.0% 0.008 248)",
+          "oklch(95.0% 0.008 248)"
+        ]
+      },
+      "flag": {
+        "role": "tertiary",
+        "displayName": "Flag Red",
+        "theme": "both",
+        "canonical": "#d7263d",
+        "tonalRamp": [
+          "oklch(15.0% 0.209 21)",
+          "oklch(26.0% 0.209 21)",
+          "oklch(38.0% 0.209 21)",
+          "oklch(50.0% 0.209 21)",
+          "oklch(62.0% 0.209 21)",
+          "oklch(74.0% 0.209 21)",
+          "oklch(85.0% 0.209 21)",
+          "oklch(95.0% 0.209 21)"
+        ]
+      },
+      "flag-ink": {
+        "role": "tertiary",
+        "displayName": "Ink on Flag",
+        "theme": "both",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 90)",
+          "oklch(26.0% 0.000 90)",
+          "oklch(38.0% 0.000 90)",
+          "oklch(50.0% 0.000 90)",
+          "oklch(62.0% 0.000 90)",
+          "oklch(74.0% 0.000 90)",
+          "oklch(85.0% 0.000 90)",
+          "oklch(95.0% 0.000 90)"
+        ]
+      },
+      "danger-text": {
+        "role": "tertiary",
+        "displayName": "Flag Red, text weight",
+        "theme": "light",
+        "canonical": "#b81c31",
+        "tonalRamp": [
+          "oklch(15.0% 0.188 21)",
+          "oklch(26.0% 0.188 21)",
+          "oklch(38.0% 0.188 21)",
+          "oklch(50.0% 0.188 21)",
+          "oklch(62.0% 0.188 21)",
+          "oklch(74.0% 0.188 21)",
+          "oklch(85.0% 0.188 21)",
+          "oklch(95.0% 0.188 21)"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Tile White",
+        "theme": "light",
+        "canonical": "#f3f7f8",
+        "tonalRamp": [
+          "oklch(15.0% 0.004 214)",
+          "oklch(26.0% 0.004 214)",
+          "oklch(38.0% 0.004 214)",
+          "oklch(50.0% 0.004 214)",
+          "oklch(62.0% 0.004 214)",
+          "oklch(74.0% 0.004 214)",
+          "oklch(85.0% 0.004 214)",
+          "oklch(95.0% 0.004 214)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "theme": "light",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 90)",
+          "oklch(26.0% 0.000 90)",
+          "oklch(38.0% 0.000 90)",
+          "oklch(50.0% 0.000 90)",
+          "oklch(62.0% 0.000 90)",
+          "oklch(74.0% 0.000 90)",
+          "oklch(85.0% 0.000 90)",
+          "oklch(95.0% 0.000 90)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "theme": "light",
+        "canonical": "#111417",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 248)",
+          "oklch(26.0% 0.008 248)",
+          "oklch(38.0% 0.008 248)",
+          "oklch(50.0% 0.008 248)",
+          "oklch(62.0% 0.008 248)",
+          "oklch(74.0% 0.008 248)",
+          "oklch(85.0% 0.008 248)",
+          "oklch(95.0% 0.008 248)"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Ink Soft",
+        "theme": "light",
+        "canonical": "#3f5158",
+        "tonalRamp": [
+          "oklch(15.0% 0.025 224)",
+          "oklch(26.0% 0.025 224)",
+          "oklch(38.0% 0.025 224)",
+          "oklch(50.0% 0.025 224)",
+          "oklch(62.0% 0.025 224)",
+          "oklch(74.0% 0.025 224)",
+          "oklch(85.0% 0.025 224)",
+          "oklch(95.0% 0.025 224)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "theme": "light",
+        "canonical": "#c5d3d8",
+        "tonalRamp": [
+          "oklch(15.0% 0.017 221)",
+          "oklch(26.0% 0.017 221)",
+          "oklch(38.0% 0.017 221)",
+          "oklch(50.0% 0.017 221)",
+          "oklch(62.0% 0.017 221)",
+          "oklch(74.0% 0.017 221)",
+          "oklch(85.0% 0.017 221)",
+          "oklch(95.0% 0.017 221)"
+        ]
+      },
+      "tile-line": {
+        "role": "neutral",
+        "displayName": "Tile Line",
+        "theme": "light",
+        "canonical": "rgb(14 111 140 / 0.09)",
+        "tonalRamp": [
+          "oklch(15.0% 0.092 225)",
+          "oklch(26.0% 0.092 225)",
+          "oklch(38.0% 0.092 225)",
+          "oklch(50.0% 0.092 225)",
+          "oklch(62.0% 0.092 225)",
+          "oklch(74.0% 0.092 225)",
+          "oklch(85.0% 0.092 225)",
+          "oklch(95.0% 0.092 225)"
+        ]
+      },
+      "ripple": {
+        "role": "neutral",
+        "displayName": "Ripple",
+        "theme": "light",
+        "canonical": "#0e6f8c",
+        "tonalRamp": [
+          "oklch(15.0% 0.092 225)",
+          "oklch(26.0% 0.092 225)",
+          "oklch(38.0% 0.092 225)",
+          "oklch(50.0% 0.092 225)",
+          "oklch(62.0% 0.092 225)",
+          "oklch(74.0% 0.092 225)",
+          "oklch(85.0% 0.092 225)",
+          "oklch(95.0% 0.092 225)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Scorecard",
+        "theme": "both",
+        "canonical": "#fbfcfc",
+        "tonalRamp": [
+          "oklch(15.0% 0.001 197)",
+          "oklch(26.0% 0.001 197)",
+          "oklch(38.0% 0.001 197)",
+          "oklch(50.0% 0.001 197)",
+          "oklch(62.0% 0.001 197)",
+          "oklch(74.0% 0.001 197)",
+          "oklch(85.0% 0.001 197)",
+          "oklch(95.0% 0.001 197)"
+        ]
+      },
+      "card-ink": {
+        "role": "neutral",
+        "displayName": "Scorecard Numeral",
+        "theme": "both",
+        "canonical": "#111417",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 248)",
+          "oklch(26.0% 0.008 248)",
+          "oklch(38.0% 0.008 248)",
+          "oklch(50.0% 0.008 248)",
+          "oklch(62.0% 0.008 248)",
+          "oklch(74.0% 0.008 248)",
+          "oklch(85.0% 0.008 248)",
+          "oklch(95.0% 0.008 248)"
+        ]
+      },
+      "card-edge": {
+        "role": "neutral",
+        "displayName": "Scorecard Edge",
+        "theme": "light",
+        "canonical": "#c5d3d8",
+        "tonalRamp": [
+          "oklch(15.0% 0.017 221)",
+          "oklch(26.0% 0.017 221)",
+          "oklch(38.0% 0.017 221)",
+          "oklch(50.0% 0.017 221)",
+          "oklch(62.0% 0.017 221)",
+          "oklch(74.0% 0.017 221)",
+          "oklch(85.0% 0.017 221)",
+          "oklch(95.0% 0.017 221)"
+        ]
+      },
+      "card-back": {
+        "role": "primary",
+        "displayName": "Scorecard Back",
+        "theme": "light",
+        "canonical": "#0a566d",
+        "tonalRamp": [
+          "oklch(15.0% 0.076 225)",
+          "oklch(26.0% 0.076 225)",
+          "oklch(38.0% 0.076 225)",
+          "oklch(50.0% 0.076 225)",
+          "oklch(62.0% 0.076 225)",
+          "oklch(74.0% 0.076 225)",
+          "oklch(85.0% 0.076 225)",
+          "oklch(95.0% 0.076 225)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "Focus Ring",
+        "theme": "light",
+        "canonical": "#111417",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 248)",
+          "oklch(26.0% 0.008 248)",
+          "oklch(38.0% 0.008 248)",
+          "oklch(50.0% 0.008 248)",
+          "oklch(62.0% 0.008 248)",
+          "oklch(74.0% 0.008 248)",
+          "oklch(85.0% 0.008 248)",
+          "oklch(95.0% 0.008 248)"
+        ]
+      },
+      "stage-dark": {
+        "role": "primary",
+        "displayName": "Pool Aqua, evening",
+        "theme": "dark",
+        "canonical": "#0a5d76",
+        "tonalRamp": [
+          "oklch(15.0% 0.081 225)",
+          "oklch(26.0% 0.081 225)",
+          "oklch(38.0% 0.081 225)",
+          "oklch(50.0% 0.081 225)",
+          "oklch(62.0% 0.081 225)",
+          "oklch(74.0% 0.081 225)",
+          "oklch(85.0% 0.081 225)",
+          "oklch(95.0% 0.081 225)"
+        ]
+      },
+      "stage-deep-dark": {
+        "role": "primary",
+        "displayName": "Deep Water, evening",
+        "theme": "dark",
+        "canonical": "#07475b",
+        "tonalRamp": [
+          "oklch(15.0% 0.067 226)",
+          "oklch(26.0% 0.067 226)",
+          "oklch(38.0% 0.067 226)",
+          "oklch(50.0% 0.067 226)",
+          "oklch(62.0% 0.067 226)",
+          "oklch(74.0% 0.067 226)",
+          "oklch(85.0% 0.067 226)",
+          "oklch(95.0% 0.067 226)"
+        ]
+      },
+      "stage-ink-soft-dark": {
+        "role": "primary",
+        "displayName": "Splash, evening",
+        "theme": "dark",
+        "canonical": "#bfe3ee",
+        "tonalRamp": [
+          "oklch(15.0% 0.041 218)",
+          "oklch(26.0% 0.041 218)",
+          "oklch(38.0% 0.041 218)",
+          "oklch(50.0% 0.041 218)",
+          "oklch(62.0% 0.041 218)",
+          "oklch(74.0% 0.041 218)",
+          "oklch(85.0% 0.041 218)",
+          "oklch(95.0% 0.041 218)"
+        ]
+      },
+      "danger-text-dark": {
+        "role": "tertiary",
+        "displayName": "Flag Red, text weight, evening",
+        "theme": "dark",
+        "canonical": "#ff7384",
+        "tonalRamp": [
+          "oklch(15.0% 0.171 15)",
+          "oklch(26.0% 0.171 15)",
+          "oklch(38.0% 0.171 15)",
+          "oklch(50.0% 0.171 15)",
+          "oklch(62.0% 0.171 15)",
+          "oklch(74.0% 0.171 15)",
+          "oklch(85.0% 0.171 15)",
+          "oklch(95.0% 0.171 15)"
+        ]
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "Scoreboard Black",
+        "theme": "dark",
+        "canonical": "#111417",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 248)",
+          "oklch(26.0% 0.008 248)",
+          "oklch(38.0% 0.008 248)",
+          "oklch(50.0% 0.008 248)",
+          "oklch(62.0% 0.008 248)",
+          "oklch(74.0% 0.008 248)",
+          "oklch(85.0% 0.008 248)",
+          "oklch(95.0% 0.008 248)"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Surface, evening",
+        "theme": "dark",
+        "canonical": "#181d21",
+        "tonalRamp": [
+          "oklch(15.0% 0.011 242)",
+          "oklch(26.0% 0.011 242)",
+          "oklch(38.0% 0.011 242)",
+          "oklch(50.0% 0.011 242)",
+          "oklch(62.0% 0.011 242)",
+          "oklch(74.0% 0.011 242)",
+          "oklch(85.0% 0.011 242)",
+          "oklch(95.0% 0.011 242)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink, evening",
+        "theme": "dark",
+        "canonical": "#eef3f4",
+        "tonalRamp": [
+          "oklch(15.0% 0.006 211)",
+          "oklch(26.0% 0.006 211)",
+          "oklch(38.0% 0.006 211)",
+          "oklch(50.0% 0.006 211)",
+          "oklch(62.0% 0.006 211)",
+          "oklch(74.0% 0.006 211)",
+          "oklch(85.0% 0.006 211)",
+          "oklch(95.0% 0.006 211)"
+        ]
+      },
+      "ink-soft-dark": {
+        "role": "neutral",
+        "displayName": "Ink Soft, evening",
+        "theme": "dark",
+        "canonical": "#a8babf",
+        "tonalRamp": [
+          "oklch(15.0% 0.021 216)",
+          "oklch(26.0% 0.021 216)",
+          "oklch(38.0% 0.021 216)",
+          "oklch(50.0% 0.021 216)",
+          "oklch(62.0% 0.021 216)",
+          "oklch(74.0% 0.021 216)",
+          "oklch(85.0% 0.021 216)",
+          "oklch(95.0% 0.021 216)"
+        ]
+      },
+      "line-dark": {
+        "role": "neutral",
+        "displayName": "Line, evening",
+        "theme": "dark",
+        "canonical": "#2c373c",
+        "tonalRamp": [
+          "oklch(15.0% 0.017 227)",
+          "oklch(26.0% 0.017 227)",
+          "oklch(38.0% 0.017 227)",
+          "oklch(50.0% 0.017 227)",
+          "oklch(62.0% 0.017 227)",
+          "oklch(74.0% 0.017 227)",
+          "oklch(85.0% 0.017 227)",
+          "oklch(95.0% 0.017 227)"
+        ]
+      },
+      "tile-line-dark": {
+        "role": "neutral",
+        "displayName": "Tile Line, evening",
+        "theme": "dark",
+        "canonical": "rgb(255 255 255 / 0.045)",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 90)",
+          "oklch(26.0% 0.000 90)",
+          "oklch(38.0% 0.000 90)",
+          "oklch(50.0% 0.000 90)",
+          "oklch(62.0% 0.000 90)",
+          "oklch(74.0% 0.000 90)",
+          "oklch(85.0% 0.000 90)",
+          "oklch(95.0% 0.000 90)"
+        ]
+      },
+      "ripple-dark": {
+        "role": "neutral",
+        "displayName": "Ripple, evening",
+        "theme": "dark",
+        "canonical": "#3fb6d8",
+        "tonalRamp": [
+          "oklch(15.0% 0.114 221)",
+          "oklch(26.0% 0.114 221)",
+          "oklch(38.0% 0.114 221)",
+          "oklch(50.0% 0.114 221)",
+          "oklch(62.0% 0.114 221)",
+          "oklch(74.0% 0.114 221)",
+          "oklch(85.0% 0.114 221)",
+          "oklch(95.0% 0.114 221)"
+        ]
+      },
+      "card-edge-dark": {
+        "role": "neutral",
+        "displayName": "Scorecard Edge, evening",
+        "theme": "dark",
+        "canonical": "#fbfcfc",
+        "tonalRamp": [
+          "oklch(15.0% 0.001 197)",
+          "oklch(26.0% 0.001 197)",
+          "oklch(38.0% 0.001 197)",
+          "oklch(50.0% 0.001 197)",
+          "oklch(62.0% 0.001 197)",
+          "oklch(74.0% 0.001 197)",
+          "oklch(85.0% 0.001 197)",
+          "oklch(95.0% 0.001 197)"
+        ]
+      },
+      "card-back-dark": {
+        "role": "primary",
+        "displayName": "Scorecard Back, evening",
+        "theme": "dark",
+        "canonical": "#0d7391",
+        "tonalRamp": [
+          "oklch(15.0% 0.095 225)",
+          "oklch(26.0% 0.095 225)",
+          "oklch(38.0% 0.095 225)",
+          "oklch(50.0% 0.095 225)",
+          "oklch(62.0% 0.095 225)",
+          "oklch(74.0% 0.095 225)",
+          "oklch(85.0% 0.095 225)",
+          "oklch(95.0% 0.095 225)"
+        ]
+      },
+      "focus-dark": {
+        "role": "neutral",
+        "displayName": "Focus Ring, evening",
+        "theme": "dark",
+        "canonical": "#f4c20d",
+        "tonalRamp": [
+          "oklch(15.0% 0.169 90)",
+          "oklch(26.0% 0.169 90)",
+          "oklch(38.0% 0.169 90)",
+          "oklch(50.0% 0.169 90)",
+          "oklch(62.0% 0.169 90)",
+          "oklch(74.0% 0.169 90)",
+          "oklch(85.0% 0.169 90)",
+          "oklch(95.0% 0.169 90)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The story title on the stage; the largest text in the room."
+      },
+      "count": {
+        "displayName": "Count",
+        "purpose": "The 3, 2, 1 that takes over the stage before a reveal."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "A scorecard's value, sized at 52% of the card's width."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles; weight 900 inside a band."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose, fields and everything read up close. Tabular numerals."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, buttons, names under cards, alerts."
+      },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Hints, metadata and bar navigation."
+      },
+      "badge": {
+        "displayName": "Badge",
+        "purpose": "Role badges only; uppercase."
+      }
+    },
+    "themes": {
+      "light": {
+        "name": "Day session",
+        "selector": ":root",
+        "colorScheme": "light"
+      },
+      "dark": {
+        "name": "Evening final",
+        "selector": ":root[data-theme='dark'], and :root:not([data-theme='light']) under prefers-color-scheme: dark",
+        "colorScheme": "dark"
+      },
+      "storage": "localStorage key 'pj-theme' ('light' or 'dark'); browser only, applied by a nonce-carrying script in app.html before first paint; unset follows the device."
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 2px rgb(17 20 23 / 0.08), 0 6px 16px rgb(17 20 23 / 0.08)",
+        "purpose": "Scorecards, hand cards and the dialog, light theme. Token --shadow."
+      },
+      {
+        "name": "card-dark",
+        "value": "0 1px 2px rgb(0 0 0 / 0.4), 0 8px 20px rgb(0 0 0 / 0.35)",
+        "purpose": "The same, dark theme."
+      },
+      {
+        "name": "played",
+        "value": "0 0 0 3px #f4c20d, var(--shadow)",
+        "purpose": "The ring round the hand card you played."
+      },
+      {
+        "name": "dock",
+        "value": "0 -6px 18px rgb(17 20 23 / 0.1)",
+        "purpose": "Upper edge of the docked hand."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-settle",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The one easing: card turn, count beat, hand-card lift."
+      },
+      {
+        "name": "turn",
+        "value": "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Every scorecard rotates 180deg about Y in one move, in unison."
+      },
+      {
+        "name": "beat",
+        "value": "1s cubic-bezier(0.16, 1, 0.3, 1) both; scale 1.22 to 1",
+        "purpose": "Each count numeral, re-created every second so it cuts in."
+      },
+      {
+        "name": "sweep",
+        "value": "1s linear both; scaleX 0 to 1 from the left",
+        "purpose": "The 0.5rem yellow line under the count, once per beat."
+      },
+      {
+        "name": "lift",
+        "value": "transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Hand card hover (0.3rem up) and played (0.5rem up)."
+      },
+      {
+        "name": "ripple",
+        "value": "canvas; peak alpha 0.16, radius about 2 tiles, per-frame decay level * 0.94 - 0.0015",
+        "purpose": "Pointer ripple on the tile grid. Fine pointers only; off under reduced motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation-duration and transition-duration 0.01ms",
+        "purpose": "Global override under prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "bar-compact",
+        "value": "34rem",
+        "purpose": "Below this the site bar drops text labels and the name."
+      },
+      {
+        "name": "stage-short",
+        "value": "40rem",
+        "purpose": "Up to this the stage is shorter and row cards smaller."
+      },
+      {
+        "name": "columns",
+        "value": "44rem",
+        "purpose": "Home programme and claims become columns."
+      },
+      {
+        "name": "rail",
+        "value": "64rem",
+        "purpose": "Moderator controls are a rail from here; a bar above the hand below."
+      }
+    ],
+    "constraints": [
+      {
+        "name": "no-inline-styles",
+        "body": "Content Security Policy style-src 'self': no style attributes and no Svelte transition:/in:/out:/animate: directives. Dynamic values go through the cssVar action (apps/web/src/lib/ui/cssVar.ts)."
+      },
+      {
+        "name": "self-hosted",
+        "body": "Fonts come from @fontsource-variable/big-shoulders and @fontsource-variable/atkinson-hyperlegible-next (SIL OFL). No third-party origins."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "The default control: outlined in ink, inverts on hover. Disabled is dashed, not faded.",
+      "html": "<button class=\"ds-btn\">Vote again</button> <button class=\"ds-btn\" disabled>Set title</button>",
+      "css": ".ds-btn { font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-size: 1.0625rem; font-weight: 650; color: var(--ink); background: var(--surface); border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 0.55rem 1rem; min-height: 2.75rem; cursor: pointer; } .ds-btn:hover:not(:disabled) { background: var(--ink); color: var(--ground); } .ds-btn:active:not(:disabled) { transform: translateY(1px); } .ds-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; } .ds-btn:disabled { cursor: not-allowed; color: var(--ink-soft); background: transparent; border-color: var(--line); border-style: dashed; } "
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Signal Yellow. The one next step on a screen; in the moderator rail it is set in the display face.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Create room</button> <button class=\"ds-btn ds-btn-primary ds-btn-next\">Reveal</button>",
+      "css": ".ds-btn { font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-size: 1.0625rem; font-weight: 650; color: var(--ink); background: var(--surface); border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 0.55rem 1rem; min-height: 2.75rem; cursor: pointer; } .ds-btn:hover:not(:disabled) { background: var(--ink); color: var(--ground); } .ds-btn:active:not(:disabled) { transform: translateY(1px); } .ds-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; } .ds-btn:disabled { cursor: not-allowed; color: var(--ink-soft); background: transparent; border-color: var(--line); border-style: dashed; } .ds-btn-primary { background: var(--action); color: var(--action-ink); border-color: var(--action-ink); } .ds-btn-primary:hover:not(:disabled) { background: var(--action-hover); color: var(--action-ink); } .ds-btn-next { font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 800; font-size: 1.5rem; letter-spacing: 0.03em; min-height: 3.5rem; min-width: 12rem; }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Red text and border at rest, filled Flag Red on hover. Remove and delete only.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Delete all history</button>",
+      "css": ".ds-btn { font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-size: 1.0625rem; font-weight: 650; color: var(--ink); background: var(--surface); border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 0.55rem 1rem; min-height: 2.75rem; cursor: pointer; } .ds-btn:hover:not(:disabled) { background: var(--ink); color: var(--ground); } .ds-btn:active:not(:disabled) { transform: translateY(1px); } .ds-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; } .ds-btn:disabled { cursor: not-allowed; color: var(--ink-soft); background: transparent; border-color: var(--line); border-style: dashed; } .ds-btn-danger { border-color: var(--danger-text); color: var(--danger-text); } .ds-btn-danger:hover:not(:disabled) { background: var(--flag); border-color: var(--flag); color: var(--flag-ink); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Label above, surface fill, line border that darkens on hover.",
+      "html": "<label class=\"ds-label\" for=\"ds-name\">Your name</label><input class=\"ds-input\" id=\"ds-name\" placeholder=\"Mo\">",
+      "css": ".ds-label { display: block; font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-weight: 650; color: var(--ink); margin-bottom: 0.3rem; } .ds-input { width: 100%; max-width: 24rem; font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-size: 1.0625rem; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 0.6rem 0.7rem; min-height: 2.75rem; } .ds-input:hover { border-color: var(--ink-soft); } .ds-input::placeholder { color: var(--ink-soft); } .ds-input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }"
+    },
+    {
+      "name": "Site Bar",
+      "kind": "nav",
+      "refersTo": "site-bar",
+      "description": "One bar in deep water. In a room it carries the room link, pages, and your name with its role badge.",
+      "html": "<header class=\"ds-bar\"><a class=\"ds-bar-mark\" href=\"#\">pokerji</a><nav class=\"ds-bar-nav\"><button class=\"ds-bar-copy\" type=\"button\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M9 9h10v11H9zM5 15V4h10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Copy room link</span></button><a href=\"#\">History</a><a href=\"#\">Settings</a></nav><span class=\"ds-bar-you\">Mo <span class=\"ds-bar-badge\">Owner</span></span></header>",
+      "css": ".ds-bar { display: flex; align-items: center; gap: 0.5rem 1.25rem; padding: 0.5rem 1.5rem; background: var(--stage-deep); color: var(--stage-ink); font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); } .ds-bar a { color: inherit; text-decoration: none; } .ds-bar-mark { font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 900; font-size: 1.6rem; letter-spacing: 0.01em; margin-right: auto; } .ds-bar-nav { display: flex; align-items: center; gap: 1.25rem; font-size: 0.95rem; } .ds-bar-nav a:hover { text-decoration: underline; } .ds-bar-copy { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.25rem; padding: 0.2rem 0.7rem; background: transparent; color: inherit; border: 1px solid var(--stage-ink-soft); border-radius: var(--radius); font: inherit; font-weight: 650; cursor: pointer; } .ds-bar-copy:hover { background: var(--stage-ink); color: var(--stage-deep); } .ds-bar-copy:focus-visible, .ds-bar a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; } .ds-bar-you { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 650; font-size: 0.95rem; } .ds-bar-badge { padding: 0.05rem 0.4rem; border: 1px solid var(--stage-ink); border-radius: 3px; background: var(--stage-ink); color: var(--stage-deep); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.5; }"
+    },
+    {
+      "name": "Role Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "A role is a badge after the name, never text in the same run. Owner filled, Moderator outlined, Away dashed.",
+      "html": "<span class=\"ds-badge ds-badge-owner\">Owner</span> <span class=\"ds-badge\">Moderator</span> <span class=\"ds-badge ds-badge-quiet\">Away</span>",
+      "css": ".ds-badge { display: inline-block; padding: 0.05rem 0.4rem; border: 1px solid currentColor; border-radius: 3px; color: var(--ink); font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.5; white-space: nowrap; } .ds-badge-owner { background: var(--ink); border-color: var(--ink); color: var(--ground); } .ds-badge-quiet { border-style: dashed; color: var(--ink-soft); }"
+    },
+    {
+      "name": "Scorecard",
+      "kind": "card",
+      "refersTo": "scorecard-face",
+      "description": "Face down while voting; turns in one 300 ms move. Hover here to turn it. The flag above marks High or Low.",
+      "html": "<span class=\"ds-judge\"><span class=\"ds-flag\">High</span><span class=\"ds-card\"><span class=\"ds-card-inner\"><span class=\"ds-card-back\"></span><span class=\"ds-card-face\">13</span></span></span><span class=\"ds-judge-name\">Dee</span></span>",
+      "css": ".ds-card { display: inline-block; width: 5.5rem; aspect-ratio: 5 / 7; perspective: 40rem; } .ds-card-inner { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover .ds-card-inner, .ds-card[data-state='up'] .ds-card-inner { transform: rotateY(180deg); } .ds-card-back, .ds-card-face { position: absolute; inset: 0; border-radius: var(--radius); backface-visibility: hidden; box-shadow: var(--shadow); } .ds-card-back { background-color: var(--card-back); background-image: linear-gradient(rgb(255 255 255 / 0.12) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / 0.12) 1px, transparent 1px); background-size: 0.6rem 0.6rem; border: 3px solid var(--card); } .ds-card-face { transform: rotateY(180deg); display: grid; place-items: center; background: var(--card); color: var(--card-ink); border: 1.5px solid var(--card-edge); font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 900; font-size: 2.86rem; line-height: 1; } @media (prefers-reduced-motion: reduce) { .ds-card-inner { transition-duration: 0.01ms; } } .ds-judge { display: inline-grid; justify-items: center; gap: 0.3rem; } .ds-flag { height: 1.35rem; padding: 0 0.5rem; border-radius: 3px; background: var(--flag); color: var(--flag-ink); font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 800; font-size: 0.95rem; line-height: 1.35rem; letter-spacing: 0.06em; text-transform: uppercase; } .ds-judge-name { font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-size: 0.95rem; font-weight: 650; color: var(--ink); }"
+    },
+    {
+      "name": "Hand Card",
+      "kind": "custom",
+      "refersTo": "hand-card",
+      "description": "A card in your docked hand. Lifts on hover; the played card sits higher with a yellow ring.",
+      "html": "<div class=\"ds-hand\"><button class=\"ds-hand-card\" aria-pressed=\"false\">2</button><button class=\"ds-hand-card\" aria-pressed=\"true\">3</button><button class=\"ds-hand-card\" aria-pressed=\"false\">5</button><button class=\"ds-hand-card\" disabled>8</button></div>",
+      "css": ".ds-hand { display: flex; gap: 0.5rem; padding: 0.6rem 0.4rem 0.35rem; } .ds-hand-card { flex: none; width: 3.4rem; aspect-ratio: 5 / 7; padding: 0; background: var(--card); color: var(--card-ink); border: 1.5px solid var(--card-edge); border-radius: var(--radius); font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 900; font-size: 1.7rem; line-height: 1; box-shadow: var(--shadow); cursor: pointer; transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1); } .ds-hand-card:hover:not(:disabled) { transform: translateY(-0.3rem); } .ds-hand-card[aria-pressed='true'] { transform: translateY(-0.5rem); border-color: var(--action-ink); box-shadow: 0 0 0 3px var(--action), var(--shadow); } .ds-hand-card:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; } .ds-hand-card:disabled { color: #94a1a6; box-shadow: none; cursor: not-allowed; }"
+    },
+    {
+      "name": "Stage",
+      "kind": "custom",
+      "refersTo": "stage",
+      "description": "The full-bleed aqua field: timer in the corner, the story title, then the result line after a reveal.",
+      "html": "<header class=\"ds-stage\"><p class=\"ds-stage-clock\">1:30</p><h1 class=\"ds-stage-title\">PROJ-214 Let people reset their own passcode</h1><p class=\"ds-stage-result\"><span class=\"ds-stage-verdict\">Low 3, High 13</span><span class=\"ds-stage-avg\">Average 6.8</span></p></header>",
+      "css": ".ds-stage { position: relative; display: grid; align-content: end; gap: 0.9rem; min-height: 15rem; padding: 2rem 2.5rem; background-color: var(--stage); background-image: linear-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / 0.07) 1px, transparent 1px); background-size: var(--tile) var(--tile); color: var(--stage-ink); } .ds-stage-clock { position: absolute; top: 1rem; right: 2.5rem; margin: 0; font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 800; font-size: 2.25rem; line-height: 1; } .ds-stage-title { margin: 0; max-width: 20ch; font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 900; font-size: clamp(2.5rem, 1.25rem + 5.2vw, 5.5rem); line-height: 0.98; letter-spacing: 0.005em; text-wrap: balance; } .ds-stage-result { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1.5rem; } .ds-stage-verdict { font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 800; font-size: 2.25rem; line-height: 1; } .ds-stage-avg { font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); font-size: 1.15rem; color: var(--stage-ink-soft); }"
+    },
+    {
+      "name": "Count",
+      "kind": "custom",
+      "refersTo": "stage",
+      "description": "The count-in that takes the stage: one numeral a second, cut in, with a yellow sweep line. Shown looping on 3.",
+      "html": "<p class=\"ds-count\">3</p>",
+      "css": ".ds-count { position: relative; overflow: hidden; margin: 0; height: 15rem; display: grid; place-items: center; background: var(--stage-deep); color: var(--stage-ink); font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 900; font-size: 9rem; line-height: 1; animation: ds-beat 1s cubic-bezier(0.16, 1, 0.3, 1) infinite both; } .ds-count::after { content: ''; position: absolute; left: 0; bottom: 0; height: 0.5rem; width: 100%; background: var(--action); transform-origin: left; animation: ds-sweep 1s linear infinite both; } @keyframes ds-beat { from { transform: scale(1.22); } to { transform: scale(1); } } @keyframes ds-sweep { from { transform: scaleX(0); } to { transform: scaleX(1); } } @media (prefers-reduced-motion: reduce) { .ds-count, .ds-count::after { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Judges' Row",
+    "overview": "Estimation is judging. The interface is a judging panel at a diving meet: one field of pool aqua, the stage, carries the story being scored; below it, on a tiled floor, a row of white scorecards sits face down until every one of them turns in the same instant. The highest and lowest are flagged in red and named on the stage, because they speak first. There is no table, no ring of avatars and no illustration; the scene is made from colour fields, a square tile grid and heavy scoreboard numerals.\n\nThe system has two themes of equal standing. Light is the day session: cool white tile, dark ink. Dark is the evening final: scoreboard black, the pool deepened to a lit teal, the scorecards still white. The first visit follows the device; the toggle in the bar overrides it; the choice is kept in the browser only (`localStorage` key `pj-theme`) and applied before first paint, so no page flashes the wrong theme. Every colour decision is made twice, once per theme.\n\nEverything apart from the stage and the cards is plain: standard web controls, one measured column for reading and forms, sections divided by a rule. The tool sits beside a meeting and must not compete with it.",
+    "keyCharacteristics": [
+      "One full-bleed aqua field per page: the stage in the room, a band everywhere else.",
+      "Colour is rationed: aqua for the stage, yellow for the one next step, red for flags and deletion.",
+      "Condensed scoreboard numerals for anything that is read across a shared screen; a sturdy legible sans for everything else.",
+      "A 32px square tile grid in the ground, in the stage and, finer, on the card backs.",
+      "Motion is spent on one moment, the count and the turn. Nothing else on the page moves.",
+      "No inline styles anywhere; the Content Security Policy forbids them."
+    ],
+    "rules": [
+      {
+        "name": "The Three Signals Rule",
+        "body": "Aqua owns the stage and the bands. Yellow is the next step. Red is a flag or a deletion. None of the three is used for decoration, and none borrows another's job.",
+        "section": "colors"
+      },
+      {
+        "name": "The Moving Yellow Rule",
+        "body": "A screen has one yellow button, and it is whatever comes next: Reveal while voting, New round after the reveal, Create or Join on a form. The same button loses its yellow when it stops being the next step. Secondary actions on the same screen are outlined in ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Word With The Flag Rule",
+        "body": "Red never carries meaning alone. A flag always holds the word High or Low, and the same names are repeated in text on the stage.",
+        "section": "colors"
+      },
+      {
+        "name": "The Twice Rule",
+        "body": "Every colour is specified for both themes and checked in both. Contrast measured from the shipped values: body ink on ground 17:1 light and 16.5:1 dark; white on the stage 5.7:1 light and 7.4:1 dark; ink on yellow 11:1.",
+        "section": "colors"
+      },
+      {
+        "name": "The Scoreboard Rule",
+        "body": "Big Shoulders is for things read from across the room: the story title, card numerals, the count, the timer, the verdict, headings, and the one large action button in the rail or bar (800, 1.5rem, 0.03em). It never sets a sentence of body text, a label or a field.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Faces Rule",
+        "body": "There are two families and no third. Code samples and links to copy fall back to the system monospace.",
+        "section": "typography"
+      },
+      {
+        "name": "The Still Stage Rule",
+        "body": "The stage keeps one height through the reveal. The slot for the result is reserved before there is a result (4.25rem, or 5.25rem from 40rem wide), and the count is laid over the stage, not inserted into it. When the cards turn, nothing below the stage moves.",
+        "section": "layout"
+      },
+      {
+        "name": "The Under The Thumb Rule",
+        "body": "What a person does most often sits at the bottom edge: the hand for a voter, the next step for a moderator on a phone.",
+        "section": "layout"
+      },
+      {
+        "name": "The Objects Only Rule",
+        "body": "A shadow means \"this is a card or a sheet above the page\". Panels, the rail, history entries, fields and buttons are separated by a 1px line, never a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do give every screen one yellow button, and make it the next step. Move the yellow when the next step changes.",
+      "Do open every page with a full-bleed field of Pool Aqua: the stage in the room, a band elsewhere.",
+      "Do show a role as a badge after the name. A name is free text, so a role written in the same run of text could be forged by a name.",
+      "Do pair red with the word it stands for.",
+      "Do design and check both themes together; neither is the default.",
+      "Do pass dynamic values to CSS through the `cssVar` action, which sets custom properties from script, and keep every other style in a stylesheet.",
+      "Do take motion from stylesheets (`transition`, `@keyframes`) and the one canvas, and let `prefers-reduced-motion` reduce all of it.",
+      "Do reserve the space for anything that appears later (the result, a flag), so its arrival moves nothing.",
+      "Do set anything read across a shared screen in Big Shoulders at 800 or 900.",
+      "Do draw disabled buttons with a dashed border, not lowered opacity."
+    ],
+    "donts": [
+      "Don't write a `style` attribute, or use Svelte's `transition:`, `in:`, `out:` or `animate:` directives. The Content Security Policy blocks inline styles and they will fail silently in production.",
+      "Don't use red for emphasis, errors of taste, or branding. It means High, Low, or \"this deletes something\".",
+      "Don't put a second yellow button on a screen, and don't use yellow as a background tint or highlight.",
+      "Don't seat people round a table, draw avatars, or round the cards into playing cards. The room is a row of judges with scorecards.",
+      "Don't animate anything other than the count, the card turn, the lift of a hand card and the ripple. No entrance animations, no fades between states.",
+      "Don't ease or fade the count. Each number replaces the last outright.",
+      "Don't use shadows to separate panels, fields or buttons; use a 1px line.",
+      "Don't load a font, image, script or sound from another origin. Everything is self-hosted.",
+      "Don't change the scorecard for dark mode. It is white with black numerals in both themes.",
+      "Don't add a third typeface."
+    ]
+  }
+}

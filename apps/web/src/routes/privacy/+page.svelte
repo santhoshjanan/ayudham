@@ -8,20 +8,24 @@
   <title>Privacy · pokerji</title>
 </svelte:head>
 
+<header class="band">
+  <div class="band-inner">
+    <h1>Privacy</h1>
+    <p>
+      What pokerji stores, for how long, and who can see it. Each promise is followed by how it is
+      kept.
+    </p>
+  </div>
+</header>
+
 <main>
-  <p><a href="/">pokerji</a></p>
-  <h1>Privacy</h1>
-  <p>
-    This page says what pokerji stores, for how long, and who can see it. Each promise is
-    followed by how it is kept.
-  </p>
 
   <h2>No accounts</h2>
   <p>
     You never sign up. You type a display name when you join a room. We keep that name, whether
     you are voting or watching, and the times you joined and were last seen in the room.
   </p>
-  <p><b>How:</b> there is no sign-up, email field or login anywhere in the service.</p>
+  <p class="how"><b>How:</b> there is no sign-up, email field or login anywhere in the service.</p>
 
   <h2>What a room stores</h2>
   <ul>
@@ -39,7 +43,7 @@
     Votes in a round that has not been revealed are never written down. They exist only in the
     server's memory until the reveal.
   </p>
-  <p>
+  <p class="how">
     <b>How:</b> a round is saved at the moment it is revealed, and not before. Passcodes, the
     secret that keeps you signed in to a room, and the moderator link's secret are stored only in
     scrambled form that cannot be read back. The room's own link code is stored as it is, because
@@ -63,7 +67,7 @@
       Deleted data can remain in database backups until those backups are replaced.
     {/if}
   </p>
-  <p><b>How:</b> a job runs every hour and removes rooms past that age.</p>
+  <p class="how"><b>How:</b> a job runs every hour and removes rooms past that age.</p>
 
   <h2>Who can see a room</h2>
   <p>
@@ -74,7 +78,7 @@
     Nobody, the moderator included, can see how someone voted before the reveal. Before then
     everyone sees only who has voted.
   </p>
-  <p>
+  <p class="how">
     <b>How:</b> room links are long random codes that cannot be guessed, and the server does not
     send any vote to any browser until the reveal.
   </p>
@@ -95,7 +99,11 @@
     We set one cookie for each room you join. It keeps you in that room and does nothing else.
     It cannot be read by scripts and is sent only to this site.
   </p>
-  <p><b>How:</b> there are no advertising, analytics or third-party cookies on this site.</p>
+  <p>
+    Your browser also remembers whether you chose the light or the dark theme. That choice stays
+    on your device and is never sent to us.
+  </p>
+  <p class="how"><b>How:</b> there are no advertising, analytics or third-party cookies on this site.</p>
 
   <h2>What we do not collect</h2>
   <ul>
@@ -111,7 +119,7 @@
     </li>
     <li>The application does not write room links, names, story titles or votes to its logs.</li>
   </ul>
-  <p>
+  <p class="how">
     <b>How:</b> the site instructs your browser to refuse anything not served by this site, so
     even a mistake on our side could not load a tracker.
   </p>

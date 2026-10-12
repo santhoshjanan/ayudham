@@ -58,6 +58,9 @@ test('two people estimate a story and see the result together', async ({ browser
 
   await mo.getByRole('button', { name: 'Reveal' }).click();
   await expect(ann.getByTestId('countdown')).toBeVisible();
+  // The count is 3, 2, 1: it never starts from a larger number.
+  await expect(mo.getByTestId('countdown')).toHaveText(/^[123]$/);
+  await expect(ann.getByTestId('countdown')).toHaveText(/^[123]$/);
   await expect(ann.getByRole('button', { name: 'Vote 5', exact: true })).toBeDisabled();
 
   for (const page of [mo, ann]) {

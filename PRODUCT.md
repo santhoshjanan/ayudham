@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-SvelteKit (latest stable, Svelte 5) with the Node adapter, server-rendered pages with a distinct URL per surface. Chosen by the user. Shared tokens and components live in `packages/ui` for reuse by later suite tools.
+SvelteKit (latest stable, Svelte 5) with the Node adapter, server-rendered pages with a distinct URL per surface. Chosen by the user. Design tokens live in `apps/web/src/app.css` and shared components in `apps/web/src/lib/ui`; they move to a shared package when a second suite tool needs them.
 
 ## Users
 

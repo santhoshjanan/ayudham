@@ -1,0 +1,602 @@
+/*
+ * pokerji — "Judges' Row"
+ * A judging panel at a diving meet: a pool-aqua stage, white scorecards with
+ * scoreboard numerals, one yellow action, red only for flags and deletion.
+ * Light is the day session on white tile; dark is the evening final.
+ */
+
+:root {
+  --font-ui: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+  --font-display: 'Big Shoulders Variable', 'Arial Narrow', sans-serif;
+
+  --tile: 32px;
+  --radius: 6px;
+  --gap: 1rem;
+
+  /* Day session */
+  --ground: #f3f7f8;
+  --tile-line: rgb(14 111 140 / 0.09);
+  --ripple: #0e6f8c;
+  --surface: #ffffff;
+  --ink: #111417;
+  --ink-soft: #3f5158;
+  --line: #c5d3d8;
+  /* The edge of a field: dark enough to be seen as a boundary. */
+  --field-line: #6c8088;
+  --stage: #0e6f8c;
+  --stage-deep: #0a566d;
+  --stage-ink: #ffffff;
+  --stage-ink-soft: #cfe9f1;
+  --card: #fbfcfc;
+  --card-ink: #111417;
+  --card-edge: #c5d3d8;
+  --card-back: #0a566d;
+  --action: #f4c20d;
+  --action-ink: #111417;
+  --action-hover: #ffd43a;
+  --flag: #d7263d;
+  --flag-ink: #ffffff;
+  --danger-text: #b81c31;
+  --focus: #111417;
+  --shadow: 0 1px 2px rgb(17 20 23 / 0.08), 0 6px 16px rgb(17 20 23 / 0.08);
+  color-scheme: light;
+}
+
+/* Evening final. The first rule follows the device; the second follows the toggle. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #111417;
+    --tile-line: rgb(255 255 255 / 0.045);
+    --ripple: #3fb6d8;
+    --surface: #181d21;
+    --ink: #eef3f4;
+    --ink-soft: #a8babf;
+    --line: #2c373c;
+    --field-line: #71848b;
+    --stage: #0a5d76;
+    --stage-deep: #07475b;
+    --stage-ink: #ffffff;
+    --stage-ink-soft: #bfe3ee;
+    --card: #fbfcfc;
+    --card-ink: #111417;
+    --card-edge: #fbfcfc;
+    --card-back: #0d7391;
+    --action: #f4c20d;
+    --action-ink: #111417;
+    --action-hover: #ffd43a;
+    --flag: #d7263d;
+    --flag-ink: #ffffff;
+    --danger-text: #ff7384;
+    --focus: #f4c20d;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 20px rgb(0 0 0 / 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --ground: #111417;
+  --tile-line: rgb(255 255 255 / 0.045);
+  --ripple: #3fb6d8;
+  --surface: #181d21;
+  --ink: #eef3f4;
+  --ink-soft: #a8babf;
+  --line: #2c373c;
+  --field-line: #71848b;
+  --stage: #0a5d76;
+  --stage-deep: #07475b;
+  --stage-ink: #ffffff;
+  --stage-ink-soft: #bfe3ee;
+  --card: #fbfcfc;
+  --card-ink: #111417;
+  --card-edge: #fbfcfc;
+  --card-back: #0d7391;
+  --action: #f4c20d;
+  --action-ink: #111417;
+  --action-hover: #ffd43a;
+  --flag: #d7263d;
+  --flag-ink: #ffffff;
+  --danger-text: #ff7384;
+  --focus: #f4c20d;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 20px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--line) var(--ground);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--ground);
+  /* The tiled floor. Fixed, so it lines up with the pointer ripple drawn over it. */
+  background-image:
+    linear-gradient(var(--tile-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--tile-line) 1px, transparent 1px);
+  background-size: var(--tile) var(--tile);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--stage);
+}
+
+.app {
+  display: contents;
+}
+
+::selection {
+  background: var(--stage);
+  color: var(--stage-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+/* On the pool (the bar, the bands, the stage) ink would vanish, so the ring is yellow there. */
+.bar :focus-visible,
+.band :focus-visible,
+.stage :focus-visible {
+  outline-color: var(--action);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+  margin: 0;
+}
+h1 {
+  font-size: clamp(2.25rem, 1.4rem + 3.6vw, 4rem);
+}
+h2 {
+  font-size: 1.75rem;
+  margin-top: 2.75rem;
+  margin-bottom: 0.5rem;
+}
+h3 {
+  font-size: 1.3rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.4rem;
+}
+
+p,
+ul {
+  margin: 0 0 0.9rem;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 0.09em;
+  text-underline-offset: 0.2em;
+}
+a:hover {
+  text-decoration-thickness: 0.16em;
+}
+
+code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.65rem;
+  display: block;
+}
+
+/* A page of reading or a form: one measured column on the tile. */
+main {
+  width: min(100% - 2.5rem, 40rem);
+  margin-inline: auto;
+  padding-block: 3rem 5rem;
+}
+main > h1 {
+  margin-bottom: 1.25rem;
+}
+
+label,
+legend {
+  display: block;
+  font-weight: 650;
+  margin-bottom: 0.3rem;
+  padding: 0;
+}
+
+input:not([type='radio'], [type='checkbox'], [type='hidden']),
+select {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--field-line);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.7rem;
+  min-height: 2.75rem;
+}
+/* The deck menu draws its own arrow, so it matches the other controls. */
+select {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8c93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.1rem;
+}
+input:not([type='radio'], [type='checkbox'], [type='hidden']):hover,
+select:hover {
+  border-color: var(--ink);
+}
+input::placeholder {
+  color: var(--ink-soft);
+}
+input[type='radio'] {
+  accent-color: var(--stage);
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0 0.4rem 0 0;
+  vertical-align: -0.12em;
+}
+
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 0.9rem;
+}
+fieldset label {
+  display: inline-block;
+  font-weight: 400;
+  margin-right: 1.25rem;
+}
+
+button {
+  font: inherit;
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 0.55rem 1rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--ground);
+}
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+/* Disabled is drawn, not faded: a faded control turns to mud on the dark theme. */
+button:disabled {
+  cursor: not-allowed;
+  color: var(--ink-soft);
+  background: transparent;
+  border-color: var(--line);
+  border-style: dashed;
+}
+
+/* The one primary action on a screen. */
+.primary,
+form:not([action]) > button,
+form[action='?/join'] > button {
+  background: var(--action);
+  color: var(--action-ink);
+  border-color: var(--action-ink);
+}
+.primary:hover:not(:disabled),
+form:not([action]) > button:hover:not(:disabled),
+form[action='?/join'] > button:hover:not(:disabled) {
+  background: var(--action-hover);
+  color: var(--action-ink);
+}
+
+.primary:disabled,
+form:not([action]) > button:disabled,
+form[action='?/join'] > button:disabled {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+
+/* Destructive actions are the only buttons that carry the flag colour. */
+form[action='?/delete'] > button,
+form[action='?/clear'] > button,
+form[action='?/deleteRound'] > button,
+.danger {
+  border-color: var(--danger-text);
+  color: var(--danger-text);
+}
+form[action='?/delete'] > button:hover:not(:disabled),
+form[action='?/clear'] > button:hover:not(:disabled),
+form[action='?/deleteRound'] > button:hover:not(:disabled),
+.danger:hover:not(:disabled) {
+  background: var(--flag);
+  border-color: var(--flag);
+  color: var(--flag-ink);
+}
+
+[role='alert'],
+[role='status'] {
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+}
+[role='alert'] {
+  border-color: var(--danger-text);
+  color: var(--danger-text);
+  font-weight: 650;
+}
+
+section {
+  margin-top: 0;
+}
+article {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+article h2 {
+  margin-top: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The live room uses the whole width; its own regions set their margins. */
+main.bleed {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- The band: every page opens with the pool, as the room does ---- */
+.band {
+  background-color: var(--stage);
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  background-size: var(--tile) var(--tile);
+  color: var(--stage-ink);
+}
+.band-inner {
+  width: min(100% - 2.5rem, 40rem);
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 3.5rem) clamp(1.5rem, 4vw, 2.5rem);
+}
+.band.wide .band-inner {
+  width: min(100% - 2.5rem, 62rem);
+}
+.band h1 {
+  font-weight: 900;
+  line-height: 0.98;
+}
+.band p {
+  margin: 0.9rem 0 0;
+  max-width: 46ch;
+  font-size: 1.15rem;
+  color: var(--stage-ink-soft);
+}
+.band .back {
+  display: inline-block;
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  color: var(--stage-ink-soft);
+}
+.band .back:hover {
+  color: var(--stage-ink);
+}
+
+main.wide {
+  width: min(100% - 2.5rem, 62rem);
+}
+
+/* A link that is the page's main next step. */
+.button {
+  display: inline-block;
+  font-weight: 650;
+  text-decoration: none;
+  color: var(--action-ink);
+  background: var(--action);
+  border: 1.5px solid var(--action-ink);
+  border-radius: var(--radius);
+  padding: 0.65rem 1.15rem;
+}
+.button:hover {
+  background: var(--action-hover);
+}
+
+/* Sections of a settings-like page are divided by a rule, not boxed. */
+main > section + section,
+main > section + .owner-only {
+  margin-top: 2.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+main > section > h2,
+.owner-only > section > h2 {
+  margin-top: 1.75rem;
+}
+.owner-only > section + section {
+  margin-top: 2.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+main form {
+  margin-bottom: 1rem;
+}
+main form > p {
+  margin-bottom: 1.1rem;
+}
+.hint {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+/* Fields that do not apply right now recede; the hint that says how to use them does not. */
+.inactive label,
+.inactive input {
+  opacity: 0.55;
+}
+
+/* "How it is kept": the mechanism beside each privacy promise. */
+.how {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.95rem;
+  color: var(--ink-soft);
+}
+.how b {
+  color: var(--ink);
+}
+
+/* The moderator link: shown once, easy to copy whole. */
+.secret {
+  margin-top: 2.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+
+/* A person's vote in history: the name, then the card as a small scorecard. */
+.votes {
+  list-style: none;
+  margin: 0.9rem 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+.votes li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1rem;
+}
+.votes span {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.meta {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+/* The programme: what the suite offers, one event to a row. */
+.programme {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--ink);
+}
+.programme li {
+  display: grid;
+  gap: 0.75rem 2rem;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+@media (min-width: 44rem) {
+  .programme li {
+    grid-template-columns: 1fr auto;
+  }
+}
+.programme h2 {
+  margin: 0 0 0.35rem;
+  font-size: 2.25rem;
+}
+.programme p {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--ink-soft);
+}
+.claims {
+  display: grid;
+  gap: 1.75rem 3rem;
+  margin: 1rem 0 0;
+}
+@media (min-width: 44rem) {
+  .claims {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.claims dt {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+.claims dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* A role is a marked badge, never text beside the name, so a name cannot pose as one. */
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge.owner {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ground);
+}
+.badge.quiet {
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+
+.copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: start;
+}
+.copy-row code {
+  flex: 1 1 18rem;
+}
