@@ -47,19 +47,21 @@ export function fakeStore() {
 /** A connection that records what it was sent. */
 export function fakeConnection() {
   const sent: ServerMessage[] = [];
-  const state = { closed: false };
+  const state: { closed: boolean; code: number | undefined } = { closed: false, code: undefined };
   const connection: Connection = {
     send: (text) => {
       sent.push(JSON.parse(text) as ServerMessage);
     },
-    close: () => {
+    close: (code) => {
       state.closed = true;
+      state.code = code;
     },
   };
   return {
     connection,
     sent,
     isClosed: () => state.closed,
+    closeCode: () => state.code,
     /** The room from the most recent snapshot. */
     room: () => {
       const snapshots = sent.filter((message) => message.type === 'snapshot');

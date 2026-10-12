@@ -1,0 +1,40 @@
+{
+  "name": "@pokerji/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "start": "node server.js",
+    "prepare": "svelte-kit sync || echo ''",
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "smoke": "sh scripts/smoke.sh",
+    "e2e": "playwright test"
+  },
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.1",
+    "iovalkey": "^0.4.0",
+    "pg": "^8.23.1",
+    "ws": "^8.22.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@pokerji/poker-engine": "workspace:*",
+    "@pokerji/poker-server": "workspace:*",
+    "@pokerji/protocol": "workspace:*",
+    "@sveltejs/adapter-node": "^6.0.0",
+    "@sveltejs/kit": "^3.0.0",
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
+    "@types/node": "^24.0.0",
+    "svelte": "^5.57.1",
+    "svelte-check": "^4.6.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0"
+  }
+}

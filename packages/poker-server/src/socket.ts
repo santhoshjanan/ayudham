@@ -7,7 +7,7 @@ export const MAX_STRIKES = 3;
 
 export interface Socket {
   send(text: string): void;
-  close(): void;
+  close(code?: number): void;
   onMessage(handler: (text: string) => void): void;
   onClose(handler: () => void): void;
 }
@@ -21,7 +21,7 @@ export interface Socket {
 export function attachSocket(host: RoomHost, joiner: Joiner, socket: Socket): void {
   const connection: Connection = {
     send: (text) => socket.send(text),
-    close: () => socket.close(),
+    close: (code) => socket.close(code),
   };
   let strikes = 0;
   let closed = false;

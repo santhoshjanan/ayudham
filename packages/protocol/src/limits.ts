@@ -12,3 +12,5 @@ export const AWAY_DROP_MS = 600_000;
 export const ROOM_UNLOAD_MS = 300_000;
 export const PASSCODE_MIN = 4;
 export const PASSCODE_MAX = 64;
+/** WebSocket close code: this connection was closed because the participant opened too many. */
+export const CLOSE_TOO_MANY_CONNECTIONS = 4001;

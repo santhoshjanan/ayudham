@@ -1,5 +1,7 @@
+export * from './app.ts';
 export * from './config.ts';
 export * from './db.ts';
+export * from './flows.ts';
 export * from './history.ts';
 export * from './host.ts';
 export * from './kv.ts';
@@ -11,3 +13,5 @@ export * from './rooms.ts';
 export * from './secrets.ts';
 export * from './sessions.ts';
 export * from './socket.ts';
+export * from './upgrade.ts';
+export * from './validate.ts';

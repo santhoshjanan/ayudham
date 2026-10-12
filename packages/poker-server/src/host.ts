@@ -10,6 +10,7 @@ import {
   type RoomState,
 } from '@pokerji/poker-engine';
 import {
+  CLOSE_TOO_MANY_CONNECTIONS,
   ROOM_UNLOAD_MS,
   type ClientMessage,
   type Role,
@@ -30,7 +31,8 @@ export const MESSAGE_LIMIT = { max: 30, windowMs: 10_000 };
 
 export interface Connection {
   send(text: string): void;
-  close(): void;
+  /** `code` is a WebSocket close code telling the browser why. */
+  close(code?: number): void;
 }
 
 export interface HostStore {
@@ -98,7 +100,7 @@ export class RoomHost {
     if (open.size > MAX_CONNECTIONS_PER_PARTICIPANT) {
       const oldest = open.values().next().value as Connection;
       open.delete(oldest);
-      this.safely(() => oldest.close());
+      this.safely(() => oldest.close(CLOSE_TOO_MANY_CONNECTIONS));
     }
     this.emptySince = null;
     this.dispatch({ type: 'join', participant: joiner });

@@ -56,7 +56,7 @@ packages/ui            design tokens and shared Svelte components
 | `/poker/r/<code>/ws` | WebSocket endpoint |
 | `/privacy` | What is stored and for how long |
 
-All `/poker/r/` responses carry `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex` and `Cache-Control: no-store`.
+All responses carry `Referrer-Policy: same-origin`, so a room link is never sent to another site (`no-referrer` cannot be used: it makes browsers send `Origin: null` on same-site form posts, which the cross-site check refuses). All `/poker` responses also carry `X-Robots-Tag: noindex` and `Cache-Control: no-store`.
 
 ### Deployment
 
@@ -88,7 +88,7 @@ The room link is the secret. The optional passcode is a second factor the modera
 
 ### Session cookie
 
-One cookie per room: `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/poker/r/<code>`, rolling 30-day lifetime. `Lax` rather than `Strict` so that following an invite link from a chat app still presents an existing session. Cross-site request forgery is covered by SvelteKit's origin check on form posts and an explicit `Origin` check on the WebSocket upgrade.
+One cookie per room: `HttpOnly`, `Secure` (always, except in local development; never derived from a request header), `SameSite=Lax`, `Path=/poker/r/<code>`, rolling 30-day lifetime. `Lax` rather than `Strict` so that following an invite link from a chat app still presents an existing session. Cross-site request forgery is covered by SvelteKit's origin check on form posts and an explicit `Origin` check on the WebSocket upgrade.
 
 ### Roles
 
@@ -111,7 +111,7 @@ Before the Revealed phase, including during the reveal count, the server never s
 
 ### Joining
 
-1. `/poker/r/<code>` without a valid session renders a join form: display name (1–30 characters), voter or spectator, and a passcode field.
+1. `/poker/r/<code>` without a valid session renders a join form: display name (1–30 characters), voter or spectator, and a passcode field. Names are compatibility-normalised, must contain a letter or digit, and may not contain invisible or direction-changing characters. A name already in use in the room, ignoring case, is given a number ("Mo 2"), so nobody can pose as someone else.
 2. The form and its failure response are identical whether the room does not exist, has no passcode, or the passcode is wrong. Room existence is never disclosed.
 3. On success the server creates a session, sets the cookie and redirects to the room.
 4. The join form states: votes are recorded under the display name you enter and kept for 30 days after the room's last use.
@@ -135,7 +135,9 @@ Defaults, all configurable:
 | Passcode failures per client per room | 5 per 10 minutes |
 | Passcode failures per room, all clients | 50 per hour |
 | WebSocket messages per participant, across all their connections | 30 per 10 seconds |
-| Connections per participant | 4; a fifth closes the oldest |
+| Connections per participant | 4; a fifth closes the oldest, which is told why and does not reconnect |
+| WebSocket connections per session | 60 per minute, counted after the session is verified |
+| Sessions per room | 200; when full, the non-moderator seen longest ago is signed out to make room |
 | Participants per room | 50, not counting moderators, who can always enter |
 | WebSocket message size | 2 KB |
 | Story title length | 200 characters |
@@ -251,7 +253,7 @@ Plain-language statement of: what is stored, for how long, who can see it, the o
 | Valkey unavailable | Room creation, joins and passcode attempts are refused, because limits cannot be enforced. Rooms already live continue. |
 | Invalid or unauthorized message | Dropped; repeated offences close the connection. |
 | Unknown room or wrong passcode | Same generic response. |
-| Connection lost | Banner and automatic reconnection. |
+| Connection lost | Banner and automatic reconnection, retried for as long as it takes at intervals up to 15 seconds. The page never reloads itself. If the session no longer exists, the join form is shown. |
 | Audio blocked or fails to load | Silent; the countdown is unaffected. |
 
 ## 7. Testing

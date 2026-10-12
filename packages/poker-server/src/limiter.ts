@@ -35,3 +35,21 @@ export async function withinLimit(
     return false;
   }
 }
+
+/**
+ * Says whether a counter has already reached its limit, without adding to it.
+ * Used where only failures should count. Unreachable Valkey reads as over the limit.
+ */
+export async function overLimit(
+  kv: Kv,
+  key: string,
+  limit: Limit,
+  prefix: string = KEY_PREFIX,
+): Promise<boolean> {
+  try {
+    const count = Number((await kv.get(`${prefix}rl:${key}`)) ?? 0);
+    return !(count < limit.max);
+  } catch {
+    return true;
+  }
+}

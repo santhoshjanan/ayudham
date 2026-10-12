@@ -1649,6 +1649,14 @@ export default defineConfig(({ command, mode }) => {
                   'default-src': ['self'],
                   'script-src': ['self'],
                   'style-src': ['self'],
+                  // The one inline style allowed: SvelteKit's own route announcer, the visually
+                  // hidden region that tells screen readers a navigation happened. Allowed by
+                  // exact hash, so no other inline style can run. If a SvelteKit upgrade changes
+                  // that style, the end-to-end policy test fails and prints the new hash.
+                  'style-src-attr': [
+                    'unsafe-hashes',
+                    'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=',
+                  ],
                   'img-src': ['self', 'data:'],
                   'font-src': ['self'],
                   'media-src': ['self'],
@@ -1805,7 +1813,7 @@ export const init: ServerInit = async () => {
 export const handle: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'no-referrer');
+  response.headers.set('Referrer-Policy', 'same-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   if (event.url.pathname.startsWith('/poker')) {
@@ -1947,7 +1955,7 @@ echo "$HEADERS" | grep -qi "content-security-policy: default-src 'self'" || fail
 echo "$HEADERS" | grep -qi "script-src 'self' 'nonce-" || fail "script nonce"
 echo "$HEADERS" | grep -qi "frame-ancestors 'none'" || fail "frame-ancestors"
 echo "$HEADERS" | grep -qi "x-content-type-options: nosniff" || fail "nosniff"
-echo "$HEADERS" | grep -qi "referrer-policy: no-referrer" || fail "referrer policy"
+echo "$HEADERS" | grep -qi "referrer-policy: same-origin" || fail "referrer policy"
 echo "$HEADERS" | grep -qi "cache-control: no-store" || fail "no-store on room pages"
 echo "$HEADERS" | grep -qi "x-robots-tag: noindex" || fail "noindex on room pages"
 
@@ -2609,7 +2617,7 @@ test('pages carry the security headers, and the policy does not break the app', 
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(headers['content-security-policy']).toMatch(/script-src 'self' 'nonce-/);
   expect(headers['x-content-type-options']).toBe('nosniff');
-  expect(headers['referrer-policy']).toBe('no-referrer');
+  expect(headers['referrer-policy']).toBe('same-origin');
   expect(headers['cache-control']).toBe('no-store');
   expect(headers['x-robots-tag']).toContain('noindex');
 

@@ -240,6 +240,7 @@ describe('RoomHost', () => {
     const fifth = fakeConnection();
     host.connect(ann, fifth.connection);
     expect(annTab.isClosed()).toBe(true);
+    expect(annTab.closeCode()).toBe(4001);
     expect(extra.every((tab) => !tab.isClosed())).toBe(true);
     expect(fifth.room().you.id).toBe('a');
   });
