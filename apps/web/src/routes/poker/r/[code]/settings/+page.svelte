@@ -1,5 +1,6 @@
 <script lang="ts">
   import { BUILT_IN_DECKS } from '@pokerji/protocol';
+  import { page } from '$app/state';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
@@ -27,7 +28,9 @@
   {#if form && 'recoveryToken' in form && form.recoveryToken}
     <p>Save this link now. It is shown only once, and the previous link no longer works.</p>
     <p>
-      <code data-testid="recovery-link">/poker/r/{data.code}/recover#m={form.recoveryToken}</code>
+      <code data-testid="recovery-link"
+        >{page.url.origin}/poker/r/{data.code}/recover#m={form.recoveryToken}</code
+      >
     </p>
   {/if}
 
@@ -105,8 +108,9 @@
   <section>
     <h2>Moderator link</h2>
     <p>
-      The moderator link lets you run this room from another browser. Make a new one if the old
-      one is lost or was seen by someone else.
+      The moderator link lets you run this room from another browser. Making a new one stops the
+      old link working. It does not take moderator rights away from anyone who already used the
+      old link: a moderator stays a moderator.
     </p>
     <form method="POST" action="?/recovery">
       <button>Make a new moderator link</button>

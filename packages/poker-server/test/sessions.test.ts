@@ -31,7 +31,8 @@ const session = (roomId: string, moderator = false) =>
   insertSession(db, {
     roomId,
     tokenHash: `hash${(n += 1)}`,
-    name: 'Ann',
+    // Names are unique within a room.
+    name: `Ann ${n}`,
     role: 'voter',
     moderator,
   });

@@ -22,6 +22,7 @@
   {#if data.rounds.length === 0}
     <p>No rounds have been saved yet.</p>
   {:else}
+    <p>The newest rounds are shown, up to 200.</p>
     {#each data.rounds as round (round.id)}
       <article data-testid="round">
         <h2>{round.title || 'Untitled'}</h2>

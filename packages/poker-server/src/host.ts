@@ -132,8 +132,16 @@ export class RoomHost {
     this.dispatch({ type: 'client', from: id, message });
   }
 
-  applySettings(settings: RoomSettings): void {
+  /**
+   * Applies settings to the live room. Returns false, changing nothing, when
+   * the deck would change at a moment that is not allowed. The check and the
+   * change happen together, so no vote can arrive in between.
+   */
+  applySettings(settings: RoomSettings): boolean {
+    const deckChanged = JSON.stringify(settings.deck) !== JSON.stringify(this.state.deck);
+    if (deckChanged && !canChangeDeck(this.state)) return false;
     this.dispatch({ type: 'settings', settings });
+    return true;
   }
 
   /** Signs people out of the live room. The caller has already deleted their sessions. */

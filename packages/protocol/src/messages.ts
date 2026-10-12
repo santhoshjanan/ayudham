@@ -73,6 +73,8 @@ export interface RoomSnapshot {
   title: string;
   deck: Deck;
   phase: Phase;
+  /** Counts up by one with each new round, so a page can tell a new round from an update. */
+  round: number;
   /** Epoch milliseconds when the count ends; set only while counting. */
   revealAt: number | null;
   timer: { seconds: number | null; endsAt: number | null };

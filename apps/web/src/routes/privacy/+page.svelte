@@ -18,15 +18,18 @@
 
   <h2>No accounts</h2>
   <p>
-    You never sign up. You type a display name when you join a room, and that is all we know
-    about you.
+    You never sign up. You type a display name when you join a room. We keep that name, whether
+    you are voting or watching, and the times you joined and were last seen in the room.
   </p>
   <p><b>How:</b> there is no sign-up, email field or login anywhere in the service.</p>
 
   <h2>What a room stores</h2>
   <ul>
     <li>The room's settings: its deck, its timer length and whether it has a passcode.</li>
-    <li>The display name and role of each person who joined.</li>
+    <li>
+      For each person who joined: their display name, whether they vote or watch, whether they
+      are a moderator, and when they joined and were last seen.
+    </li>
     <li>
       For each revealed round: the story title, the time, and which card each named person
       played.
@@ -37,13 +40,16 @@
     server's memory until the reveal.
   </p>
   <p>
-    <b>How:</b> a round is saved at the moment it is revealed, and not before. Passcodes and the
-    secrets in links are stored only in scrambled form that cannot be read back.
+    <b>How:</b> a round is saved at the moment it is revealed, and not before. Passcodes, the
+    secret that keeps you signed in to a room, and the moderator link's secret are stored only in
+    scrambled form that cannot be read back. The room's own link code is stored as it is, because
+    it is how the room is found.
   </p>
 
   <h2>How long it is kept</h2>
   <p>
     A room, with everything in it, is deleted {data.retentionDays} days after it was last used.
+    "Used" means someone joined, a round was revealed, or its settings were changed.
   </p>
   <p>
     A moderator can delete a single round, all history, or the whole room at any time. Deletion
@@ -54,8 +60,7 @@
       Deleted data can remain in database backups for up to {data.backupRotationDays} days, until
       those backups are replaced.
     {:else}
-      Deleted data can remain in database backups for a short time, until those backups are
-      replaced.
+      Deleted data can remain in database backups until those backups are replaced.
     {/if}
   </p>
   <p><b>How:</b> a job runs every hour and removes rooms past that age.</p>
@@ -90,21 +95,21 @@
     We set one cookie for each room you join. It keeps you in that room and does nothing else.
     It cannot be read by scripts and is sent only to this site.
   </p>
-  <p>Your browser also remembers your sound and theme choices. Those never leave your device.</p>
   <p><b>How:</b> there are no advertising, analytics or third-party cookies on this site.</p>
 
   <h2>What we do not collect</h2>
   <ul>
     <li>
-      We do not store your IP address. It is used for a few minutes, in scrambled form, to stop
-      abuse such as creating thousands of rooms, and is then forgotten.
+      We do not store your IP address. A scrambled form of it, which cannot be turned back into
+      the address, is kept for up to an hour to stop abuse such as creating thousands of rooms,
+      and is then forgotten.
     </li>
     <li>We do not use analytics, trackers, advertising or fingerprinting.</li>
     <li>
       We do not load anything from other companies' servers: no fonts, scripts, images or
       embeds.
     </li>
-    <li>We do not write room links, names, story titles or votes to our logs.</li>
+    <li>The application does not write room links, names, story titles or votes to its logs.</li>
   </ul>
   <p>
     <b>How:</b> the site instructs your browser to refuse anything not served by this site, so

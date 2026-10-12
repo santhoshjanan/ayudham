@@ -7,7 +7,7 @@
     type ServerMessage,
   } from '@pokerji/protocol';
 
-  let { code }: { code: string } = $props();
+  let { code, retentionDays }: { code: string; retentionDays: number } = $props();
 
   type Status = 'connecting' | 'open' | 'reconnecting' | 'removed' | 'full' | 'replaced';
   type Person = RoomSnapshot['participants'][number];
@@ -52,8 +52,12 @@
           // Only a snapshot proves the connection works; an accepted socket can still be closed at once.
           failures = 0;
           status = 'open';
-          // A running timer in the new snapshot means any "time is up" notice is stale.
-          if (message.room.timer.endsAt !== null || message.room.phase !== 'voting') notice = '';
+          // A new round, a running timer or a reveal makes any earlier notice stale.
+          const next = message.room;
+          if (!room || next.round !== room.round || next.timer.endsAt !== null) notice = '';
+          if (next.phase !== 'voting') notice = '';
+          // The title box empties only once the room shows what was typed.
+          if (titleDraft.trim() !== '' && next.title === titleDraft.trim()) titleDraft = '';
           room = message.room;
           clockOffset = message.room.serverNow - Date.now();
         } else if (message.type === 'removed') {
@@ -62,6 +66,12 @@
           finish('full');
         } else if (message.type === 'timerExpired') {
           notice = 'Time is up.';
+        } else if (message.type === 'error') {
+          // Without this a refused action would simply do nothing.
+          notice =
+            message.code === 'rate_limited'
+              ? 'You are sending too fast. Wait a moment and try again.'
+              : 'That was not accepted. Check it and try again.';
         }
       };
       ws.onclose = (event) => {
@@ -133,7 +143,7 @@
 
   const setTitle = (event: SubmitEvent) => {
     event.preventDefault();
-    if (send({ type: 'setTitle', title: titleDraft })) titleDraft = '';
+    send({ type: 'setTitle', title: titleDraft });
   };
 </script>
 
@@ -312,5 +322,7 @@
     </section>
   {/if}
 
-  <p>Votes are recorded under your name and kept for 30 days after the room was last used.</p>
+  <p>
+    Votes are recorded under your name and kept for {retentionDays} days after the room was last used.
+  </p>
 {/if}

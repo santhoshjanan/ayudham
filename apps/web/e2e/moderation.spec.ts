@@ -274,6 +274,23 @@ test.describe('history', () => {
     await expect(mo.getByText('No rounds have been saved yet.')).toBeVisible();
   });
 
+  test('history says nothing false about a round played with a deck the room no longer uses', async ({
+    browser,
+  }) => {
+    const { mo, path } = await playRound(browser);
+    await mo.getByRole('button', { name: 'New round' }).click();
+    await mo.goto(`${path}/settings`);
+    await mo.getByLabel('Deck').selectOption('powersOfTwo');
+    await mo.getByRole('button', { name: 'Save settings' }).click();
+    await expect(mo.getByRole('status')).toHaveText('Settings saved.');
+    await mo.goto(`${path}/history`);
+    const round = mo.getByTestId('round');
+    await expect(round).toContainText('Mo: 3');
+    await expect(round).toContainText('Ann: 8');
+    await expect(round).not.toContainText('Low');
+    await expect(round).not.toContainText('Unanimous');
+  });
+
   test('history is only for people in the room', async ({ browser }) => {
     const { path } = await playRound(browser);
     const context = await browser.newContext();
@@ -286,7 +303,10 @@ test.describe('history', () => {
 test.describe('moderator recovery', () => {
   test('the moderator link makes a joined person a moderator', async ({ browser }) => {
     const { path, recovery } = await createRoom(browser, 'Mo');
-    expect(recovery).toMatch(new RegExp(`^${path}/recover#m=[A-Za-z0-9_-]{43}$`));
+    // A full address, so pasting it into a browser opens it rather than searching for it.
+    expect(recovery).toMatch(
+      new RegExp(`^http://127\\.0\\.0\\.1:4173${path}/recover#m=[A-Za-z0-9_-]{43}$`),
+    );
     const { page: ann } = await joinRoom(browser, path, 'Ann');
     await expect(ann.getByRole('button', { name: 'Reveal' })).toHaveCount(0);
 
@@ -315,6 +335,8 @@ test.describe('moderator recovery', () => {
     const page = await context.newPage();
     await page.goto(recovery);
     await expect(page.getByText('Join the room first')).toBeVisible();
+    // The secret is kept for when they come back after joining.
+    expect(page.url()).toContain('#m=');
     await expect(page.getByRole('button', { name: 'Become a moderator' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Join the room' })).toHaveAttribute('href', path);
   });
@@ -350,5 +372,7 @@ test.describe('privacy page', () => {
     await expect(main).toContainText('one cookie');
     await expect(main).toContainText('We do not store your IP address');
     await expect(main).toContainText('a moderator can delete those rounds');
+    await expect(main).toContainText('for up to an hour');
+    await expect(main).not.toContainText('theme');
   });
 });

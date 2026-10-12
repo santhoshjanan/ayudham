@@ -53,3 +53,12 @@ export async function overLimit(
     return true;
   }
 }
+
+/** Forgets a counter, as when the thing it protected has been replaced. */
+export async function clearLimit(kv: Kv, key: string, prefix: string = KEY_PREFIX): Promise<void> {
+  try {
+    await kv.del(`${prefix}rl:${key}`);
+  } catch {
+    // The counter expires on its own.
+  }
+}

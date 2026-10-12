@@ -15,6 +15,7 @@ import {
   countSessions,
   deleteStalestSession,
   findSession,
+  insertJoiningSession,
   insertSession,
   sessionNames,
   type SessionRow,
@@ -147,18 +148,31 @@ export async function joinRoomFlow(
   const full = (await countSessions(deps.db, room.id)) >= limit;
   if (full && !(await deleteStalestSession(deps.db, room.id))) return REFUSED;
 
-  const taken = new Set((await sessionNames(deps.db, room.id)).map((n) => n.toLowerCase()));
-
+  // The name index can still refuse a name two people asked for at the same
+  // instant; the next attempt sees the other one and picks the next number.
   const sessionToken = newToken();
-  await insertSession(deps.db, {
-    roomId: room.id,
-    tokenHash: hashToken(sessionToken),
-    name: distinctName(name.data, taken),
-    role: role.data,
-    moderator: false,
-  });
-  await touchRoom(deps.db, room.id);
-  return { ok: true, sessionToken };
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const taken = new Set((await sessionNames(deps.db, room.id)).map((n) => n.toLowerCase()));
+    try {
+      const session = await insertJoiningSession(
+        deps.db,
+        {
+          roomId: room.id,
+          tokenHash: hashToken(sessionToken),
+          name: distinctName(name.data, taken),
+          role: role.data,
+        },
+        room.passcodeHash,
+      );
+      // The passcode changed while this join was being checked.
+      if (!session) return REFUSED;
+      await touchRoom(deps.db, room.id);
+      return { ok: true, sessionToken };
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+    }
+  }
+  return REFUSED;
 }
 
 /** Resolves a room code and a session cookie value to a room and a session, or nothing. */

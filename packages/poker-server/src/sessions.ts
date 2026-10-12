@@ -112,3 +112,26 @@ export async function sessionNames(db: Db, roomId: string): Promise<string[]> {
   ]);
   return result.rows.map((row) => row.name);
 }
+
+/**
+ * Adds a session for someone joining, but only if the room's passcode is still
+ * the one their join was checked against. The row lock makes this wait for a
+ * passcode change in progress, so nobody can join a room on a check that is out
+ * of date. Returns null when the passcode has changed.
+ */
+export async function insertJoiningSession(
+  db: Db,
+  session: { roomId: string; tokenHash: string; name: string; role: Role },
+  checkedPasscodeHash: string | null,
+): Promise<SessionRow | null> {
+  const result = await db.query<SessionRow>(
+    `insert into sessions (room_id, token_hash, name, role, moderator)
+     select r.id, $2, $3, $4, false
+     from rooms r
+     where r.id = $1 and r.passcode_hash is not distinct from $5
+     for share of r
+     returning ${COLUMNS}`,
+    [session.roomId, session.tokenHash, session.name, session.role, checkedPasscodeHash],
+  );
+  return result.rows[0] ?? null;
+}

@@ -1,7 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { recoverModerator } from '@pokerji/poker-server';
 import { actorOf } from '#lib/server/actor.ts';
-import { clientAddress } from '#lib/server/address.ts';
 import { runtime } from '#lib/server/pokerji.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -16,11 +15,7 @@ export const actions: Actions = {
     const form = await event.request.formData();
     const recovered =
       actor !== null &&
-      (await recoverModerator(runtime().app, {
-        address: clientAddress(event),
-        actor,
-        recoveryToken: form.get('token'),
-      }));
+      (await recoverModerator(runtime().app, { actor, recoveryToken: form.get('token') }));
     if (!recovered) {
       // One message for every reason, so the page gives nothing away.
       return fail(403, {

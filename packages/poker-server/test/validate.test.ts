@@ -27,6 +27,12 @@ describe('nameSchema', () => {
     }
   });
 
+  it('reserves the name history gives to people who removed theirs', () => {
+    expect(ok(nameSchema, 'Anonymous')).toBe(false);
+    expect(ok(nameSchema, 'anonymous')).toBe(false);
+    expect(ok(nameSchema, 'Anonymous Andy')).toBe(true);
+  });
+
   it('rejects empty, too long, multi-line and trick names', () => {
     for (const bad of ['', '   ', 'x'.repeat(31), 'a\nb', 'a\u0000b', 'a‮b', 12, null]) {
       expect(ok(nameSchema, bad)).toBe(false);

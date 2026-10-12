@@ -188,6 +188,17 @@ describe('RoomHost', () => {
     expect(annTab.isClosed()).toBe(true);
   });
 
+  it('says whether settings took effect, and refuses a deck change once votes are in', () => {
+    const { host, moTab } = setup();
+    const tee = { deck: BUILT_IN_DECKS.tshirt.deck, timerSeconds: 30, music: null };
+    host.receive('a', { type: 'vote', card: '5' });
+    expect(host.applySettings(tee)).toBe(false);
+    expect(moTab.room().timer.seconds).toBe(60);
+    host.receive('a', { type: 'clearVote' });
+    expect(host.applySettings(tee)).toBe(true);
+    expect(moTab.room().timer.seconds).toBe(30);
+  });
+
   it('keeps going when one connection throws', () => {
     const { host, moTab, problems } = setup();
     host.connect(

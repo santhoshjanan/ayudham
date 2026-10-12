@@ -211,6 +211,24 @@ describe('setPasscode and removePasscode', () => {
     expect(moTab.isClosed()).toBe(false);
   });
 
+  it('allows five passcode changes in ten minutes for a room, then asks for patience', async () => {
+    const { mo } = await setup();
+    for (let i = 0; i < 5; i += 1) {
+      expect(await setPasscode(app, mo, `passcode number ${i}`)).toEqual({ ok: true });
+    }
+    expect(await setPasscode(app, mo, 'one too many')).toEqual({ ok: false, reason: 'limited' });
+  });
+
+  it('clears a lockout when the moderator changes the passcode', async () => {
+    const { code, mo } = await setup();
+    await setPasscode(app, mo, 'open sesame');
+    for (let i = 0; i < 50; i += 1) await join(code, `guess ${i}`, `192.0.3.${i}`);
+    expect((await join(code, 'open sesame', '192.0.4.1')).ok).toBe(false);
+
+    await setPasscode(app, mo, 'new passcode');
+    expect((await join(code, 'new passcode', '192.0.4.2')).ok).toBe(true);
+  });
+
   it('rejects a passcode that is too short, too long or not text', async () => {
     const { code, mo } = await setup();
     for (const bad of ['short77', 'x'.repeat(65), '', null, 12345678]) {
@@ -240,9 +258,7 @@ describe('recovery', () => {
     const tab = fakeConnection();
     host?.connect(joiner(ann), tab.connection);
 
-    expect(await recoverModerator(app, { address: annAddress, actor: ann, recoveryToken })).toBe(
-      true,
-    );
+    expect(await recoverModerator(app, { actor: ann, recoveryToken })).toBe(true);
     expect((await who(annToken)).session.moderator).toBe(true);
     expect(tab.room().you.moderator).toBe(true);
   });
@@ -250,9 +266,7 @@ describe('recovery', () => {
   it('refuses a wrong, missing or malformed secret', async () => {
     const { ann, who, annToken, annAddress } = await setup();
     for (const bad of ['wrong', '', null, 42, 'x'.repeat(500)]) {
-      expect(
-        await recoverModerator(app, { address: annAddress, actor: ann, recoveryToken: bad }),
-      ).toBe(false);
+      expect(await recoverModerator(app, { actor: ann, recoveryToken: bad })).toBe(false);
     }
     expect((await who(annToken)).session.moderator).toBe(false);
   });
@@ -261,21 +275,18 @@ describe('recovery', () => {
     const first = await setup();
     const second = await setup();
     expect(
-      await recoverModerator(app, {
-        address: second.annAddress,
-        actor: second.ann,
-        recoveryToken: first.recoveryToken,
-      }),
+      await recoverModerator(app, { actor: second.ann, recoveryToken: first.recoveryToken }),
     ).toBe(false);
   });
 
-  it('stops answering after thirty attempts from one client, even for the right secret', async () => {
-    const { ann, recoveryToken } = await setup();
+  it('stops answering one session after thirty attempts, without blocking others at that address', async () => {
+    const { ann, mo, recoveryToken } = await setup();
     const address = '192.0.2.77';
     for (let i = 0; i < 30; i += 1) {
-      await recoverModerator(app, { address, actor: ann, recoveryToken: 'wrong' });
+      await recoverModerator(app, { actor: ann, recoveryToken: 'wrong' });
     }
-    expect(await recoverModerator(app, { address, actor: ann, recoveryToken })).toBe(false);
+    expect(await recoverModerator(app, { actor: ann, recoveryToken })).toBe(false);
+    expect(await recoverModerator(app, { actor: mo, recoveryToken })).toBe(true);
   });
 
   it('replaces the secret: the old link stops working and the new one works', async () => {
@@ -285,16 +296,10 @@ describe('recovery', () => {
     expect(made.recoveryToken).not.toBe(recoveryToken);
 
     const fresh = { room: (await findRoomByCode(app.db, ann.room.code))!, session: ann.session };
-    expect(await recoverModerator(app, { address: annAddress, actor: fresh, recoveryToken })).toBe(
-      false,
+    expect(await recoverModerator(app, { actor: fresh, recoveryToken })).toBe(false);
+    expect(await recoverModerator(app, { actor: fresh, recoveryToken: made.recoveryToken })).toBe(
+      true,
     );
-    expect(
-      await recoverModerator(app, {
-        address: annAddress,
-        actor: fresh,
-        recoveryToken: made.recoveryToken,
-      }),
-    ).toBe(true);
   });
 
   it('only a moderator can replace the secret', async () => {
@@ -366,6 +371,12 @@ describe('history', () => {
     }
     expect(await deleteHistoryRound(app, mo, other.ids[0])).toEqual(invalid);
     expect(await roomHistory(app, other.mo)).toHaveLength(2);
+  });
+
+  it('limits how often one person can ask for their name to be removed', async () => {
+    const { ann } = await withRounds();
+    for (let i = 0; i < 20; i += 1) expect(await anonymiseMe(app, ann)).not.toBeNull();
+    expect(await anonymiseMe(app, ann)).toBeNull();
   });
 
   it('removes only the caller’s name from history', async () => {

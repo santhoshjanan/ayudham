@@ -16,6 +16,7 @@ export function snapshotFor(state: RoomState, id: string, now: number): RoomSnap
     title: state.title,
     deck: state.deck,
     phase: state.phase,
+    round: state.roundSeq,
     revealAt: state.revealAt,
     timer: { seconds: state.timerSeconds, endsAt: state.timerEndsAt },
     music: state.music,

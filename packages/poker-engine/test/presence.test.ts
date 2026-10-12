@@ -139,6 +139,7 @@ describe('snapshotFor', () => {
       title: '',
       deck: FIB,
       phase: 'voting',
+      round: 1,
       revealAt: null,
       timer: { seconds: 60, endsAt: null },
       music: null,

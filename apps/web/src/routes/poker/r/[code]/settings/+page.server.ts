@@ -19,6 +19,7 @@ const builtInId = (deck: Deck): string =>
   )?.[0] ?? 'custom';
 
 const REFUSED = 'Only a moderator can do that.';
+const LIMITED = 'Too many changes in a short time. Wait a few minutes and try again.';
 
 export const load: PageServerLoad = async (event) => {
   const { room } = await moderatorOf(event);
@@ -48,6 +49,7 @@ export const actions: Actions = {
       music: actor.room.music,
     });
     if (result.ok) return { notice: 'Settings saved.' };
+    if (result.reason === 'limited') return fail(429, { message: LIMITED });
     if (result.reason === 'busy') {
       return fail(409, {
         message:
@@ -72,6 +74,7 @@ export const actions: Actions = {
           'Passcode set. Everyone except moderators was signed out and needs it to come back.',
       };
     }
+    if (result.reason === 'limited') return fail(429, { message: LIMITED });
     return fail(result.reason === 'refused' ? 403 : 400, {
       message: result.reason === 'refused' ? REFUSED : 'A passcode has 8 to 64 characters.',
     });
@@ -87,7 +90,11 @@ export const actions: Actions = {
   recovery: async (event) => {
     const actor = await moderatorOf(event);
     const result = await regenerateRecovery(runtime().app, actor);
-    if (!result.ok) return fail(403, { message: REFUSED });
+    if (!result.ok) {
+      return result.reason === 'limited'
+        ? fail(429, { message: LIMITED })
+        : fail(403, { message: REFUSED });
+    }
     // Shown once. The old link no longer works.
     return { notice: 'New moderator link made.', recoveryToken: result.recoveryToken };
   },

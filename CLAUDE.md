@@ -48,6 +48,11 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - `packages/poker-server/src/moderation.ts` holds every moderator and member flow. Each takes an `Actor` (the room and session `resumeSession` found for this request) and checks `actor.session.moderator` itself. A route's guard (`moderatorOf` in `apps/web/src/lib/server/actor.ts`) is a convenience, never the only check.
 - Form actions return `{ notice }` on success and `fail(status, { message })` on failure; pages show `notice` as a status and `message` as an alert.
 - The moderator recovery secret travels in the URL fragment and is posted in a form body, so it never appears in a server log. The recovery page removes it from the address as soon as it is read, because browsers carry a fragment across a redirect. It is returned to a page once and stored only as a hash.
+- A passcode change and the sign-out of non-moderators are one transaction (`setPasscodeAndSignOut`), and a join inserts its session only if the passcode is still the one it was checked against (`insertJoiningSession`, under a row lock). Keep both: together they stop anyone joining a room on an out-of-date check.
+- Settings go to the live room first (`RoomHost.applySettings` checks and applies in one step and returns whether it did), then to the database, so the two never disagree.
+- Every moderator and member action is rate limited in its flow (`CHANGE_LIMITS` in `moderation.ts`). Add a limit with any new action: anyone can create a room and so become a moderator.
+- Names are unique within a room, ignoring case, by a database index; a join retries with the next number on a clash.
+- The retention period shown on pages comes from the root layout's data (`retentionDays`), never a hardcoded number.
 - `MUSIC_TRACK_IDS` in `packages/protocol` is empty until tracks are chosen and licensed; until then the only valid music setting is none.
 - Browser tests give each browser context its own client address (`visitor()` in the spec files), so they do not trip the per-address rate limits. Use it for every new context.
 

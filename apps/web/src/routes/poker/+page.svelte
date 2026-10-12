@@ -1,8 +1,9 @@
 <script lang="ts">
   import { BUILT_IN_DECKS } from '@pokerji/protocol';
+  import { page } from '$app/state';
   import type { PageProps } from './$types';
 
-  let { form }: PageProps = $props();
+  let { data, form }: PageProps = $props();
   const decks = Object.entries(BUILT_IN_DECKS);
 </script>
 
@@ -25,7 +26,7 @@
     </p>
     <p>
       <code data-testid="recovery-link"
-        >/poker/r/{form.created.code}/recover#m={form.created.recoveryToken}</code
+        >{page.url.origin}/poker/r/{form.created.code}/recover#m={form.created.recoveryToken}</code
       >
     </p>
   {:else}
@@ -46,8 +47,8 @@
         </select>
       </p>
       <p>
-        Votes are recorded under the name you enter and kept for 30 days after the room was last
-        used.
+        Votes are recorded under the name you enter and kept for {data.retentionDays} days after the room
+        was last used.
       </p>
       <button>Create room</button>
     </form>
