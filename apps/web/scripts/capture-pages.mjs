@@ -19,6 +19,8 @@ async function pages(name, viewport, colorScheme) {
   );
   const mo = await context.newPage();
   await mo.goto(`${base}/`);
+  // The row turns a moment after the page opens.
+  await mo.locator('[data-testid="demo-row"] [data-flag="High"]').first().waitFor();
   await shot(mo, 'home');
   await mo.goto(`${base}/privacy`);
   await shot(mo, 'privacy');

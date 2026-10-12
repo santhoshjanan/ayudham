@@ -176,3 +176,44 @@ test('a fifth tab closes the oldest, which says why instead of reconnecting', as
     await expect(page.getByTestId('participants')).toContainText('Mo');
   }
 });
+
+test('the outliers get their beat on a live reveal, not when the page is opened later', async ({
+  browser,
+}) => {
+  const { page: mo, path } = await createRoom(browser, 'Mo');
+  const { page: ann } = await joinRoom(browser, path, 'Ann');
+  await expect(mo.getByTestId('participants')).toContainText('Ann');
+  await vote(mo, '3');
+  await vote(ann, '8');
+  await expect(mo.getByTestId('room')).not.toHaveAttribute('data-reveal', 'live');
+
+  await mo.getByRole('button', { name: 'Reveal' }).click();
+  for (const page of [mo, ann]) {
+    await expect(page.getByTestId('result')).toContainText('Low 3, High 8', { timeout: 8_000 });
+    await expect(page.getByTestId('room')).toHaveAttribute('data-reveal', 'live');
+  }
+
+  // Someone arriving after the turn sees the result at rest.
+  await ann.reload();
+  await expect(ann.getByTestId('result')).toContainText('Low 3, High 8');
+  await expect(ann.getByTestId('room')).not.toHaveAttribute('data-reveal', 'live');
+
+  // The next round starts clean.
+  await mo.getByRole('button', { name: 'New round' }).click();
+  await expect(mo.getByTestId('participants')).toContainText('Mo not voted');
+  await expect(mo.getByTestId('room')).not.toHaveAttribute('data-reveal', 'live');
+});
+
+test('the home page shows a row of scorecards that turns, as decoration only', async ({
+  browser,
+}) => {
+  const context = await browser.newContext(visitor());
+  const page = await context.newPage();
+  await page.goto('/');
+  const row = page.getByTestId('demo-row');
+  await expect(row).toHaveAttribute('aria-hidden', 'true');
+  await expect(row.locator('[data-state="up"]')).toHaveCount(5, { timeout: 5_000 });
+  await expect(row).toContainText('Low');
+  await expect(row).toContainText('High');
+  await expect(page.getByRole('link', { name: 'Start a room' })).toBeVisible();
+});
