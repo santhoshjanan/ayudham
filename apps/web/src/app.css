@@ -402,6 +402,18 @@ main.bleed {
 .band.wide .band-inner {
   width: min(100% - 2.5rem, 62rem);
 }
+/* The home band: the words, and beside them the row that turns. */
+.band-inner.split {
+  display: grid;
+  gap: 2rem;
+  align-items: end;
+}
+@media (min-width: 52rem) {
+  .band-inner.split {
+    grid-template-columns: 1fr auto;
+    gap: 3rem;
+  }
+}
 .band h1 {
   font-weight: 900;
   line-height: 0.98;
@@ -546,14 +558,21 @@ main form > p {
   max-width: 52ch;
   color: var(--ink-soft);
 }
+/* The privacy promises: a ledger, one promise to a line, like the programme above it. */
 .claims {
+  margin: 1rem 0 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.claims div {
   display: grid;
-  gap: 1.75rem 3rem;
-  margin: 1rem 0 0;
+  gap: 0.35rem 2.5rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--line);
 }
 @media (min-width: 44rem) {
-  .claims {
-    grid-template-columns: repeat(3, 1fr);
+  .claims div {
+    grid-template-columns: 18rem 1fr;
+    align-items: baseline;
   }
 }
 .claims dt {
@@ -561,10 +580,10 @@ main form > p {
   font-weight: 800;
   font-size: 1.5rem;
   line-height: 1.1;
-  margin-bottom: 0.4rem;
 }
 .claims dd {
   margin: 0;
+  max-width: 52ch;
   color: var(--ink-soft);
 }
 

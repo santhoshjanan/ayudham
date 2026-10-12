@@ -8,6 +8,7 @@
     type ServerMessage,
   } from '@pokerji/protocol';
   import { cssVar } from '#lib/ui/cssVar.ts';
+  import Scorecard from '#lib/ui/Scorecard.svelte';
   import { roomBar } from '#lib/ui/roomBar.svelte.ts';
 
   let { code, retentionDays }: { code: string; retentionDays: number } = $props();
@@ -29,6 +30,9 @@
   // that they are a compact bar above the hand, with the rest behind "More".
   let wide = $state(true);
   let moreOpen = $state(false);
+  // True when this page watched the cards turn, so the outliers get their beat.
+  // Someone who opens the room after the reveal sees the result at rest.
+  let fresh = $state(false);
 
   $effect(() => {
     const query = matchMedia('(min-width: 64rem)');
@@ -88,6 +92,8 @@
           }
           // The title box empties only once the room shows what was typed.
           if (titleDraft.trim() !== '' && next.title === titleDraft.trim()) titleDraft = '';
+          if (next.phase !== 'revealed') fresh = false;
+          else if (room && room.phase !== 'revealed') fresh = true;
           room = message.room;
           clockOffset = message.room.serverNow - Date.now();
         } else if (message.type === 'removed') {
@@ -367,6 +373,8 @@
     class="room"
     class:voter={room.you.role === 'voter'}
     class:barred={room.you.moderator && !wide}
+    data-testid="room"
+    data-reveal={fresh ? 'live' : undefined}
   >
     {#if status === 'reconnecting'}
       <p class="banner" data-testid="status" role="status">Connection lost. Reconnecting…</p>
@@ -398,7 +406,7 @@
               {#if room.result.low === null}
                 <p class="verdict">No estimates were given.</p>
               {:else if room.result.unanimous}
-                <p class="verdict">Unanimous: {room.result.low}</p>
+                <p class="verdict unanimous">Unanimous: {room.result.low}</p>
               {:else}
                 <p class="verdict">Low {room.result.low}, High {room.result.high}</p>
               {/if}
@@ -436,24 +444,22 @@
             <p class="empty">Nobody is voting yet.</p>
           {/if}
           <ul class="row" data-testid="participants" data-size={rowSize}>
-            {#each voters as person (person.id)}
+            {#each voters as person, index (person.id)}
               {@const state = cardState(person)}
               {@const flag = flagFor(person)}
               <li class="judge" class:away={!person.present}>
                 <!-- What a screen reader hears: the name, then the state, as words. -->
                 <span class="sr-only"><b>{person.name}</b>{labelFor(person)}</span>
                 <span class="visual" aria-hidden="true">
-                  <span class="flag" class:on={flag !== null}>{flag ?? ''}</span>
-                  <span class="card" data-state={state}>
-                    <span class="card-inner">
-                      <span class="back"></span>
-                      <span class="face"
-                        >{#if room.phase === 'revealed' && person.vote !== null}{@render face(
-                            person.vote,
-                          )}{/if}</span
-                      >
-                    </span>
-                  </span>
+                  <Scorecard
+                    side={state}
+                    {flag}
+                    beat={fresh}
+                    wave={fresh && room.result?.unanimous ? index : null}
+                    >{#if room.phase === 'revealed' && person.vote !== null}{@render face(
+                        person.vote,
+                      )}{/if}</Scorecard
+                  >
                   <span class="name">{person.name}</span>
                   {@render badge(person)}
                   {#if !person.present}<span class="badge quiet">Away</span>{/if}
@@ -751,6 +757,32 @@
     font-size: 1.15rem;
     color: var(--stage-ink-soft);
   }
+  /* On a live reveal the stage lands in the same beats as the flags: Low, then High. */
+  .room[data-reveal='live'] .verdict,
+  .room[data-reveal='live'] .average {
+    animation: land 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  }
+  .room[data-reveal='live'] .who span {
+    animation: land 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+  }
+  .room[data-reveal='live'] .who span + span {
+    animation-delay: 0.85s;
+  }
+  .room[data-reveal='live'] .verdict.unanimous {
+    transform-origin: left bottom;
+    animation: beat 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  }
+  @keyframes land {
+    from {
+      opacity: 0;
+      transform: translateY(0.6rem);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .room[data-reveal='live'] .result :is(p, span) {
+      animation: none !important;
+    }
+  }
   .unsaved {
     flex-basis: 100%;
     justify-self: start;
@@ -851,7 +883,7 @@
     align-content: start;
     gap: 0.35rem;
   }
-  .judge.away .card,
+  .judge.away :global(.card),
   .judge.away .name {
     opacity: 0.5;
   }
@@ -865,78 +897,6 @@
   .cup {
     width: 0.9em;
     height: 0.9em;
-  }
-
-  /* Red is reserved for this: who is highest and lowest. Always with the word. */
-  .flag {
-    height: 1.35rem;
-    padding: 0 0.5rem;
-    border-radius: 3px;
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 0.95rem;
-    line-height: 1.35rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    visibility: hidden;
-  }
-  .flag.on {
-    visibility: visible;
-    background: var(--flag);
-    color: var(--flag-ink);
-  }
-
-  /* A scorecard. Face down while voting; every card turns in the same instant. */
-  .card {
-    width: var(--card-w);
-    aspect-ratio: 5 / 7;
-    perspective: 40rem;
-  }
-  .card-inner {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .card[data-state='up'] .card-inner {
-    transform: rotateY(180deg);
-  }
-  .back,
-  .face {
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius);
-    backface-visibility: hidden;
-  }
-  .back {
-    background-color: var(--card-back);
-    background-image:
-      linear-gradient(rgb(255 255 255 / 0.12) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(255 255 255 / 0.12) 1px, transparent 1px);
-    background-size: 0.6rem 0.6rem;
-    border: 3px solid var(--card);
-    box-shadow: var(--shadow);
-  }
-  .face {
-    transform: rotateY(180deg);
-    display: grid;
-    place-items: center;
-    background: var(--card);
-    color: var(--card-ink);
-    border: 1.5px solid var(--card-edge);
-    box-shadow: var(--shadow);
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: calc(var(--card-w) * 0.52);
-    line-height: 1;
-  }
-  /* Nobody has put a card here yet: an outline where it will go. */
-  .card[data-state='empty'] .back {
-    background: transparent;
-    border: 2px dashed var(--line);
-    box-shadow: none;
   }
 
   .name {

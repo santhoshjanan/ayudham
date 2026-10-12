@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DemoRow from '#lib/ui/DemoRow.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -9,9 +10,12 @@
 </svelte:head>
 
 <header class="band wide">
-  <div class="band-inner">
-    <h1>Small tools for teams.</h1>
-    <p>No accounts. No trackers. Open one, share the link, get on with the meeting.</p>
+  <div class="band-inner split">
+    <div>
+      <h1>Small tools for teams.</h1>
+      <p>No accounts. No trackers. Open one, share the link, get on with the meeting.</p>
+    </div>
+    <DemoRow />
   </div>
 </header>
 
