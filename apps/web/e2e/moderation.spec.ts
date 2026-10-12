@@ -336,3 +336,19 @@ test.describe('moderator recovery', () => {
     await expect(ann.getByRole('button', { name: 'Reveal' })).toBeVisible();
   });
 });
+
+test.describe('privacy page', () => {
+  test('says what is stored and for how long, and is linked from the home page', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Privacy' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy');
+    const main = page.getByRole('main');
+    await expect(main).toContainText('30 days');
+    await expect(main).toContainText('No accounts');
+    await expect(main).toContainText('one cookie');
+    await expect(main).toContainText('We do not store your IP address');
+    await expect(main).toContainText('a moderator can delete those rounds');
+  });
+});

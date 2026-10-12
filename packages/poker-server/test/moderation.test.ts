@@ -38,6 +38,7 @@ beforeAll(async () => {
       addressHmacSecret: 's'.repeat(32),
       retentionDays: 30,
       keyPrefix: testPrefix(),
+      backupRotationDays: null,
     },
     { schema: made.schema, report: () => undefined },
   );

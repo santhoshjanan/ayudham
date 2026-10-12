@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-A full round is playable in a browser. `packages/protocol`, `packages/poker-engine`, `packages/poker-server` and `apps/web` exist. The pages use plain markup; the designed interface, and the settings, history, recovery and privacy pages, are Plan 4. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`.
+Every behaviour in the spec works in a browser, in plain markup: create, join, vote, reveal, timer, removing and promoting people, settings, passcodes, moderator recovery, history, removing your name, deleting a room, and the privacy page. What remains is the designed interface (Impeccable, "Judges' Row", both themes, audio) and release (Dockerfile, Traefik notes, final security audit). The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`.
 
 ## Commands
 
@@ -45,6 +45,11 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - WebSocket upgrades are authenticated first and rate-limited per session, not per address, so refused attempts from the same network cannot lock a team out.
 - The room page reconnects forever with a backoff and never reloads itself. The server closes a connection with code 4001 when a participant has too many; the page then stops instead of reconnecting.
 - Join failures must stay indistinguishable (unknown room, wrong passcode, locked out, full). Do not add a branch that answers differently.
+- `packages/poker-server/src/moderation.ts` holds every moderator and member flow. Each takes an `Actor` (the room and session `resumeSession` found for this request) and checks `actor.session.moderator` itself. A route's guard (`moderatorOf` in `apps/web/src/lib/server/actor.ts`) is a convenience, never the only check.
+- Form actions return `{ notice }` on success and `fail(status, { message })` on failure; pages show `notice` as a status and `message` as an alert.
+- The moderator recovery secret travels in the URL fragment and is posted in a form body, so it never appears in a server log. The recovery page removes it from the address as soon as it is read, because browsers carry a fragment across a redirect. It is returned to a page once and stored only as a hash.
+- `MUSIC_TRACK_IDS` in `packages/protocol` is empty until tracks are chosen and licensed; until then the only valid music setting is none.
+- Browser tests give each browser context its own client address (`visitor()` in the spec files), so they do not trip the per-address rate limits. Use it for every new context.
 
 ## What this is
 
