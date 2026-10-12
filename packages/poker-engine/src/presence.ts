@@ -27,11 +27,17 @@ export function disconnect(state: RoomState, id: string, now: number): Outcome {
   return ok(patch(state, id, { present: false, awaySince: now }));
 }
 
-/** Removes participants away for ten minutes. Never during the count, so locked votes survive. */
+/**
+ * Removes participants away for ten minutes. Never during the count, so locked
+ * votes survive, and never someone whose revealed vote is still on show, so the
+ * result can always name the people it refers to.
+ */
 export function dropStale(state: RoomState, now: number): RoomState {
   if (state.phase === 'counting') return state;
+  const onShow = (p: { vote: string | null }) => state.phase === 'revealed' && p.vote !== null;
   const stale = state.participants
     .filter((p) => !p.present && p.awaySince !== null && now - p.awaySince >= AWAY_DROP_MS)
+    .filter((p) => !onShow(p))
     .map((p) => p.id);
   return stale.length === 0 ? state : without(state, stale);
 }

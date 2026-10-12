@@ -17,7 +17,7 @@ Final: Ruling: host-initiated `evict` still works during the count — it is use
 Final: Ruling: card rule rejects emoji that carry a variation selector or joiner (e.g. some keyboard-entered emoji) — safest rule that keeps cards visible and storable; the UI should strip the selector on input — cost if wrong: some emoji cards are refused until the UI normalises them.
 Final: Ruling: moderators exempt from the 50 cap, so a room can briefly exceed 50 by its number of moderators — cost if wrong: slightly larger rooms.
 Final: Ruling (declined-to-judge items, carried to Plan 2 as host requirements): enforce 2 KB at the socket; add schemas for display name, timer seconds and music; send `disconnect` only on a participant's last connection; do not count benign `forbidden` races as abuse; keep the persistRound payload to retry failed saves; do not use roundSeq as a durable key; tick at least every 250 ms.
-Final: minor (deferred): a voter dropped for absence in the same tick as the reveal is named in the result but missing from the participant list.
+Final: fixed (at the user's request) a voter dropped for absence at the reveal being named in the result but missing from the participant list — "keeps an away voter on show while their revealed vote is, then drops them next round" RED→GREEN, suite 144/144
 Final: minor (deferred): vote-secrecy test checks named fields, not the whole serialised snapshot.
 Final: minor (deferred): no test deep-freezes input state; built-in deck arrays are shared by reference and unfrozen.
 Final: minor (deferred): changing timer length while a timer runs keeps the old deadline.

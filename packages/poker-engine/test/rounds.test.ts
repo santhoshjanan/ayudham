@@ -102,6 +102,24 @@ describe('reveal', () => {
     expect(during.participants.map((p) => p.id)).toContain('a');
   });
 
+  it('keeps an away voter on show while their revealed vote is, then drops them next round', () => {
+    const away = apply(run(seeded(), [vote('a', '8')]), { type: 'disconnect', id: 'a' }, 0).state;
+    const counting = apply(away, reveal, AWAY_DROP_MS - 1_000).state;
+    const revealed = apply(counting, { type: 'tick' }, AWAY_DROP_MS + 2_000).state;
+    expect(revealed.phase).toBe('revealed');
+    const later = apply(revealed, { type: 'tick' }, AWAY_DROP_MS + 60_000).state;
+    const shown = snapshotFor(later, 'm', AWAY_DROP_MS + 60_000);
+    expect(shown?.participants.find((p) => p.id === 'a')).toMatchObject({ name: 'Ann', vote: '8' });
+
+    const next = apply(
+      later,
+      msg('m', { type: 'newRound', keepTitle: true }),
+      AWAY_DROP_MS + 61_000,
+    );
+    const swept = apply(next.state, { type: 'tick' }, AWAY_DROP_MS + 62_000).state;
+    expect(swept.participants.map((p) => p.id)).toEqual(['m', 's']);
+  });
+
   it('cannot be started twice or by a non-moderator', () => {
     const counting = apply(seeded(), reveal, 0).state;
     expect(apply(counting, reveal, 100).effects).toEqual([forbidden('m')]);
