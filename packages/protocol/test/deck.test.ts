@@ -48,6 +48,20 @@ describe('deckSchema', () => {
     expect(parse(['1', '1', '2'])).toBe(false);
   });
 
+  it('rejects control, invisible, direction-override, combining and broken characters', () => {
+    for (const bad of ['\u0000', '\u200b', '\u2060', '\u202e', 'e\u0301', '\ud800', '\n']) {
+      expect(parse(['1', bad, '3'])).toBe(false);
+    }
+  });
+
+  it('rejects cards that look the same after Unicode normalisation', () => {
+    expect(parse(['1', '\uff11', '2'])).toBe(false);
+  });
+
+  it('accepts letters, digits, punctuation and symbols from any script', () => {
+    expect(parse(['\u00bd', '\u00e9', '\u5927', '+1'], ['?', '\u2615'])).toBe(true);
+  });
+
   it('rejects fewer than two value cards', () => {
     expect(parse(['1'], ['?'])).toBe(false);
   });

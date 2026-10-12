@@ -70,6 +70,19 @@ describe('join', () => {
   });
 });
 
+describe('join when full', () => {
+  it('still lets a moderator in, so a full room cannot be left without one', () => {
+    const joins = Array.from({ length: MAX_PARTICIPANTS }, (_, i) => ({
+      type: 'join' as const,
+      participant: { id: `p${i}`, name: `P${i}`, role: 'voter' as const, moderator: false },
+    }));
+    const full = run(createRoom({ deck: FIB, timerSeconds: null, music: null }), joins);
+    const outcome = apply(full, { type: 'join', participant: mo }, 0);
+    expect(outcome.effects).toEqual([]);
+    expect(outcome.state.participants.at(-1)).toMatchObject({ id: 'm', moderator: true });
+  });
+});
+
 describe('disconnect and tick', () => {
   it('marks a participant away without removing them', () => {
     const state = apply(seeded(), { type: 'disconnect', id: 'a' }, 5_000).state;

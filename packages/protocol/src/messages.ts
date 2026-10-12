@@ -10,11 +10,15 @@ export type SaveStatus = 'none' | 'pending' | 'saved' | 'failed';
 
 const participantId = z.string().min(1).max(64);
 
+/** One line of text: no control characters, direction overrides or unpaired surrogates. */
+const TITLE_PATTERN = /^[^\p{Cc}\p{Cs}\u202a-\u202e\u2066-\u2069]*$/u;
+const title = z.string().trim().max(TITLE_MAX).regex(TITLE_PATTERN);
+
 export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('vote'), card: cardSchema }),
   z.strictObject({ type: z.literal('clearVote') }),
   z.strictObject({ type: z.literal('setRole'), role: roleSchema }),
-  z.strictObject({ type: z.literal('setTitle'), title: z.string().trim().max(TITLE_MAX) }),
+  z.strictObject({ type: z.literal('setTitle'), title }),
   z.strictObject({ type: z.literal('reveal') }),
   z.strictObject({ type: z.literal('newRound'), keepTitle: z.boolean() }),
   z.strictObject({ type: z.literal('startTimer') }),

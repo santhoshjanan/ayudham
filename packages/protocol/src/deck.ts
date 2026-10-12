@@ -1,11 +1,18 @@
 import { z } from 'zod';
 import { CARD_MAX_CHARS, DECK_MAX_CARDS } from './limits.ts';
 
+/**
+ * Letters, digits, punctuation and symbols only. This excludes spaces, control
+ * and invisible characters, direction overrides, combining marks and unpaired
+ * surrogates, so every card is visible and safe to store.
+ */
+const CARD_PATTERN = /^[\p{L}\p{N}\p{P}\p{S}]+$/u;
+
 export const cardSchema = z
   .string()
   .refine(
-    (card) => /^\S+$/u.test(card) && [...card].length <= CARD_MAX_CHARS,
-    'A card is 1 to 4 characters with no spaces',
+    (card) => CARD_PATTERN.test(card) && [...card].length <= CARD_MAX_CHARS,
+    'A card is 1 to 4 visible characters with no spaces',
   );
 
 export const deckSchema = z
@@ -17,7 +24,8 @@ export const deckSchema = z
   })
   .refine((deck) => deck.values.length + deck.specials.length <= DECK_MAX_CARDS, 'Too many cards')
   .refine((deck) => {
-    const all = [...deck.values, ...deck.specials];
+    // Compared after compatibility normalisation, so look-alikes such as "1" and "１" collide.
+    const all = [...deck.values, ...deck.specials].map((card) => card.normalize('NFKC'));
     return new Set(all).size === all.length;
   }, 'Cards must be unique');
 

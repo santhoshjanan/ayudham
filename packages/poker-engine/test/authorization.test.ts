@@ -22,7 +22,11 @@ const moderatorOnly = { m: true, a: false, s: false };
 const matrix: Row[] = [
   ['vote', () => ({ type: 'vote', card: '5' }), votersOnly],
   ['clearVote', () => ({ type: 'clearVote' }), votersOnly],
-  ['setRole', () => ({ type: 'setRole', role: 'spectator' }), everyone],
+  [
+    'setRole',
+    (actor) => ({ type: 'setRole', role: actor === 's' ? 'voter' : 'spectator' }),
+    everyone,
+  ],
   ['setTitle', () => ({ type: 'setTitle', title: 'PROJ-9' }), moderatorOnly],
   ['reveal', () => ({ type: 'reveal' }), moderatorOnly],
   ['newRound', () => ({ type: 'newRound', keepTitle: true }), moderatorOnly],
@@ -45,6 +49,7 @@ describe('authorization matrix', () => {
         const outcome = apply(state, msg(actor, build(actor)), 1_000);
         if (allowed[actor]) {
           expect(outcome.effects).not.toContainEqual(forbidden(actor));
+          expect(outcome.state).not.toBe(state);
         } else {
           expect(outcome.state).toBe(state);
           expect(outcome.effects).toEqual([forbidden(actor)]);

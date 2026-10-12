@@ -26,6 +26,29 @@ describe('removeParticipant', () => {
   });
 });
 
+describe('removeParticipant and the count', () => {
+  const vote = (from: string, card: string) => msg(from, { type: 'vote', card });
+
+  it('is refused during the count, so a locked vote cannot be deleted', () => {
+    const voted = run(seeded(), [vote('m', '3'), vote('a', '8')]);
+    const counting = apply(voted, msg('m', { type: 'reveal' }), 0).state;
+    const outcome = apply(counting, remove('m', 'a'), 1_000);
+    expect(outcome.state).toBe(counting);
+    expect(outcome.effects).toEqual([forbidden('m')]);
+    const done = apply(outcome.state, { type: 'tick' }, 3_000).state;
+    expect(done.result).toMatchObject({ low: '3', high: '8', unanimous: false });
+  });
+
+  it('is allowed again once the round is revealed', () => {
+    const counting = apply(seeded(), msg('m', { type: 'reveal' }), 0).state;
+    const revealed = apply(counting, { type: 'tick' }, 3_000).state;
+    expect(apply(revealed, remove('m', 'a'), 4_000).state.participants.map((p) => p.id)).toEqual([
+      'm',
+      's',
+    ]);
+  });
+});
+
 describe('promote', () => {
   it('makes a co-moderator who can then run the round', () => {
     const outcome = apply(seeded(), promote('m', 'a'), 0);

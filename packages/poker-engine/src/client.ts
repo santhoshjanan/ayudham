@@ -54,7 +54,9 @@ export function handleClient(
       return ok({ ...state, timerEndsAt: null });
     case 'removeParticipant': {
       const target = find(state, message.participantId);
-      if (!actor.moderator || !target || target.id === from || target.moderator) {
+      // Not during the count: votes are locked, and removing a voter would alter the result.
+      const locked = state.phase === 'counting';
+      if (!actor.moderator || locked || !target || target.id === from || target.moderator) {
         return deny(state, from);
       }
       return ok(without(state, [target.id]), [

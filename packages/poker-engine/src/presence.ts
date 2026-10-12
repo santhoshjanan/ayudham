@@ -6,7 +6,8 @@ export function join(state: RoomState, joiner: Joiner): Outcome {
   if (find(state, joiner.id)) {
     return ok(patch(state, joiner.id, { present: true, awaySince: null }));
   }
-  if (state.participants.length >= MAX_PARTICIPANTS) {
+  // Moderators are exempt from the cap: a full room must never lock out the people who run it.
+  if (!joiner.moderator && state.participants.length >= MAX_PARTICIPANTS) {
     return ok(state, [
       { type: 'send', to: joiner.id, message: { type: 'error', code: 'room_full' } },
       { type: 'close', id: joiner.id },
