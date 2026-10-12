@@ -45,24 +45,33 @@ export async function updateRoomSettings(
   );
 }
 
-export async function setPasscodeHash(db: Db, id: string, hash: string | null): Promise<void> {
-  await db.query('update rooms set passcode_hash = $2 where id = $1', [id, hash]);
+export async function setPasscodeHash(db: Db, id: string, hash: string | null): Promise<boolean> {
+  const result = await db.query('update rooms set passcode_hash = $2 where id = $1', [id, hash]);
+  return result.rowCount === 1;
 }
 
-export async function setRecoveryHash(db: Db, id: string, hash: string): Promise<void> {
-  await db.query('update rooms set recovery_hash = $2 where id = $1', [id, hash]);
+export async function setRecoveryHash(db: Db, id: string, hash: string): Promise<boolean> {
+  const result = await db.query('update rooms set recovery_hash = $2 where id = $1', [id, hash]);
+  return result.rowCount === 1;
 }
 
 export async function touchRoom(db: Db, id: string): Promise<void> {
   await db.query('update rooms set last_active_at = now() where id = $1', [id]);
 }
 
-export async function deleteRoom(db: Db, id: string): Promise<void> {
-  await db.query('delete from rooms where id = $1', [id]);
+export async function deleteRoom(db: Db, id: string): Promise<boolean> {
+  const result = await db.query('delete from rooms where id = $1', [id]);
+  return result.rowCount === 1;
 }
 
-/** The retention job: removes rooms, and everything under them, unused for too long. */
+/**
+ * The retention job: removes rooms, and everything under them, unused for too long.
+ * Refuses a period under one day, which would delete rooms that are in use.
+ */
 export async function deleteInactiveRooms(db: Db, olderThanDays: number): Promise<number> {
+  if (!Number.isInteger(olderThanDays) || olderThanDays < 1) {
+    throw new RangeError('Retention period must be a whole number of days, at least 1');
+  }
   const result = await db.query(
     'delete from rooms where last_active_at < now() - make_interval(days => $1)',
     [olderThanDays],

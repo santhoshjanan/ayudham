@@ -79,8 +79,8 @@ describe('sessions', () => {
       role: 'voter',
       moderator: false,
     });
-    await setSessionRole(db, created.id, 'spectator');
-    await setSessionModerator(db, created.id);
+    expect(await setSessionRole(db, roomId, created.id, 'spectator')).toBe(true);
+    expect(await setSessionModerator(db, roomId, created.id)).toBe(true);
     expect(await findSession(db, roomId, 'th-3')).toMatchObject({
       role: 'spectator',
       moderator: true,
@@ -90,8 +90,24 @@ describe('sessions', () => {
   it('deletes one session', async () => {
     const { id: roomId } = await room();
     const created = await session(roomId);
-    await deleteSession(db, created.id);
+    expect(await deleteSession(db, roomId, created.id)).toBe(true);
     expect(await countSessions(db, roomId)).toBe(0);
+  });
+
+  it('does not change or delete a session through another room', async () => {
+    const { id: roomId } = await room();
+    const { id: otherRoomId } = await room();
+    const created = await insertSession(db, {
+      roomId,
+      tokenHash: 'th-scope',
+      name: 'Ann',
+      role: 'voter',
+      moderator: false,
+    });
+    expect(await setSessionRole(db, otherRoomId, created.id, 'spectator')).toBe(false);
+    expect(await setSessionModerator(db, otherRoomId, created.id)).toBe(false);
+    expect(await deleteSession(db, otherRoomId, created.id)).toBe(false);
+    expect(await findSession(db, roomId, 'th-scope')).toEqual(created);
   });
 
   it('deletes everyone but moderators and reports who went', async () => {

@@ -37,16 +37,39 @@ export async function findSession(
   return result.rows[0] ?? null;
 }
 
-export async function setSessionRole(db: Db, id: string, role: Role): Promise<void> {
-  await db.query('update sessions set role = $2 where id = $1', [id, role]);
+/*
+ * Every change below names the room as well as the session, so a mistake in a
+ * caller can never act on another room's session. Each returns whether a row matched.
+ */
+
+export async function setSessionRole(
+  db: Db,
+  roomId: string,
+  id: string,
+  role: Role,
+): Promise<boolean> {
+  const result = await db.query('update sessions set role = $3 where id = $2 and room_id = $1', [
+    roomId,
+    id,
+    role,
+  ]);
+  return result.rowCount === 1;
 }
 
-export async function setSessionModerator(db: Db, id: string): Promise<void> {
-  await db.query('update sessions set moderator = true where id = $1', [id]);
+export async function setSessionModerator(db: Db, roomId: string, id: string): Promise<boolean> {
+  const result = await db.query(
+    'update sessions set moderator = true where id = $2 and room_id = $1',
+    [roomId, id],
+  );
+  return result.rowCount === 1;
 }
 
-export async function deleteSession(db: Db, id: string): Promise<void> {
-  await db.query('delete from sessions where id = $1', [id]);
+export async function deleteSession(db: Db, roomId: string, id: string): Promise<boolean> {
+  const result = await db.query('delete from sessions where id = $2 and room_id = $1', [
+    roomId,
+    id,
+  ]);
+  return result.rowCount === 1;
 }
 
 /** Signs out everyone except moderators. Used when a passcode is set or changed. */

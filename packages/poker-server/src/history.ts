@@ -23,18 +23,20 @@ export async function saveRound(db: Db, roomId: string, round: RoundToSave): Pro
       [round.id, roomId, round.title],
     );
     if (inserted.rowCount === 1) {
-      // The left join drops the link, not the vote, if a session has gone since the reveal.
+      // The left join drops the link, not the vote, if a session has gone since the reveal
+      // or does not belong to this room.
       await client.query(
         `insert into votes (round_id, position, session_id, voter_name, card)
          select $1, v.position, s.id, v.name, v.card
          from unnest($2::uuid[], $3::text[], $4::text[])
            with ordinality as v(session_id, name, card, position)
-         left join sessions s on s.id = v.session_id`,
+         left join sessions s on s.id = v.session_id and s.room_id = $5`,
         [
           round.id,
           round.votes.map((vote) => vote.sessionId),
           round.votes.map((vote) => vote.name),
           round.votes.map((vote) => vote.card),
+          roomId,
         ],
       );
       await client.query('update rooms set last_active_at = now() where id = $1', [roomId]);
@@ -81,11 +83,14 @@ export async function clearHistory(db: Db, roomId: string): Promise<number> {
   return result.rowCount ?? 0;
 }
 
-/** "Remove my name from history": the votes stay, the name goes. */
-export async function anonymiseSession(db: Db, sessionId: string): Promise<number> {
+/** "Remove my name from history": the votes stay, the name goes. Scoped to one room. */
+export async function anonymiseSession(db: Db, roomId: string, sessionId: string): Promise<number> {
   const result = await db.query(
-    'update votes set voter_name = null where session_id = $1 and voter_name is not null',
-    [sessionId],
+    `update votes v set voter_name = null
+     from rounds r
+     where v.round_id = r.id and r.room_id = $1
+       and v.session_id = $2 and v.voter_name is not null`,
+    [roomId, sessionId],
   );
   return result.rowCount ?? 0;
 }

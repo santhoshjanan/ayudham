@@ -235,7 +235,7 @@ Rate-limit counters and room locks under the `pokerji:` prefix. No names, titles
 
 - **Automatic.** A daily job hard-deletes rooms whose last activity is more than 30 days old.
 - **Moderator.** Delete one round, clear all history, or delete the room. Immediate.
-- **Participant.** "Remove my name from history" clears the voter name on their votes in that room; they show as "Anonymous".
+- **Participant.** "Remove my name from history" clears the voter name on their votes in that room; they show as "Anonymous". It works only for votes cast under the session they are using now. Someone who was removed, or signed out by a passcode change, comes back as a new participant and cannot reach their earlier votes; a moderator can delete those rounds for them. The privacy page says so.
 
 Deleted data persists in Postgres backups until they rotate. The rotation period is a configured value shown on the privacy page.
 

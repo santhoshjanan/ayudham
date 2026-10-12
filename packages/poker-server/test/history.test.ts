@@ -86,7 +86,7 @@ describe('history', () => {
 
   it('still saves a vote whose session was deleted before the save', async () => {
     const { room, ann, bo } = await setup();
-    await deleteSession(db, ann.id);
+    await deleteSession(db, room.id, ann.id);
     await saveRound(db, room.id, {
       id: randomUUID(),
       title: 'PROJ-1',
@@ -98,6 +98,23 @@ describe('history', () => {
     expect((await listRounds(db, room.id))[0]?.votes).toEqual([
       { sessionId: null, name: 'Ann', card: '3' },
       { sessionId: bo.id, name: 'Bo', card: '8' },
+    ]);
+  });
+
+  it('does not link a vote to a session from another room', async () => {
+    const { room, ann } = await setup();
+    const other = await setup();
+    await saveRound(db, room.id, {
+      id: randomUUID(),
+      title: 'T',
+      votes: [
+        { sessionId: ann.id, name: 'Ann', card: '3' },
+        { sessionId: other.ann.id, name: 'Stranger', card: '8' },
+      ],
+    });
+    expect((await listRounds(db, room.id))[0]?.votes).toEqual([
+      { sessionId: ann.id, name: 'Ann', card: '3' },
+      { sessionId: null, name: 'Stranger', card: '8' },
     ]);
   });
 
@@ -150,6 +167,7 @@ describe('history', () => {
 
   it('removes one person’s name from their votes and leaves others alone', async () => {
     const { room, ann, bo } = await setup();
+    const other = await setup();
     await saveRound(db, room.id, {
       id: randomUUID(),
       title: 'T',
@@ -158,7 +176,8 @@ describe('history', () => {
         { sessionId: bo.id, name: 'Bo', card: '8' },
       ],
     });
-    expect(await anonymiseSession(db, ann.id)).toBe(1);
+    expect(await anonymiseSession(db, other.room.id, ann.id)).toBe(0);
+    expect(await anonymiseSession(db, room.id, ann.id)).toBe(1);
     expect((await listRounds(db, room.id))[0]?.votes).toEqual([
       { sessionId: ann.id, name: null, card: '3' },
       { sessionId: bo.id, name: 'Bo', card: '8' },

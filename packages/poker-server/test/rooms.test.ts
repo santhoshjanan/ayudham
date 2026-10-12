@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { BUILT_IN_DECKS } from '@pokerji/protocol';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -68,6 +69,25 @@ describe('rooms', () => {
     const room = await make();
     await deleteRoom(db, room.id);
     expect(await findRoomByCode(db, room.code)).toBeNull();
+  });
+
+  it('says whether a room was there to change or delete', async () => {
+    const room = await make();
+    const missing = randomUUID();
+    expect(await setPasscodeHash(db, room.id, 'ph')).toBe(true);
+    expect(await setPasscodeHash(db, missing, 'ph')).toBe(false);
+    expect(await setRecoveryHash(db, room.id, 'rh3')).toBe(true);
+    expect(await setRecoveryHash(db, missing, 'rh3')).toBe(false);
+    expect(await deleteRoom(db, missing)).toBe(false);
+    expect(await deleteRoom(db, room.id)).toBe(true);
+  });
+
+  it('refuses a retention period shorter than one day, which would delete live rooms', async () => {
+    const room = await make();
+    await expect(deleteInactiveRooms(db, 0)).rejects.toThrow(RangeError);
+    await expect(deleteInactiveRooms(db, 0.5)).rejects.toThrow(RangeError);
+    await expect(deleteInactiveRooms(db, Number.NaN)).rejects.toThrow(RangeError);
+    expect(await findRoomByCode(db, room.code)).not.toBeNull();
   });
 
   it('deletes only rooms inactive for longer than the retention period', async () => {
