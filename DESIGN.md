@@ -276,7 +276,7 @@ The moderator's controls move with width. At 64rem and up they are a rail, 18.5r
 
 Every other page opens with a band of aqua holding the page title and at most one supporting line, then one column on the tile: 40rem for forms and reading, 62rem for the home page. The home band holds the words on the left and the turning row on the right (below the words under 52rem). The privacy promises on the home page are a ledger, one promise to a ruled line with its term in an 18rem left column, matching the programme above; they are never equal columns. Sections in a column are separated by 2.75rem and a single rule, not boxed. Fields are spaced 0.9rem apart; grouped buttons 0.6rem.
 
-Breakpoints, all in rem: 34rem (the bar drops its text labels and the visitor's name, keeping icons, links and the role badge), 40rem (shorter stage, smaller cards), 44rem (home lists take a term column), 52rem (home band puts the row beside the words), 64rem (rail in place of bar).
+Breakpoints, all in rem: 34rem (the bar drops its text labels, the visitor's name and role badge, keeping icons and links; the role still shows under the person's own card), 40rem (shorter stage, smaller cards), 44rem (home lists take a term column), 52rem (home band puts the row beside the words), 64rem (rail in place of bar).
 
 ### Named Rules
 **The Still Stage Rule.** The stage keeps one height through the reveal. The slot for the result is reserved before there is a result (4.25rem, or 5.25rem from 40rem wide), and the count is laid over the stage, not inserted into it. When the cards turn, nothing below the stage moves.
