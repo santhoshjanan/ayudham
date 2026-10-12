@@ -8,7 +8,12 @@ import { createKv, type Kv } from './kv.ts';
 import { migrate } from './migrate.ts';
 import { RoomRegistry } from './registry.ts';
 import { deleteInactiveRooms } from './rooms.ts';
-import { deleteSession, setSessionModerator, setSessionRole } from './sessions.ts';
+import {
+  clearSessionModerator,
+  deleteSession,
+  setSessionModerator,
+  setSessionRole,
+} from './sessions.ts';
 
 const SWEEP_MS = 250;
 const RETENTION_MS = 60 * 60 * 1_000;
@@ -40,6 +45,9 @@ export function hostStore(db: Db, roomId: string): HostStore {
     },
     setModerator: async (sessionId) => {
       await setSessionModerator(db, roomId, sessionId);
+    },
+    clearModerator: async (sessionId) => {
+      await clearSessionModerator(db, roomId, sessionId);
     },
     deleteSession: async (sessionId) => {
       await deleteSession(db, roomId, sessionId);

@@ -65,6 +65,16 @@ export function handleClient(
         { type: 'deleteSession', id: target.id },
       ]);
     }
+    case 'demote': {
+      // Only the owner can take moderator rights away, and never from themselves.
+      const target = find(state, message.participantId);
+      if (!actor.owner || !target || target.id === from || !target.moderator) {
+        return deny(state, from);
+      }
+      return ok(patch(state, target.id, { moderator: false }), [
+        { type: 'persistDemotion', id: target.id },
+      ]);
+    }
     case 'promote': {
       const target = find(state, message.participantId);
       if (!actor.moderator || !target) return deny(state, from);

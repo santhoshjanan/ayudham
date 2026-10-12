@@ -92,6 +92,7 @@ const joiner = (actor: Actor) => ({
   name: actor.session.name,
   role: actor.session.role,
   moderator: actor.session.moderator,
+  owner: actor.session.owner,
 });
 
 const settings = (extra: Record<string, unknown> = {}) => ({
@@ -252,15 +253,40 @@ describe('setPasscode and removePasscode', () => {
 });
 
 describe('recovery', () => {
-  it('makes a joined person a moderator when they present the recovery secret', async () => {
-    const { ann, who, annToken, annAddress, recoveryToken } = await setup();
+  it('makes a joined person the owner when they present the recovery secret', async () => {
+    const { ann, mo, who, annToken, moToken, recoveryToken } = await setup();
     const host = await app.registry.open(ann.room);
-    const tab = fakeConnection();
-    host?.connect(joiner(ann), tab.connection);
+    const annTab = fakeConnection();
+    const moTab = fakeConnection();
+    host?.connect(joiner(ann), annTab.connection);
+    host?.connect(joiner(mo), moTab.connection);
 
     expect(await recoverModerator(app, { actor: ann, recoveryToken })).toBe(true);
-    expect((await who(annToken)).session.moderator).toBe(true);
-    expect(tab.room().you.moderator).toBe(true);
+    expect((await who(annToken)).session).toMatchObject({ moderator: true, owner: true });
+    // The previous owner stays a moderator and is no longer the owner.
+    expect((await who(moToken)).session).toMatchObject({ moderator: true, owner: false });
+    expect(annTab.room().you).toMatchObject({ moderator: true, owner: true });
+    expect(moTab.room().you).toMatchObject({ moderator: true, owner: false });
+  });
+
+  it('gives a co-moderator none of the owner’s powers', async () => {
+    const { code, mo, who, annToken } = await setup();
+    const host = await app.registry.open(mo.room);
+    host?.connect(joiner(mo), fakeConnection().connection);
+    host?.connect(joiner(await who(annToken)), fakeConnection().connection);
+    host?.receive(mo.session.id, {
+      type: 'promote',
+      participantId: (await who(annToken)).session.id,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const coModerator = await who(annToken);
+    expect(coModerator.session).toMatchObject({ moderator: true, owner: false });
+
+    expect(await deleteRoomNow(app, coModerator)).toEqual(refused);
+    expect(await regenerateRecovery(app, coModerator)).toEqual(refused);
+    expect(await findRoomByCode(app.db, code)).not.toBeNull();
+    // What moderators could always do, they still can.
+    expect(await setPasscode(app, coModerator, 'open sesame')).toEqual({ ok: true });
   });
 
   it('refuses a wrong, missing or malformed secret', async () => {
@@ -268,7 +294,7 @@ describe('recovery', () => {
     for (const bad of ['wrong', '', null, 42, 'x'.repeat(500)]) {
       expect(await recoverModerator(app, { actor: ann, recoveryToken: bad })).toBe(false);
     }
-    expect((await who(annToken)).session.moderator).toBe(false);
+    expect((await who(annToken)).session).toMatchObject({ moderator: false, owner: false });
   });
 
   it('does not accept one room’s secret in another room', async () => {
@@ -302,7 +328,7 @@ describe('recovery', () => {
     );
   });
 
-  it('only a moderator can replace the secret', async () => {
+  it('only the owner can replace the secret', async () => {
     const { ann } = await setup();
     expect(await regenerateRecovery(app, ann)).toEqual(refused);
   });
@@ -321,7 +347,7 @@ describe('deleteRoomNow', () => {
     expect(await findRoomByCode(app.db, code)).toBeNull();
   });
 
-  it('is refused for someone who is not a moderator', async () => {
+  it('is refused for anyone but the owner', async () => {
     const { code, ann } = await setup();
     expect(await deleteRoomNow(app, ann)).toEqual(refused);
     expect(await findRoomByCode(app.db, code)).not.toBeNull();

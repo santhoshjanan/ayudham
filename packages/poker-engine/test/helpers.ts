@@ -3,7 +3,7 @@ import { apply, createRoom, type Command, type RoomState } from '../src/index.ts
 
 export const FIB = BUILT_IN_DECKS.fibonacci.deck;
 
-export const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true } as const;
+export const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true, owner: true } as const;
 export const ann = { id: 'a', name: 'Ann', role: 'voter', moderator: false } as const;
 export const sam = { id: 's', name: 'Sam', role: 'spectator', moderator: false } as const;
 

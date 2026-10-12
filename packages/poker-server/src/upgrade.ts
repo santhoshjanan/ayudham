@@ -135,9 +135,9 @@ export function createUpgradeHandler(
     });
     if (!still) return refuse(socket);
 
-    const { id, name, role, moderator } = resumed.session;
+    const { id, name, role, moderator, owner } = resumed.session;
     server.handleUpgrade(req, socket, head, (ws) => {
-      attachSocket(host, { id, name, role, moderator }, adapt(ws));
+      attachSocket(host, { id, name, role, moderator, owner }, adapt(ws));
     });
   }
 

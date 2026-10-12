@@ -105,29 +105,38 @@
     {/if}
   </section>
 
-  <section>
-    <h2>Moderator link</h2>
-    <p>
-      The moderator link lets you run this room from another browser. Making a new one stops the
-      old link working. It does not take moderator rights away from anyone who already used the
-      old link: a moderator stays a moderator.
-    </p>
-    <form method="POST" action="?/recovery">
-      <button>Make a new moderator link</button>
-    </form>
-  </section>
-
-  <section>
-    <h2>Delete this room</h2>
-    <p>
-      This removes the room, everyone in it and all of its history, now. It cannot be undone.
-    </p>
-    <form method="POST" action="?/delete">
+  {#if data.owner}
+    <section>
+      <h2>Moderator link</h2>
       <p>
-        <label for="confirm">Type DELETE to confirm</label>
-        <input id="confirm" name="confirm" autocomplete="off" />
+        The moderator link makes whoever opens it the owner of this room, so you can take the room
+          with you to another browser. Making a new one stops the old link working. Keep it private.
       </p>
-      <button>Delete this room</button>
-    </form>
-  </section>
+      <form method="POST" action="?/recovery">
+        <button>Make a new moderator link</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Delete this room</h2>
+      <p>
+        This removes the room, everyone in it and all of its history, now. It cannot be undone.
+      </p>
+      <form method="POST" action="?/delete">
+        <p>
+          <label for="confirm">Type DELETE to confirm</label>
+          <input id="confirm" name="confirm" autocomplete="off" />
+        </p>
+        <button>Delete this room</button>
+      </form>
+    </section>
+  {:else}
+    <section>
+      <h2>Owner's settings</h2>
+      <p>
+        Only the owner of this room can make a new moderator link or delete the room. The owner is
+        whoever created the room, or whoever last used its moderator link.
+      </p>
+    </section>
+  {/if}
 </main>

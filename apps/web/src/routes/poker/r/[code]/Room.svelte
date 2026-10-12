@@ -132,7 +132,8 @@
     } else {
       parts.push(person.hasVoted ? ' voted' : ' not voted');
     }
-    if (person.moderator) parts.push(' · moderator');
+    if (person.owner) parts.push(' · owner');
+    else if (person.moderator) parts.push(' · moderator');
     if (!person.present) parts.push(' · away');
     return parts.join('');
   };
@@ -160,6 +161,15 @@
       disabled={!live || room.phase === 'counting'}
       onclick={() => send({ type: 'removeParticipant', participantId: person.id })}
       >Remove {person.name}</button
+    >
+  {/if}
+  {#if room && room.you.owner && person.moderator && person.id !== room.you.id}
+    <!-- Only the owner can take moderator rights away. -->
+    <button
+      type="button"
+      disabled={!live}
+      onclick={() => send({ type: 'demote', participantId: person.id })}
+      >Remove moderator rights from {person.name}</button
     >
   {/if}
 {/snippet}
@@ -244,7 +254,7 @@
       <ul>
         {#each spectators as person (person.id)}
           <li>
-            <b>{person.name}</b><span>{person.moderator ? ' · moderator' : ''}</span>
+            <b>{person.name}</b><span>{person.owner ? ' · owner' : person.moderator ? ' · moderator' : ''}</span>
             {@render manage(person)}
           </li>
         {/each}

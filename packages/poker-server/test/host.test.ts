@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { MAX_CONNECTIONS_PER_PARTICIPANT, RoomHost } from '../src/index.ts';
 import { fakeClock, fakeConnection, fakeStore, flush } from './fakes.ts';
 
-const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true } as const;
+const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true, owner: true } as const;
 const ann = { id: 'a', name: 'Ann', role: 'voter', moderator: false } as const;
 
 function setup() {
@@ -138,12 +138,20 @@ describe('RoomHost', () => {
     expect(moTab.room().participants.map((p) => p.id)).toEqual(['m']);
   });
 
-  it('saves role changes and promotions', async () => {
+  it('saves role changes, promotions and demotions', async () => {
     const { host, storage } = setup();
     host.receive('a', { type: 'setRole', role: 'spectator' });
     host.receive('m', { type: 'promote', participantId: 'a' });
+    host.receive('m', { type: 'demote', participantId: 'a' });
     await flush();
-    expect(storage.calls).toEqual(['role:a:spectator', 'moderator:a']);
+    expect(storage.calls).toEqual(['role:a:spectator', 'moderator:a', 'demote:a']);
+  });
+
+  it('shows a change of owner to everyone at once', () => {
+    const { host, moTab, annTab } = setup();
+    host.transferOwnership('a');
+    expect(annTab.room().you).toMatchObject({ owner: true, moderator: true });
+    expect(moTab.room().you).toMatchObject({ owner: false, moderator: true });
   });
 
   it('refuses a refused message with an error to the sender only', () => {

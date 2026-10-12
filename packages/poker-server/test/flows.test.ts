@@ -66,7 +66,12 @@ describe('createRoomFlow', () => {
     expect(stored?.recoveryHash).not.toContain(created.recoveryToken);
 
     const resumed = await resumeSession(flow, { code: created.code, token: created.sessionToken });
-    expect(resumed?.session).toMatchObject({ name: 'Mo', role: 'voter', moderator: true });
+    expect(resumed?.session).toMatchObject({
+      name: 'Mo',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
   });
 
   it('rejects a bad name or deck without creating anything', async () => {
@@ -102,7 +107,12 @@ describe('joinRoomFlow', () => {
     const joined = await join(flow, code, { role: 'spectator' });
     if (!joined.ok) throw new Error('join failed');
     const resumed = await resumeSession(flow, { code, token: joined.sessionToken });
-    expect(resumed?.session).toMatchObject({ name: 'Ann', role: 'spectator', moderator: false });
+    expect(resumed?.session).toMatchObject({
+      name: 'Ann',
+      role: 'spectator',
+      moderator: false,
+      owner: false,
+    });
   });
 
   it('rejects a bad name or role as invalid', async () => {

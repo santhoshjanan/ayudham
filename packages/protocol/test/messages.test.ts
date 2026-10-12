@@ -16,6 +16,7 @@ describe('parseClientMessage', () => {
     [{ type: 'stopTimer' }],
     [{ type: 'removeParticipant', participantId: 'p1' }],
     [{ type: 'promote', participantId: 'p1' }],
+    [{ type: 'demote', participantId: 'p1' }],
   ])('accepts %j', (message) => {
     expect(parse(message)).toEqual(message);
   });

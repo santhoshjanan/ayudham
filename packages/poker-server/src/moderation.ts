@@ -24,7 +24,7 @@ import {
   type RoomRow,
 } from './rooms.ts';
 import { hashPasscode, hashToken, newToken, tokenMatches } from './secrets.ts';
-import { setSessionModerator, type SessionRow } from './sessions.ts';
+import { transferOwnership, type SessionRow } from './sessions.ts';
 import { passcodeSchema } from './validate.ts';
 
 /**
@@ -132,7 +132,8 @@ export async function regenerateRecovery(
   app: App,
   actor: Actor,
 ): Promise<{ ok: true; recoveryToken: string } | { ok: false; reason: 'refused' | 'limited' }> {
-  if (!actor.session.moderator) return REFUSED;
+  // Owner only: a new link is a new way to take the room over.
+  if (!actor.session.owner) return REFUSED;
   if (!(await allowed(app, `recovery:${actor.room.id}`, CHANGE_LIMITS.recovery))) return LIMITED;
   const recoveryToken = newToken();
   await setRecoveryHash(app.db, actor.room.id, hashToken(recoveryToken));
@@ -140,9 +141,9 @@ export async function regenerateRecovery(
 }
 
 /**
- * Makes a joined person a moderator if they hold the room's recovery secret.
- * Attempts are limited per session, so one person's wrong guesses cannot block
- * anyone else, even at the same address.
+ * Makes a joined person the room's owner if they hold the room's recovery
+ * secret. Whoever was the owner stays a moderator. Attempts are limited per
+ * session, so one person's wrong guesses cannot block anyone else.
  */
 export async function recoverModerator(
   app: App,
@@ -153,16 +154,17 @@ export async function recoverModerator(
   const token = input.recoveryToken;
   if (typeof token !== 'string' || token.length > 128) return false;
   if (!tokenMatches(token, room.recoveryHash)) return false;
-  if (!session.moderator) {
-    await setSessionModerator(app.db, room.id, session.id);
-    app.registry.get(room.id)?.grantModerator(session.id);
+  if (!session.owner) {
+    if (!(await transferOwnership(app.db, room.id, session.id))) return false;
+    app.registry.get(room.id)?.transferOwnership(session.id);
   }
   return true;
 }
 
 /** Deletes the room and everything in it, now. Live connections are closed first. */
 export async function deleteRoomNow(app: App, actor: Actor): Promise<FlowOutcome> {
-  if (!actor.session.moderator) return REFUSED;
+  // Owner only: deletion is immediate and cannot be undone.
+  if (!actor.session.owner) return REFUSED;
   await app.registry.close(actor.room.id);
   await deleteRoom(app.db, actor.room.id);
   return OK;

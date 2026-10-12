@@ -7,18 +7,33 @@ export interface SessionRow {
   name: string;
   role: Role;
   moderator: boolean;
+  owner: boolean;
 }
 
-const COLUMNS = `id, room_id as "roomId", name, role, moderator`;
+const COLUMNS = `id, room_id as "roomId", name, role, moderator, owner`;
 
 export async function insertSession(
   db: Db,
-  session: { roomId: string; tokenHash: string; name: string; role: Role; moderator: boolean },
+  session: {
+    roomId: string;
+    tokenHash: string;
+    name: string;
+    role: Role;
+    moderator: boolean;
+    owner?: boolean;
+  },
 ): Promise<SessionRow> {
   const result = await db.query<SessionRow>(
-    `insert into sessions (room_id, token_hash, name, role, moderator)
-     values ($1, $2, $3, $4, $5) returning ${COLUMNS}`,
-    [session.roomId, session.tokenHash, session.name, session.role, session.moderator],
+    `insert into sessions (room_id, token_hash, name, role, moderator, owner)
+     values ($1, $2, $3, $4, $5, $6) returning ${COLUMNS}`,
+    [
+      session.roomId,
+      session.tokenHash,
+      session.name,
+      session.role,
+      session.moderator,
+      session.owner ?? false,
+    ],
   );
   return result.rows[0] as SessionRow;
 }
@@ -134,4 +149,40 @@ export async function insertJoiningSession(
     [session.roomId, session.tokenHash, session.name, session.role, checkedPasscodeHash],
   );
   return result.rows[0] ?? null;
+}
+
+/** Takes moderator rights away. The owner cannot be demoted this way. */
+export async function clearSessionModerator(db: Db, roomId: string, id: string): Promise<boolean> {
+  const result = await db.query(
+    'update sessions set moderator = false where id = $2 and room_id = $1 and not owner',
+    [roomId, id],
+  );
+  return result.rowCount === 1;
+}
+
+/**
+ * Makes one session the room's owner, and a moderator, in one step. Whoever
+ * was the owner before keeps moderator rights but is no longer the owner.
+ */
+export async function transferOwnership(db: Db, roomId: string, id: string): Promise<boolean> {
+  const client = await db.connect();
+  try {
+    await client.query('begin');
+    await client.query('update sessions set owner = false where room_id = $1 and owner', [roomId]);
+    const made = await client.query(
+      'update sessions set owner = true, moderator = true where id = $2 and room_id = $1',
+      [roomId, id],
+    );
+    if (made.rowCount !== 1) {
+      await client.query('rollback');
+      return false;
+    }
+    await client.query('commit');
+    return true;
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }

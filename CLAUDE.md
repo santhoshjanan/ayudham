@@ -53,6 +53,7 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - Every moderator and member action is rate limited in its flow (`CHANGE_LIMITS` in `moderation.ts`). Add a limit with any new action: anyone can create a room and so become a moderator.
 - Names are unique within a room, ignoring case, by a database index; a join retries with the next number on a clash.
 - The retention period shown on pages comes from the root layout's data (`retentionDays`), never a hardcoded number.
+- A room has exactly one owner (a database index enforces it): its creator, or whoever last used the moderator link. Only the owner can delete the room, replace the moderator link, or demote a moderator; `deleteRoomNow` and `regenerateRecovery` check `actor.session.owner`, and the engine's `demote` message checks `owner` too. Every other moderator power is shared.
 - `MUSIC_TRACK_IDS` in `packages/protocol` is empty until tracks are chosen and licensed; until then the only valid music setting is none.
 - Browser tests give each browser context its own client address (`visitor()` in the spec files), so they do not trip the per-address rate limits. Use it for every new context.
 

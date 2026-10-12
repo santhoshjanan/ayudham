@@ -94,6 +94,18 @@ One cookie per room: `HttpOnly`, `Secure` (always, except in local development; 
 
 A session is a voter or a spectator, and may additionally be a moderator. The room creator is a moderator. Moderators can promote others, so a room is not stuck when its creator is away.
 
+### The owner
+
+Every room has exactly one owner. The person who creates the room is its owner.
+
+- Only the owner can delete the room, make a new moderator link, or take moderator rights away from someone.
+- The owner is always a moderator and cannot be demoted or removed.
+- Using the moderator link makes that person the owner. Whoever was the owner stays a moderator.
+- A moderator must be demoted by the owner before they can be removed from the room.
+- Everything else a moderator can do, every moderator can do: run rounds, change settings and the passcode, promote, and remove people who are not moderators.
+
+This replaces the earlier arrangement in which all moderators were equal and none could be demoted.
+
 | Action | Moderator | Voter | Spectator |
 |---|---|---|---|
 | Vote | If also a voter | Yes | No |

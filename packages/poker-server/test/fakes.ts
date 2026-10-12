@@ -30,6 +30,9 @@ export function fakeStore() {
     setModerator: async (id: string) => {
       calls.push(`moderator:${id}`);
     },
+    clearModerator: async (id: string) => {
+      calls.push(`demote:${id}`);
+    },
     deleteSession: async (id: string) => {
       calls.push(`delete:${id}`);
     },

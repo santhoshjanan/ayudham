@@ -19,12 +19,14 @@ const builtInId = (deck: Deck): string =>
   )?.[0] ?? 'custom';
 
 const REFUSED = 'Only a moderator can do that.';
+const OWNER_ONLY = 'Only the owner of this room can do that.';
 const LIMITED = 'Too many changes in a short time. Wait a few minutes and try again.';
 
 export const load: PageServerLoad = async (event) => {
-  const { room } = await moderatorOf(event);
+  const { room, session } = await moderatorOf(event);
   return {
     code: room.code,
+    owner: session.owner,
     deckId: builtInId(room.deck),
     values: room.deck.values.join(', '),
     specials: room.deck.specials.join(', '),
@@ -93,7 +95,7 @@ export const actions: Actions = {
     if (!result.ok) {
       return result.reason === 'limited'
         ? fail(429, { message: LIMITED })
-        : fail(403, { message: REFUSED });
+        : fail(403, { message: OWNER_ONLY });
     }
     // Shown once. The old link no longer works.
     return { notice: 'New moderator link made.', recoveryToken: result.recoveryToken };
@@ -106,7 +108,7 @@ export const actions: Actions = {
       return fail(400, { message: 'Type DELETE in capitals to confirm.' });
     }
     const result = await deleteRoomNow(runtime().app, actor);
-    if (!result.ok) return fail(403, { message: REFUSED });
+    if (!result.ok) return fail(403, { message: OWNER_ONLY });
     event.cookies.delete(SESSION_COOKIE, { path: `/poker/r/${actor.room.code}` });
     redirect(303, '/poker');
   },

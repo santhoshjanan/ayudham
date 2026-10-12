@@ -19,6 +19,17 @@ export function apply(state: RoomState, command: Command, now: number): Outcome 
       return find(state, command.id)
         ? ok(patch(state, command.id, { moderator: true }))
         : ok(state);
+    case 'transferOwnership':
+      // The new owner is also a moderator. The previous owner keeps moderator rights.
+      if (!find(state, command.id)) return ok(state);
+      return ok({
+        ...state,
+        participants: state.participants.map((p) => ({
+          ...p,
+          owner: p.id === command.id,
+          moderator: p.id === command.id ? true : p.moderator,
+        })),
+      });
     case 'client':
       return handleClient(state, command.from, command.message, now);
     case 'roundSaved':

@@ -44,10 +44,13 @@
     </p>
     <p><a href="/poker/r/{data.code}">Join the room</a></p>
   {:else}
-    <p>This link lets you run the room from this browser.</p>
+    <p>
+      This link makes you the owner of the room, in this browser. Whoever was the owner stays a
+      moderator.
+    </p>
     <form method="POST">
       <input type="hidden" name="token" value={token} />
-      <button disabled={token === ''}>Become a moderator</button>
+      <button disabled={token === ''}>Become the owner</button>
     </form>
     {#if token === ''}
       <p>

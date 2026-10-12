@@ -99,6 +99,7 @@ export async function createRoomFlow(
     name: name.data,
     role: 'voter',
     moderator: true,
+    owner: true,
   });
   return { ok: true, code: room.code, sessionToken, recoveryToken };
 }

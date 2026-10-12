@@ -17,7 +17,7 @@ export function join(state: RoomState, joiner: Joiner): Outcome {
     ...state,
     participants: [
       ...state.participants,
-      { ...joiner, present: true, awaySince: null, vote: null },
+      { ...joiner, owner: joiner.owner ?? false, present: true, awaySince: null, vote: null },
     ],
   });
 }
