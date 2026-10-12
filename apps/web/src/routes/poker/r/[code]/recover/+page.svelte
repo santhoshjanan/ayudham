@@ -31,8 +31,13 @@
   <title>Moderator link · pokerji</title>
 </svelte:head>
 
+<header class="band">
+  <div class="band-inner">
+    <h1>Moderator link</h1>
+  </div>
+</header>
+
 <main>
-  <h1>Moderator link</h1>
 
   {#if form && 'recoveryToken' in form}
     <h2>You are now the owner of this room</h2>

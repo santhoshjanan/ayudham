@@ -354,3 +354,184 @@ main.bleed {
   margin: 0;
   padding: 0;
 }
+
+/* ---- The band: every page opens with the pool, as the room does ---- */
+.band {
+  background-color: var(--stage);
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  background-size: var(--tile) var(--tile);
+  color: var(--stage-ink);
+}
+.band-inner {
+  width: min(100% - 2.5rem, 40rem);
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 3.5rem) clamp(1.5rem, 4vw, 2.5rem);
+}
+.band.wide .band-inner {
+  width: min(100% - 2.5rem, 62rem);
+}
+.band h1 {
+  font-weight: 900;
+  line-height: 0.98;
+}
+.band p {
+  margin: 0.9rem 0 0;
+  max-width: 46ch;
+  font-size: 1.15rem;
+  color: var(--stage-ink-soft);
+}
+.band .back {
+  display: inline-block;
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  color: var(--stage-ink-soft);
+}
+.band .back:hover {
+  color: var(--stage-ink);
+}
+
+main.wide {
+  width: min(100% - 2.5rem, 62rem);
+}
+
+/* A link that is the page's main next step. */
+.button {
+  display: inline-block;
+  font-weight: 650;
+  text-decoration: none;
+  color: var(--action-ink);
+  background: var(--action);
+  border: 1.5px solid var(--action-ink);
+  border-radius: var(--radius);
+  padding: 0.65rem 1.15rem;
+}
+.button:hover {
+  background: var(--action-hover);
+}
+
+/* Sections of a settings-like page are divided by a rule, not boxed. */
+main > section + section,
+main > section + .owner-only {
+  margin-top: 2.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+main > section > h2,
+.owner-only > section > h2 {
+  margin-top: 1.75rem;
+}
+.owner-only > section + section {
+  margin-top: 2.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+main form {
+  margin-bottom: 1rem;
+}
+main form > p {
+  margin-bottom: 1.1rem;
+}
+.hint {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.inactive {
+  opacity: 0.5;
+}
+
+/* "How it is kept": the mechanism beside each privacy promise. */
+.how {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.95rem;
+  color: var(--ink-soft);
+}
+.how b {
+  color: var(--ink);
+}
+
+/* The moderator link: shown once, easy to copy whole. */
+.secret {
+  margin-top: 2.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+
+/* A person's vote in history: the name, then the card as a small scorecard. */
+.votes {
+  list-style: none;
+  margin: 0.9rem 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+.votes li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1rem;
+}
+.votes span {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.meta {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+/* The programme: what the suite offers, one event to a row. */
+.programme {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--ink);
+}
+.programme li {
+  display: grid;
+  gap: 0.75rem 2rem;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+@media (min-width: 44rem) {
+  .programme li {
+    grid-template-columns: 1fr auto;
+  }
+}
+.programme h2 {
+  margin: 0 0 0.35rem;
+  font-size: 2.25rem;
+}
+.programme p {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--ink-soft);
+}
+.claims {
+  display: grid;
+  gap: 1.75rem 3rem;
+  margin: 1rem 0 0;
+}
+@media (min-width: 44rem) {
+  .claims {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.claims dt {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+.claims dd {
+  margin: 0;
+  color: var(--ink-soft);
+}

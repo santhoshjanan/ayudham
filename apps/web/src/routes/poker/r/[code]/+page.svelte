@@ -18,8 +18,13 @@
   
   </main>
 {:else}
+  <header class="band">
+    <div class="band-inner">
+      <h1>Join the room</h1>
+      <p>Type the name your team knows you by. There is nothing to sign up for.</p>
+    </div>
+  </header>
   <main>
-    <h1>Join the room</h1>
     {#if form?.message}
       <p role="alert">{form.message}</p>
     {/if}

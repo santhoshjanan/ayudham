@@ -11,15 +11,19 @@
   <title>Planning poker · pokerji</title>
 </svelte:head>
 
-<main>
-  <h1>Planning poker</h1>
+{#if form?.created}
+  <header class="band">
+    <div class="band-inner">
+      <h1>Your room is ready</h1>
+      <p>Share the room's link with your team. Anyone who has it can join.</p>
+    </div>
+  </header>
+  <main>
 
-  {#if form?.created}
-    <h2>Your room is ready</h2>
-    <p><a href="/poker/r/{form.created.code}">Open the room</a></p>
-    <p>Share that link with your team. Anyone who has it can join.</p>
+    <p><a class="button" href="/poker/r/{form.created.code}">Open the room</a></p>
 
-    <h3>Save your moderator link</h3>
+    <section class="secret">
+      <h2>Save your moderator link</h2>
     <p>
       You own this room from this browser. To own it from another device, or if you clear your
       cookies, you need this link. Whoever opens it becomes the owner, so keep it private. It works
@@ -30,7 +34,17 @@
         >{page.url.origin}/poker/r/{form.created.code}/recover#m={form.created.recoveryToken}</code
       >
     </p>
-  {:else}
+    </section>
+  </main>
+{:else}
+  <header class="band">
+    <div class="band-inner">
+      <h1>Planning poker</h1>
+      <p>Start a room, share the link, and estimate together. Nobody signs up.</p>
+    </div>
+  </header>
+  <main>
+
     {#if form?.message}
       <p role="alert">{form.message}</p>
     {/if}
@@ -53,5 +67,5 @@
       </p>
       <button>Create room</button>
     </form>
-  {/if}
-</main>
+  </main>
+{/if}

@@ -8,9 +8,14 @@
   <title>History · pokerji</title>
 </svelte:head>
 
+<header class="band">
+  <div class="band-inner">
+    <a class="back" href="/poker/r/{data.code}">Back to the room</a>
+    <h1>History</h1>
+  </div>
+</header>
+
 <main>
-  <p><a href="/poker/r/{data.code}">Back to the room</a></p>
-  <h1>History</h1>
 
   {#if form && 'notice' in form}
     <p role="status">{form.notice}</p>
@@ -22,12 +27,12 @@
   {#if data.rounds.length === 0}
     <p>No rounds have been saved yet.</p>
   {:else}
-    <p>The newest rounds are shown, up to 200.</p>
+    <p class="hint">The newest rounds are shown, up to 200.</p>
     {#each data.rounds as round (round.id)}
       <article data-testid="round">
         <h2>{round.title || 'Untitled'}</h2>
-        <p>{round.revealed}{round.summary ? ` · ${round.summary}` : ''}</p>
-        <ul>
+        <p class="meta">{round.revealed}{round.summary ? ` · ${round.summary}` : ''}</p>
+        <ul class="votes">
           {#each round.votes as entry, index (index)}
             <li><b>{entry.name ?? 'Anonymous'}</b><span>: {entry.card}</span></li>
           {/each}

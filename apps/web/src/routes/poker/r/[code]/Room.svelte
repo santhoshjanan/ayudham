@@ -24,6 +24,21 @@
   let dialog = $state<HTMLDialogElement>();
   // The per-person controls stay out of the row until the moderator asks for them.
   let managing = $state(false);
+  // At wide widths the moderator's controls are a rail beside the row. Below
+  // that they are a compact bar above the hand, with the rest behind "More".
+  let wide = $state(true);
+  let moreOpen = $state(false);
+
+  $effect(() => {
+    const query = matchMedia('(min-width: 64rem)');
+    const follow = () => {
+      wide = query.matches;
+      if (wide) moreOpen = false;
+    };
+    follow();
+    query.addEventListener('change', follow);
+    return () => query.removeEventListener('change', follow);
+  });
 
   let socket: WebSocket | null = null;
   // The server's clock minus this browser's, so countdowns agree on every screen.
@@ -61,8 +76,15 @@
           status = 'open';
           // A new round, a running timer or a reveal makes any earlier notice stale.
           const next = message.room;
-          if (!room || next.round !== room.round || next.timer.endsAt !== null) notice = '';
-          if (next.phase !== 'voting') notice = '';
+          const handedOver = room?.you.owner === true && !next.you.owner;
+          if (!handedOver) {
+            if (!room || next.round !== room.round || next.timer.endsAt !== null) notice = '';
+            if (next.phase !== 'voting') notice = '';
+          }
+          if (room?.you.owner && !next.you.owner) {
+            notice =
+              'Someone used the moderator link and is now the owner. You are still a moderator.';
+          }
           // The title box empties only once the room shows what was typed.
           if (titleDraft.trim() !== '' && next.title === titleDraft.trim()) titleDraft = '';
           room = message.room;
@@ -231,6 +253,55 @@
   {/if}
 {/snippet}
 
+{#snippet reveal()}
+  <button
+    type="button"
+    class="primary reveal"
+    disabled={!live || !room || room.phase !== 'voting'}
+    onclick={() => send({ type: 'reveal' })}>Reveal</button
+  >
+{/snippet}
+
+{#snippet otherControls()}
+  {#if room}
+    <div class="pair">
+      <button
+        type="button"
+        disabled={!live || room.phase === 'counting'}
+        onclick={() => send({ type: 'newRound', keepTitle: true })}>Vote again</button
+      >
+      <button
+        type="button"
+        disabled={!live || room.phase === 'counting'}
+        onclick={() => send({ type: 'newRound', keepTitle: false })}>New round</button
+      >
+    </div>
+    {#if room.timer.seconds !== null}
+      {#if room.timer.endsAt === null}
+        <button
+          type="button"
+          disabled={!live || room.phase !== 'voting'}
+          onclick={() => send({ type: 'startTimer' })}>Start timer</button
+        >
+      {:else}
+        <button type="button" disabled={!live} onclick={() => send({ type: 'stopTimer' })}
+          >Stop timer</button
+        >
+      {/if}
+    {/if}
+    {#if anyoneToManage}
+      <button type="button" aria-pressed={managing} onclick={() => (managing = !managing)}
+        >{managing ? 'Done managing' : 'Manage people'}</button
+      >
+    {/if}
+    <form class="titleform" onsubmit={setTitle}>
+      <label for="title">Story title</label>
+      <input id="title" bind:value={titleDraft} maxlength="200" autocomplete="off" />
+      <button disabled={!live || room.phase !== 'voting'}>Set title</button>
+    </form>
+  {/if}
+{/snippet}
+
 {#snippet manage(person: Person)}
   {#if room && managing && canManage(person)}
     <span class="manage">
@@ -275,7 +346,11 @@
     <p data-testid="status" role="status">Connecting…</p>
   </div>
 {:else}
-  <div class="room" class:voter={room.you.role === 'voter'}>
+  <div
+    class="room"
+    class:voter={room.you.role === 'voter'}
+    class:barred={room.you.moderator && !wide}
+  >
     <nav class="roombar" aria-label="Room">
       <button type="button" class="link" onclick={copyLink}>
         {copied ? 'Link copied' : 'Copy room link'}
@@ -429,76 +504,57 @@
         </p>
       </div>
 
-      {#if room.you.moderator}
+      {#if room.you.moderator && wide}
         <aside class="rail" aria-labelledby="moderator-heading">
           <h2 id="moderator-heading">Moderator</h2>
-          <button
-            type="button"
-            class="primary reveal"
-            disabled={!live || room.phase !== 'voting'}
-            onclick={() => send({ type: 'reveal' })}>Reveal</button
-          >
-          <div class="pair">
-            <button
-              type="button"
-              disabled={!live || room.phase === 'counting'}
-              onclick={() => send({ type: 'newRound', keepTitle: true })}>Vote again</button
-            >
-            <button
-              type="button"
-              disabled={!live || room.phase === 'counting'}
-              onclick={() => send({ type: 'newRound', keepTitle: false })}>New round</button
-            >
-          </div>
-          {#if room.timer.seconds !== null}
-            {#if room.timer.endsAt === null}
-              <button
-                type="button"
-                disabled={!live || room.phase !== 'voting'}
-                onclick={() => send({ type: 'startTimer' })}>Start timer</button
-              >
-            {:else}
-              <button type="button" disabled={!live} onclick={() => send({ type: 'stopTimer' })}
-                >Stop timer</button
-              >
-            {/if}
-          {/if}
-          {#if anyoneToManage}
-            <button type="button" aria-pressed={managing} onclick={() => (managing = !managing)}
-              >{managing ? 'Done managing' : 'Manage people'}</button
-            >
-          {/if}
-          <form class="titleform" onsubmit={setTitle}>
-            <label for="title">Story title</label>
-            <input id="title" bind:value={titleDraft} maxlength="200" autocomplete="off" />
-            <button disabled={!live || room.phase !== 'voting'}>Set title</button>
-          </form>
+          {@render reveal()}
+          {@render otherControls()}
         </aside>
       {/if}
     </div>
 
-    {#if room.you.role === 'voter'}
-      <section class="hand" aria-labelledby="hand-heading">
-        <h2 id="hand-heading" class="sr-only">Your hand</h2>
-        <div class="hand-cards">
-          {#each cards as card (card)}
+    {#if room.you.role === 'voter' || (room.you.moderator && !wide)}
+      <div class="dock">
+        {#if room.you.moderator && !wide}
+          <section class="modbar" aria-labelledby="moderator-bar-heading">
+            <h2 id="moderator-bar-heading" class="sr-only">Moderator</h2>
+            {#if moreOpen}
+              <div class="sheet">{@render otherControls()}</div>
+            {/if}
+            <div class="modbar-row">
+              {@render reveal()}
+              <button
+                type="button"
+                aria-expanded={moreOpen}
+                onclick={() => (moreOpen = !moreOpen)}>{moreOpen ? 'Close' : 'More'}</button
+              >
+            </div>
+          </section>
+        {/if}
+        {#if room.you.role === 'voter'}
+          <section class="hand" aria-labelledby="hand-heading">
+            <h2 id="hand-heading" class="sr-only">Your hand</h2>
+            <div class="hand-cards">
+              {#each cards as card (card)}
+                <button
+                  type="button"
+                  class="hand-card"
+                  aria-label="Vote {card}"
+                  aria-pressed={room.you.vote === card}
+                  disabled={!live || room.phase !== 'voting'}
+                  onclick={() => send({ type: 'vote', card })}>{@render face(card)}</button
+                >
+              {/each}
+            </div>
             <button
               type="button"
-              class="hand-card"
-              aria-label="Vote {card}"
-              aria-pressed={room.you.vote === card}
-              disabled={!live || room.phase !== 'voting'}
-              onclick={() => send({ type: 'vote', card })}>{@render face(card)}</button
+              class="watch"
+              disabled={!live || room.phase === 'counting'}
+              onclick={() => send({ type: 'setRole', role: 'spectator' })}>Watch instead</button
             >
-          {/each}
-        </div>
-        <button
-          type="button"
-          class="watch"
-          disabled={!live || room.phase === 'counting'}
-          onclick={() => send({ type: 'setRole', role: 'spectator' })}>Watch instead</button
-        >
-      </section>
+          </section>
+        {/if}
+      </div>
     {/if}
   </div>
 
@@ -546,9 +602,15 @@
     flex-direction: column;
     min-height: calc(100dvh - 3.5rem);
   }
-  /* Room for the hand, which is fixed to the bottom edge. */
+  /* Room for the dock, which is fixed to the bottom edge. */
+  .room {
+    padding-bottom: calc(var(--pad-hand, 0rem) + var(--pad-bar, 0rem));
+  }
   .room.voter {
-    padding-bottom: 8.5rem;
+    --pad-hand: 8.5rem;
+  }
+  .room.barred {
+    --pad-bar: 5rem;
   }
 
   /* ---- Room bar ---- */
@@ -1024,18 +1086,46 @@
     color: var(--ground);
   }
 
-  /* ---- Your hand: docked to the bottom edge, under the thumb ---- */
-  .hand {
+  /* ---- The dock: fixed to the bottom edge, under the thumb ---- */
+  .dock {
     position: fixed;
     z-index: 5;
     inset: auto 0 0 0;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem clamp(1rem, 6vw, 5rem) calc(0.75rem + env(safe-area-inset-bottom));
     background: var(--surface);
     border-top: 1px solid var(--line);
     box-shadow: 0 -6px 18px rgb(17 20 23 / 0.1);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .hand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem clamp(1rem, 6vw, 5rem);
+  }
+
+  /* The moderator's bar on narrow screens: Reveal always in reach, the rest behind "More". */
+  .modbar {
+    padding: 0.6rem clamp(1rem, 6vw, 5rem) 0.2rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .modbar-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+  }
+  .modbar-row .reveal {
+    min-height: 3rem;
+    font-size: 1.35rem;
+  }
+  .sheet {
+    display: grid;
+    gap: 0.6rem;
+    padding-bottom: 0.75rem;
+    max-height: 50dvh;
+    overflow-y: auto;
+  }
+  .sheet .titleform {
+    margin-top: 0.2rem;
   }
   .hand-cards {
     display: flex;
@@ -1081,13 +1171,6 @@
     font-size: 0.9rem;
   }
 
-  /* Below the width where the rail fits beside the row, the moderator's controls
-     come first, straight under the stage, so Reveal is never a long scroll away. */
-  @media (max-width: 63.99rem) {
-    .rail {
-      order: -1;
-    }
-  }
 
   @media (max-width: 40rem) {
     .stage {
@@ -1109,7 +1192,7 @@
       align-self: end;
     }
     .room.voter {
-      padding-bottom: 11rem;
+      --pad-hand: 10.5rem;
     }
   }
 

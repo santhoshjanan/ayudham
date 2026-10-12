@@ -14,9 +14,14 @@
   <title>Room settings · pokerji</title>
 </svelte:head>
 
+<header class="band">
+  <div class="band-inner">
+    <a class="back" href="/poker/r/{data.code}">Back to the room</a>
+    <h1>Room settings</h1>
+  </div>
+</header>
+
 <main>
-  <p><a href="/poker/r/{data.code}">Back to the room</a></p>
-  <h1>Room settings</h1>
 
   {#if form && 'notice' in form}
     <p role="status">{form.notice}</p>
@@ -46,18 +51,21 @@
           <option value="custom">Custom</option>
         </select>
       </p>
-      {#if deckId === 'custom'}
+      <div class="custom" class:inactive={deckId !== 'custom'}>
         <p>
           <label for="values">Value cards</label>
           <input id="values" name="values" value={data.values} />
         </p>
-        <p>Lowest first, separated by commas or spaces. Up to 4 characters each.</p>
+        <p class="hint">
+          Used when the deck above is set to Custom. Lowest first, separated by commas or spaces,
+          up to 4 characters each.
+        </p>
         <p>
           <label for="specials">Special cards</label>
           <input id="specials" name="specials" value={data.specials} />
         </p>
         <p>Cards that are not estimates, such as ? for "not sure". They are left out of results.</p>
-      {/if}
+      </div>
       <p>
         <label for="timer">Timer in seconds</label>
         <input
@@ -106,6 +114,7 @@
   </section>
 
   {#if data.owner}
+    <div class="owner-only">
     <section>
       <h2>Moderators</h2>
       {#if data.coModerators.length === 0}
@@ -152,6 +161,7 @@
         <button>Delete this room</button>
       </form>
     </section>
+    </div>
   {:else}
     <section>
       <h2>Owner's settings</h2>
