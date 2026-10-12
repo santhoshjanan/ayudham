@@ -2,7 +2,9 @@ import { handleClient } from './client.ts';
 import { find, ok, patch } from './outcome.ts';
 import { disconnect, dropStale, evict, join } from './presence.ts';
 import { revealIfDue, roundSaved } from './round.ts';
+import { applySettings } from './settings.ts';
 import type { Command, Outcome, RoomState } from './state.ts';
+import { expireTimer } from './timer.ts';
 
 /** The engine's single entry point. Pure: same inputs, same outputs. */
 export function apply(state: RoomState, command: Command, now: number): Outcome {
@@ -21,14 +23,16 @@ export function apply(state: RoomState, command: Command, now: number): Outcome 
       return handleClient(state, command.from, command.message, now);
     case 'roundSaved':
       return roundSaved(state, command.seq, command.ok);
+    case 'settings':
+      return applySettings(state, command.settings);
     case 'tick':
       return tick(state, now);
-    default:
-      return ok(state);
   }
 }
 
+/** Time-driven changes, in order: finish the count, expire the timer, drop the long-absent. */
 function tick(state: RoomState, now: number): Outcome {
   const revealed = revealIfDue(state, now);
-  return ok(dropStale(revealed.state, now), revealed.effects);
+  const timed = expireTimer(revealed.state, now);
+  return ok(dropStale(timed.state, now), [...revealed.effects, ...timed.effects]);
 }

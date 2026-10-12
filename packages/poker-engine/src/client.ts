@@ -1,5 +1,5 @@
 import { REVEAL_COUNT_MS, type ClientMessage } from '@pokerji/protocol';
-import { deny, find, freshRound, ok, patch } from './outcome.ts';
+import { deny, find, freshRound, ok, patch, without } from './outcome.ts';
 import type { Outcome, RoomState } from './state.ts';
 
 /** Checks a client message against the sender's role and the round's phase, then applies it. */
@@ -44,7 +44,32 @@ export function handleClient(
     case 'newRound':
       if (!actor.moderator || state.phase === 'counting') return deny(state, from);
       return ok(freshRound(state, message.keepTitle ? state.title : ''));
-    default:
-      return deny(state, from);
+    case 'startTimer':
+      if (!actor.moderator || state.phase !== 'voting' || state.timerSeconds === null) {
+        return deny(state, from);
+      }
+      return ok({ ...state, timerEndsAt: now + state.timerSeconds * 1000 });
+    case 'stopTimer':
+      if (!actor.moderator || state.timerEndsAt === null) return deny(state, from);
+      return ok({ ...state, timerEndsAt: null });
+    case 'removeParticipant': {
+      const target = find(state, message.participantId);
+      if (!actor.moderator || !target || target.id === from || target.moderator) {
+        return deny(state, from);
+      }
+      return ok(without(state, [target.id]), [
+        { type: 'send', to: target.id, message: { type: 'removed' } },
+        { type: 'close', id: target.id },
+        { type: 'deleteSession', id: target.id },
+      ]);
+    }
+    case 'promote': {
+      const target = find(state, message.participantId);
+      if (!actor.moderator || !target) return deny(state, from);
+      if (target.moderator) return ok(state);
+      return ok(patch(state, target.id, { moderator: true }), [
+        { type: 'persistModerator', id: target.id },
+      ]);
+    }
   }
 }
