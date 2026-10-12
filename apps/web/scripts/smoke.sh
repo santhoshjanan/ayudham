@@ -28,7 +28,7 @@ echo "$HEADERS" | grep -qi "content-security-policy: default-src 'self'" || fail
 echo "$HEADERS" | grep -qi "script-src 'self' 'nonce-" || fail "script nonce"
 echo "$HEADERS" | grep -qi "frame-ancestors 'none'" || fail "frame-ancestors"
 echo "$HEADERS" | grep -qi "x-content-type-options: nosniff" || fail "nosniff"
-echo "$HEADERS" | grep -qi "referrer-policy: no-referrer" || fail "referrer policy"
+echo "$HEADERS" | grep -qi "referrer-policy: same-origin" || fail "referrer policy"
 echo "$HEADERS" | grep -qi "cache-control: no-store" || fail "no-store on room pages"
 echo "$HEADERS" | grep -qi "x-robots-tag: noindex" || fail "noindex on room pages"
 

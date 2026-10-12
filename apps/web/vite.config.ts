@@ -42,6 +42,14 @@ export default defineConfig(({ command, mode }) => {
                   'default-src': ['self'],
                   'script-src': ['self'],
                   'style-src': ['self'],
+                  // The one inline style allowed: SvelteKit's own route announcer, the visually
+                  // hidden region that tells screen readers a navigation happened. Allowed by
+                  // exact hash, so no other inline style can run. If a SvelteKit upgrade changes
+                  // that style, the end-to-end policy test fails and prints the new hash.
+                  'style-src-attr': [
+                    'unsafe-hashes',
+                    'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=',
+                  ],
                   'img-src': ['self', 'data:'],
                   'font-src': ['self'],
                   'media-src': ['self'],

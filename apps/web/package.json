@@ -9,7 +9,8 @@
     "start": "node server.js",
     "prepare": "svelte-kit sync || echo ''",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "smoke": "sh scripts/smoke.sh"
+    "smoke": "sh scripts/smoke.sh",
+    "e2e": "playwright test"
   },
   "imports": {
     "#lib": "./src/lib/index.js",
@@ -23,6 +24,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@pokerji/poker-engine": "workspace:*",
     "@pokerji/poker-server": "workspace:*",
     "@pokerji/protocol": "workspace:*",

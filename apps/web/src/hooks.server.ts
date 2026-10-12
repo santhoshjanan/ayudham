@@ -8,7 +8,9 @@ export const init: ServerInit = async () => {
 export const handle: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'no-referrer');
+  // Not "no-referrer": that makes browsers send "Origin: null" on same-site form posts,
+  // which the cross-site check then refuses. "same-origin" still sends nothing to other sites.
+  response.headers.set('Referrer-Policy', 'same-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   if (event.url.pathname.startsWith('/poker')) {
