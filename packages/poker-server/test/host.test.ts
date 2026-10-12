@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { MAX_CONNECTIONS_PER_PARTICIPANT, RoomHost } from '../src/index.ts';
 import { fakeClock, fakeConnection, fakeStore, flush } from './fakes.ts';
 
-const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true } as const;
+const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true, owner: true } as const;
 const ann = { id: 'a', name: 'Ann', role: 'voter', moderator: false } as const;
 
 function setup() {
@@ -146,6 +146,21 @@ describe('RoomHost', () => {
     expect(storage.calls).toEqual(['role:a:spectator', 'moderator:a']);
   });
 
+  it('shows a demotion to everyone at once', () => {
+    const { host, annTab } = setup();
+    host.receive('m', { type: 'promote', participantId: 'a' });
+    expect(annTab.room().you.moderator).toBe(true);
+    host.revokeModerator('a');
+    expect(annTab.room().you.moderator).toBe(false);
+  });
+
+  it('shows a change of owner to everyone at once', () => {
+    const { host, moTab, annTab } = setup();
+    host.transferOwnership('a');
+    expect(annTab.room().you).toMatchObject({ owner: true, moderator: true });
+    expect(moTab.room().you).toMatchObject({ owner: false, moderator: true });
+  });
+
   it('refuses a refused message with an error to the sender only', () => {
     const { host, moTab, annTab } = setup();
     const before = moTab.sent.length;
@@ -186,6 +201,17 @@ describe('RoomHost', () => {
     expect(annTab.room().you.moderator).toBe(true);
     host.evict(['a']);
     expect(annTab.isClosed()).toBe(true);
+  });
+
+  it('says whether settings took effect, and refuses a deck change once votes are in', () => {
+    const { host, moTab } = setup();
+    const tee = { deck: BUILT_IN_DECKS.tshirt.deck, timerSeconds: 30, music: null };
+    host.receive('a', { type: 'vote', card: '5' });
+    expect(host.applySettings(tee)).toBe(false);
+    expect(moTab.room().timer.seconds).toBe(60);
+    host.receive('a', { type: 'clearVote' });
+    expect(host.applySettings(tee)).toBe(true);
+    expect(moTab.room().timer.seconds).toBe(30);
   });
 
   it('keeps going when one connection throws', () => {

@@ -13,6 +13,8 @@ export interface Participant {
   name: string;
   role: Role;
   moderator: boolean;
+  /** At most one participant is the owner. See the spec's roles table. */
+  owner: boolean;
   present: boolean;
   /** Epoch milliseconds when the last connection closed; null while present. */
   awaySince: number | null;
@@ -42,6 +44,8 @@ export interface Joiner {
   name: string;
   role: Role;
   moderator: boolean;
+  /** Absent means not the owner. */
+  owner?: boolean;
 }
 
 export type Command =
@@ -52,6 +56,8 @@ export type Command =
   | { type: 'settings'; settings: RoomSettings }
   | { type: 'evict'; ids: readonly string[] }
   | { type: 'grantModerator'; id: string }
+  | { type: 'transferOwnership'; id: string }
+  | { type: 'revokeModerator'; id: string }
   | { type: 'roundSaved'; seq: number; ok: boolean };
 
 export type Effect =

@@ -11,6 +11,7 @@ const schema = z.object({
     .string()
     .regex(/^[a-z0-9:_-]{0,31}:$/)
     .default('pokerji:'),
+  BACKUP_ROTATION_DAYS: z.coerce.number().int().min(1).max(3650).optional(),
 });
 
 export interface Config {
@@ -21,6 +22,8 @@ export interface Config {
   retentionDays: number;
   /** Namespace for this app's Valkey keys. The production ACL user is limited to it. */
   keyPrefix: string;
+  /** How long database backups are kept, for the privacy page. Null when not stated. */
+  backupRotationDays: number | null;
 }
 
 /** Reads configuration. The error names bad variables and never includes their values. */
@@ -36,5 +39,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     addressHmacSecret: parsed.data.ADDRESS_HMAC_SECRET,
     retentionDays: parsed.data.RETENTION_DAYS,
     keyPrefix: parsed.data.KEY_PREFIX,
+    backupRotationDays: parsed.data.BACKUP_ROTATION_DAYS ?? null,
   };
 }

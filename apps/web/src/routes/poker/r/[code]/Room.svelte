@@ -7,9 +7,10 @@
     type ServerMessage,
   } from '@pokerji/protocol';
 
-  let { code }: { code: string } = $props();
+  let { code, retentionDays }: { code: string; retentionDays: number } = $props();
 
   type Status = 'connecting' | 'open' | 'reconnecting' | 'removed' | 'full' | 'replaced';
+  type Person = RoomSnapshot['participants'][number];
 
   let room = $state<RoomSnapshot | null>(null);
   let status = $state<Status>('connecting');
@@ -51,15 +52,26 @@
           // Only a snapshot proves the connection works; an accepted socket can still be closed at once.
           failures = 0;
           status = 'open';
+          // A new round, a running timer or a reveal makes any earlier notice stale.
+          const next = message.room;
+          if (!room || next.round !== room.round || next.timer.endsAt !== null) notice = '';
+          if (next.phase !== 'voting') notice = '';
+          // The title box empties only once the room shows what was typed.
+          if (titleDraft.trim() !== '' && next.title === titleDraft.trim()) titleDraft = '';
           room = message.room;
           clockOffset = message.room.serverNow - Date.now();
-          notice = '';
         } else if (message.type === 'removed') {
           finish('removed');
         } else if (message.type === 'error' && message.code === 'room_full') {
           finish('full');
         } else if (message.type === 'timerExpired') {
           notice = 'Time is up.';
+        } else if (message.type === 'error') {
+          // Without this a refused action would simply do nothing.
+          notice =
+            message.code === 'rate_limited'
+              ? 'You are sending too fast. Wait a moment and try again.'
+              : 'That was not accepted. Check it and try again.';
         }
       };
       ws.onclose = (event) => {
@@ -97,12 +109,20 @@
       ? Math.max(1, Math.ceil((room.revealAt - now) / 1000))
       : null,
   );
+  const timerText = $derived.by(() => {
+    if (!room || room.timer.seconds === null) return null;
+    if (room.timer.endsAt === null) return `Timer: ${room.timer.seconds} seconds, not running`;
+    const left = Math.max(0, Math.ceil((room.timer.endsAt - now) / 1000));
+    const minutes = Math.floor(left / 60);
+    const seconds = String(left % 60).padStart(2, '0');
+    return `Timer: ${minutes}:${seconds} remaining`;
+  });
   const cards = $derived(room ? [...room.deck.values, ...room.deck.specials] : []);
   const voters = $derived(room ? room.participants.filter((p) => p.role === 'voter') : []);
   const spectators = $derived(room ? room.participants.filter((p) => p.role === 'spectator') : []);
 
   /** Everything shown after a voter's name, as one string so its spacing is exact. */
-  const labelFor = (person: RoomSnapshot['participants'][number]): string => {
+  const labelFor = (person: Person): string => {
     if (!room) return '';
     const parts: string[] = [];
     if (room.phase === 'revealed') {
@@ -112,20 +132,46 @@
     } else {
       parts.push(person.hasVoted ? ' voted' : ' not voted');
     }
-    if (person.moderator) parts.push(' · moderator');
+    if (person.owner) parts.push(' · owner');
+    else if (person.moderator) parts.push(' · moderator');
     if (!person.present) parts.push(' · away');
     return parts.join('');
   };
 
+  /** A moderator may act on anyone who is not themselves and not a moderator. */
+  const canManage = (person: Person): boolean =>
+    room !== null && room.you.moderator && person.id !== room.you.id && !person.moderator;
+
   const setTitle = (event: SubmitEvent) => {
     event.preventDefault();
-    if (send({ type: 'setTitle', title: titleDraft })) titleDraft = '';
+    send({ type: 'setTitle', title: titleDraft });
   };
 </script>
 
+{#snippet manage(person: Person)}
+  {#if room && canManage(person)}
+    <button
+      type="button"
+      disabled={!live}
+      onclick={() => send({ type: 'promote', participantId: person.id })}
+      >Make {person.name} a moderator</button
+    >
+    <button
+      type="button"
+      disabled={!live || room.phase === 'counting'}
+      onclick={() => send({ type: 'removeParticipant', participantId: person.id })}
+      >Remove {person.name}</button
+    >
+  {/if}
+{/snippet}
+
 {#if status === 'removed'}
-  <h1>You were removed from this room</h1>
-  <p>Ask the moderator if you think this was a mistake.</p>
+  <h1>You are no longer in this room</h1>
+  <p>
+    A moderator removed you, or set a passcode. <a href="/poker/r/{code}" data-sveltekit-reload
+      >Join again</a
+    > with the room link, and the passcode if there is one.
+  </p>
 {:else if status === 'full'}
   <h1>This room is full</h1>
   <p>A room holds 50 people. Try again when someone has left.</p>
@@ -135,6 +181,13 @@
 {:else if !room}
   <p data-testid="status" role="status">Connecting…</p>
 {:else}
+  <nav aria-label="Room">
+    <a href="/poker/r/{code}/history">History</a>
+    {#if room.you.moderator}
+      <a href="/poker/r/{code}/settings">Settings</a>
+    {/if}
+  </nav>
+
   {#if status === 'reconnecting'}
     <p data-testid="status" role="status">Connection lost. Reconnecting…</p>
   {/if}
@@ -143,6 +196,10 @@
   {/if}
 
   <h1>{room.title || 'No story yet'}</h1>
+
+  {#if timerText !== null}
+    <p data-testid="timer">{timerText}</p>
+  {/if}
 
   {#if count !== null}
     <p data-testid="countdown" aria-live="assertive">{count}</p>
@@ -179,6 +236,7 @@
         <li>
           <!-- The name has its own element, so a name can never be mistaken for a label. -->
           <b>{person.name}</b><span>{labelFor(person)}</span>
+          {@render manage(person)}
         </li>
       {/each}
     </ul>
@@ -186,7 +244,10 @@
       <h2>Watching</h2>
       <ul>
         {#each spectators as person (person.id)}
-          <li><b>{person.name}</b><span>{person.moderator ? ' · moderator' : ''}</span></li>
+          <li>
+            <b>{person.name}</b><span>{person.owner ? ' · owner' : person.moderator ? ' · moderator' : ''}</span>
+            {@render manage(person)}
+          </li>
         {/each}
       </ul>
     {/if}
@@ -204,9 +265,23 @@
           onclick={() => send({ type: 'vote', card })}>{card}</button
         >
       {/each}
+      <p>
+        <button
+          type="button"
+          disabled={!live || room.phase === 'counting'}
+          onclick={() => send({ type: 'setRole', role: 'spectator' })}>Watch instead</button
+        >
+      </p>
     </section>
   {:else}
     <p>You are watching.</p>
+    <p>
+      <button
+        type="button"
+        disabled={!live || room.phase === 'counting'}
+        onclick={() => send({ type: 'setRole', role: 'voter' })}>Vote instead</button
+      >
+    </p>
   {/if}
 
   {#if room.you.moderator}
@@ -225,8 +300,30 @@
       <button
         type="button"
         disabled={!live || room.phase === 'counting'}
+        onclick={() => send({ type: 'newRound', keepTitle: true })}>Vote again</button
+      >
+      <button
+        type="button"
+        disabled={!live || room.phase === 'counting'}
         onclick={() => send({ type: 'newRound', keepTitle: false })}>New round</button
       >
+      {#if room.timer.seconds !== null}
+        {#if room.timer.endsAt === null}
+          <button
+            type="button"
+            disabled={!live || room.phase !== 'voting'}
+            onclick={() => send({ type: 'startTimer' })}>Start timer</button
+          >
+        {:else}
+          <button type="button" disabled={!live} onclick={() => send({ type: 'stopTimer' })}
+            >Stop timer</button
+          >
+        {/if}
+      {/if}
     </section>
   {/if}
+
+  <p>
+    Votes are recorded under your name and kept for {retentionDays} days after the room was last used.
+  </p>
 {/if}

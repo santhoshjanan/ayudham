@@ -50,7 +50,8 @@ export async function saveRound(db: Db, roomId: string, round: RoundToSave): Pro
   }
 }
 
-export async function listRounds(db: Db, roomId: string): Promise<SavedRound[]> {
+/** The newest rounds first. `limit` bounds how much one request can load. */
+export async function listRounds(db: Db, roomId: string, limit = 200): Promise<SavedRound[]> {
   const result = await db.query<SavedRound>(
     `select r.id, r.title, r.revealed_at as "revealedAt",
        coalesce(
@@ -64,8 +65,9 @@ export async function listRounds(db: Db, roomId: string): Promise<SavedRound[]> 
      left join votes v on v.round_id = r.id
      where r.room_id = $1
      group by r.id
-     order by r.revealed_at desc, r.id`,
-    [roomId],
+     order by r.revealed_at desc, r.id
+     limit $2`,
+    [roomId, limit],
   );
   return result.rows;
 }

@@ -82,7 +82,7 @@ v1 runs one instance. Each live room is claimed by an instance through a Valkey 
 | Room code | 12 random characters from `[A-Za-z0-9]` (~71 bits), from a CSPRNG | Plain (it is the lookup key) |
 | Session token | 256 random bits in a cookie | SHA-256 hash |
 | Moderator recovery secret | 256 random bits, shown once in a link fragment | SHA-256 hash |
-| Passcode (optional) | Chosen by the moderator, 4–64 characters | Argon2id hash |
+| Passcode (optional) | Chosen by the moderator, 8–64 characters | Argon2id hash |
 
 The room link is the secret. The optional passcode is a second factor the moderator can add.
 
@@ -93,6 +93,21 @@ One cookie per room: `HttpOnly`, `Secure` (always, except in local development; 
 ### Roles
 
 A session is a voter or a spectator, and may additionally be a moderator. The room creator is a moderator. Moderators can promote others, so a room is not stuck when its creator is away.
+
+### The owner
+
+Every room has exactly one owner. The person who creates the room is its owner.
+
+- Only the owner can delete the room, make a new moderator link, or take moderator rights away from someone.
+- The owner is always a moderator and cannot be demoted or removed.
+- Using the moderator link makes that person the owner. Whoever was the owner stays a moderator.
+- A moderator must be demoted by the owner before they can be removed from the room.
+- The owner demotes from the settings page, which lists the room's moderators. It works whether or not that person is connected, because a moderator who has left the room can still change settings.
+- A moderator link works once. Using it replaces it, and the new link is shown once to the new owner. A copy of a used link is worth nothing.
+- The owner's session is never deleted by removal, by a passcode change, or to make room in a full room.
+- Everything else a moderator can do, every moderator can do: run rounds, change settings and the passcode, promote, and remove people who are not moderators.
+
+This replaces the earlier arrangement in which all moderators were equal and none could be demoted.
 
 | Action | Moderator | Voter | Spectator |
 |---|---|---|---|
@@ -111,18 +126,18 @@ Before the Revealed phase, including during the reveal count, the server never s
 
 ### Joining
 
-1. `/poker/r/<code>` without a valid session renders a join form: display name (1–30 characters), voter or spectator, and a passcode field. Names are compatibility-normalised, must contain a letter or digit, and may not contain invisible or direction-changing characters. A name already in use in the room, ignoring case, is given a number ("Mo 2"), so nobody can pose as someone else.
+1. `/poker/r/<code>` without a valid session renders a join form: display name (1–30 characters), voter or spectator, and a passcode field. Names are compatibility-normalised, must contain a letter or digit, and may not contain invisible or direction-changing characters. A name already in use in the room, ignoring case, is given a number ("Mo 2"), so nobody can pose as someone else; the database enforces this, so it holds even when people join at the same instant. The name "Anonymous" is reserved.
 2. The form and its failure response are identical whether the room does not exist, has no passcode, or the passcode is wrong. Room existence is never disclosed.
 3. On success the server creates a session, sets the cookie and redirects to the room.
 4. The join form states: votes are recorded under the display name you enter and kept for 30 days after the room's last use.
 
 ### Moderator recovery
 
-Room creation shows a recovery link once: `/poker/r/<code>/recover#m=<secret>`. The fragment is not sent to the server on navigation; the page posts it in a request body. A valid secret sets the moderator flag on the caller's session. Moderators can regenerate the secret in settings, which invalidates the old link.
+Room creation shows a recovery link once: `/poker/r/<code>/recover#m=<secret>`. The fragment is not sent to the server on navigation; the page posts it in a request body. A valid secret sets the moderator flag on the caller's session. Moderators can regenerate the secret in settings, which invalidates the old link. Regenerating does not remove moderator rights from anyone who already used the old link. The page that receives the link removes the secret from the address as soon as it has read it, and the pages that show the link show a full address.
 
 ### Removing someone
 
-Removal deletes the session and closes its socket. The live room also refuses that session from then on, so the removal holds even if the database write is delayed. A moderator cannot remove themselves or another moderator, and nobody can be removed during the three-second reveal count. In a room without a passcode that person can rejoin through the link; the removal dialog says so and offers to set a passcode. Changing or setting a passcode deletes all non-moderator sessions.
+Removal deletes the session and closes its socket. The live room also refuses that session from then on, so the removal holds even if the database write is delayed. A moderator cannot remove themselves or another moderator, and nobody can be removed during the three-second reveal count. In a room without a passcode that person can rejoin through the link; the removal dialog says so and offers to set a passcode. Changing or setting a passcode deletes all non-moderator sessions, as one step with the change, so nobody who was joining at that moment stays in without it. Changing or removing the passcode clears the room's count of failed guesses.
 
 ### Abuse limits
 
@@ -137,6 +152,10 @@ Defaults, all configurable:
 | WebSocket messages per participant, across all their connections | 30 per 10 seconds |
 | Connections per participant | 4; a fifth closes the oldest, which is told why and does not reconnect |
 | WebSocket connections per session | 60 per minute, counted after the session is verified |
+| Moderator changes, per room | Settings 60 per 10 minutes; passcode 5 per 10 minutes; new moderator link 10 per hour; history deletions 120 per 10 minutes |
+| Moderator-link attempts, per session | 30 per 10 minutes |
+| Remove-my-name requests, per session | 20 per 10 minutes |
+| History shown | The newest 200 rounds |
 | Sessions per room | 200; when full, the non-moderator seen longest ago is signed out to make room |
 | Participants per room | 50, not counting moderators, who can always enter |
 | WebSocket message size | 2 KB |
@@ -235,7 +254,7 @@ Rate-limit counters and room locks under the `pokerji:` prefix. No names, titles
 
 ### Deletion
 
-- **Automatic.** A daily job hard-deletes rooms whose last activity is more than 30 days old.
+- **Automatic.** An hourly job hard-deletes rooms whose last activity is more than 30 days old. Activity means someone joined, a round was revealed, or the settings were changed.
 - **Moderator.** Delete one round, clear all history, or delete the room. Immediate.
 - **Participant.** "Remove my name from history" clears the voter name on their votes in that room; they show as "Anonymous". It works only for votes cast under the session they are using now. Someone who was removed, or signed out by a passcode change, comes back as a new participant and cannot reach their earlier votes; a moderator can delete those rounds for them. The privacy page says so.
 

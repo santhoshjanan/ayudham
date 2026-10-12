@@ -31,7 +31,9 @@ describe('join', () => {
     const state = run(createRoom({ deck: FIB, timerSeconds: null, music: null }), [
       { type: 'join', participant: ann },
     ]);
-    expect(state.participants).toEqual([{ ...ann, present: true, awaySince: null, vote: null }]);
+    expect(state.participants).toEqual([
+      { ...ann, owner: false, present: true, awaySince: null, vote: null },
+    ]);
   });
 
   it('keeps the vote and does not duplicate when someone reconnects mid-round', () => {
@@ -39,7 +41,7 @@ describe('join', () => {
     const away = apply(voted, { type: 'disconnect', id: 'a' }, 1_000).state;
     const back = apply(away, { type: 'join', participant: ann }, 2_000).state;
     expect(back.participants.filter((p) => p.id === 'a')).toEqual([
-      { ...ann, present: true, awaySince: null, vote: '5' },
+      { ...ann, owner: false, present: true, awaySince: null, vote: '5' },
     ]);
     expect(back.participants).toHaveLength(3);
   });
@@ -135,21 +137,23 @@ describe('snapshotFor', () => {
   it('describes the room for one participant', () => {
     expect(snapshotFor(seeded(), 'a', 1234)).toEqual({
       serverNow: 1234,
-      you: { id: 'a', name: 'Ann', role: 'voter', moderator: false, vote: null },
+      you: { id: 'a', name: 'Ann', role: 'voter', moderator: false, owner: false, vote: null },
       title: '',
       deck: FIB,
       phase: 'voting',
+      round: 1,
       revealAt: null,
       timer: { seconds: 60, endsAt: null },
       music: null,
       participants: [
         { ...mo, present: true, hasVoted: false, vote: null },
-        { ...ann, present: true, hasVoted: false, vote: null },
+        { ...ann, owner: false, present: true, hasVoted: false, vote: null },
         {
           id: 's',
           name: 'Sam',
           role: 'spectator',
           moderator: false,
+          owner: false,
           present: true,
           hasVoted: false,
           vote: null,

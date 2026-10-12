@@ -19,7 +19,9 @@ export const nameSchema = z
       .string()
       .min(NAME_MIN)
       .max(NAME_MAX)
-      .refine((value) => !HIDDEN.test(value) && LETTER_OR_DIGIT.test(value)),
+      .refine((value) => !HIDDEN.test(value) && LETTER_OR_DIGIT.test(value))
+      // History shows this word for people who removed their name; nobody may take it.
+      .refine((value) => value.toLowerCase() !== 'anonymous'),
   );
 
 export const roomCodeSchema = z.string().regex(/^[A-Za-z0-9]{12}$/);

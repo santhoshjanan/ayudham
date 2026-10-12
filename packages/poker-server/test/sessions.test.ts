@@ -9,6 +9,9 @@ import {
   insertSession,
   setSessionModerator,
   setSessionRole,
+  transferOwnership,
+  clearSessionModerator,
+  listCoModerators,
   type Db,
 } from '../src/index.ts';
 import { testDb } from './services.ts';
@@ -31,7 +34,8 @@ const session = (roomId: string, moderator = false) =>
   insertSession(db, {
     roomId,
     tokenHash: `hash${(n += 1)}`,
-    name: 'Ann',
+    // Names are unique within a room.
+    name: `Ann ${n}`,
     role: 'voter',
     moderator,
   });
@@ -52,6 +56,7 @@ describe('sessions', () => {
       name: 'Ann',
       role: 'voter',
       moderator: false,
+      owner: false,
     });
     expect(await findSession(db, roomId, 'th-1')).toEqual(created);
   });
@@ -108,6 +113,116 @@ describe('sessions', () => {
     expect(await setSessionModerator(db, otherRoomId, created.id)).toBe(false);
     expect(await deleteSession(db, otherRoomId, created.id)).toBe(false);
     expect(await findSession(db, roomId, 'th-scope')).toEqual(created);
+  });
+
+  it('has one owner per room, and moves ownership in one step', async () => {
+    const { id: roomId } = await room();
+    const first = await insertSession(db, {
+      roomId,
+      tokenHash: 'th-own-1',
+      name: 'Mo',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
+    const second = await insertSession(db, {
+      roomId,
+      tokenHash: 'th-own-2',
+      name: 'Ann',
+      role: 'voter',
+      moderator: false,
+    });
+    await expect(
+      insertSession(db, {
+        roomId,
+        tokenHash: 'th-own-3',
+        name: 'Bo',
+        role: 'voter',
+        moderator: true,
+        owner: true,
+      }),
+    ).rejects.toThrow();
+
+    expect(await transferOwnership(db, roomId, second.id)).toBe(true);
+    expect(await findSession(db, roomId, 'th-own-2')).toMatchObject({
+      owner: true,
+      moderator: true,
+    });
+    expect(await findSession(db, roomId, 'th-own-1')).toMatchObject({
+      owner: false,
+      moderator: true,
+    });
+
+    // The owner's session cannot be deleted, and the owner cannot be demoted; another moderator can.
+    expect(await deleteSession(db, roomId, second.id)).toBe(false);
+    expect(await listCoModerators(db, roomId)).toEqual([{ id: first.id, name: 'Mo' }]);
+    expect(await clearSessionModerator(db, roomId, second.id)).toBe(false);
+    expect(await clearSessionModerator(db, roomId, first.id)).toBe(true);
+    expect(await findSession(db, roomId, 'th-own-1')).toMatchObject({ moderator: false });
+  });
+
+  it('keeps exactly one owner when two people take the room at the same moment', async () => {
+    const { id: roomId } = await room();
+    await insertSession(db, {
+      roomId,
+      tokenHash: 'th-race-0',
+      name: 'Mo',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
+    const people = [];
+    for (const name of ['Ann', 'Bo', 'Cy', 'Di']) {
+      people.push(
+        await insertSession(db, {
+          roomId,
+          tokenHash: `th-race-${name}`,
+          name,
+          role: 'voter',
+          moderator: false,
+        }),
+      );
+    }
+    const results = await Promise.all(people.map((p) => transferOwnership(db, roomId, p.id)));
+    expect(results).toEqual([true, true, true, true]);
+    const owners = await db.query('select 1 from sessions where room_id = $1 and owner', [roomId]);
+    expect(owners.rowCount).toBe(1);
+  });
+
+  it('refuses a stored owner who is not a moderator', async () => {
+    const { id: roomId } = await room();
+    await expect(
+      insertSession(db, {
+        roomId,
+        tokenHash: 'th-bad-owner',
+        name: 'Zed',
+        role: 'voter',
+        moderator: false,
+        owner: true,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('does not move ownership to a session of another room, and leaves the owner in place', async () => {
+    const { id: roomId } = await room();
+    const { id: otherRoomId } = await room();
+    await insertSession(db, {
+      roomId,
+      tokenHash: 'th-own-4',
+      name: 'Mo',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
+    const stranger = await insertSession(db, {
+      roomId: otherRoomId,
+      tokenHash: 'th-own-5',
+      name: 'Eve',
+      role: 'voter',
+      moderator: false,
+    });
+    expect(await transferOwnership(db, roomId, stranger.id)).toBe(false);
+    expect(await findSession(db, roomId, 'th-own-4')).toMatchObject({ owner: true });
   });
 
   it('deletes everyone but moderators and reports who went', async () => {

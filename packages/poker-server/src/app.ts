@@ -22,6 +22,7 @@ export interface AppOptions {
 }
 
 export interface App {
+  config: Config;
   db: Db;
   kv: Kv;
   registry: RoomRegistry;
@@ -97,6 +98,7 @@ export function createApp(config: Config, options: AppOptions = {}): App {
   let stopped: Promise<void> | undefined;
 
   return {
+    config,
     db,
     kv,
     registry,

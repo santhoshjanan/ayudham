@@ -60,6 +60,8 @@ export interface ParticipantView {
   name: string;
   role: Role;
   moderator: boolean;
+  /** The one person who can delete the room, replace the moderator link and demote moderators. */
+  owner: boolean;
   present: boolean;
   hasVoted: boolean;
   /** Always null before the revealed phase. */
@@ -69,10 +71,19 @@ export interface ParticipantView {
 export interface RoomSnapshot {
   /** Server time in epoch milliseconds when this snapshot was built. */
   serverNow: number;
-  you: { id: string; name: string; role: Role; moderator: boolean; vote: string | null };
+  you: {
+    id: string;
+    name: string;
+    role: Role;
+    moderator: boolean;
+    owner: boolean;
+    vote: string | null;
+  };
   title: string;
   deck: Deck;
   phase: Phase;
+  /** Counts up by one with each new round, so a page can tell a new round from an update. */
+  round: number;
   /** Epoch milliseconds when the count ends; set only while counting. */
   revealAt: number | null;
   timer: { seconds: number | null; endsAt: number | null };

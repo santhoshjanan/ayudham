@@ -4,9 +4,11 @@ import {
   createKv,
   createRoomFlow,
   findRoomByCode,
+  countSessions,
   hashPasscode,
   joinRoomFlow,
   resumeSession,
+  setPasscodeAndSignOut,
   setPasscodeHash,
   type Db,
   type FlowDeps,
@@ -64,7 +66,12 @@ describe('createRoomFlow', () => {
     expect(stored?.recoveryHash).not.toContain(created.recoveryToken);
 
     const resumed = await resumeSession(flow, { code: created.code, token: created.sessionToken });
-    expect(resumed?.session).toMatchObject({ name: 'Mo', role: 'voter', moderator: true });
+    expect(resumed?.session).toMatchObject({
+      name: 'Mo',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
   });
 
   it('rejects a bad name or deck without creating anything', async () => {
@@ -100,7 +107,12 @@ describe('joinRoomFlow', () => {
     const joined = await join(flow, code, { role: 'spectator' });
     if (!joined.ok) throw new Error('join failed');
     const resumed = await resumeSession(flow, { code, token: joined.sessionToken });
-    expect(resumed?.session).toMatchObject({ name: 'Ann', role: 'spectator', moderator: false });
+    expect(resumed?.session).toMatchObject({
+      name: 'Ann',
+      role: 'spectator',
+      moderator: false,
+      owner: false,
+    });
   });
 
   it('rejects a bad name or role as invalid', async () => {
@@ -210,6 +222,41 @@ describe('joinRoomFlow', () => {
     if (!again.ok) throw new Error('join failed');
     const resumed = await resumeSession(flow, { code, token: again.sessionToken });
     expect(resumed?.session.name).toBe(`${'x'.repeat(28)} 2`);
+  });
+});
+
+describe('joins under concurrency', () => {
+  it('leaves nobody in the room who joined without the passcode while it was being set', async () => {
+    const flow = deps();
+    const { code } = await room(flow);
+    const stored = await findRoomByCode(db, code);
+    const roomId = stored?.id as string;
+    const hash = await hashPasscode('open sesame');
+    const joins = Array.from({ length: 30 }, (_, i) =>
+      join(flow, code, { name: `P${i}`, address: `203.0.114.${i}` }),
+    );
+    const setting = new Promise((resolve) => setTimeout(resolve, 40)).then(() =>
+      setPasscodeAndSignOut(db, roomId, hash),
+    );
+    await Promise.all([...joins, setting]);
+    // Only the moderator remains: every join either finished before and was signed out, or was refused.
+    expect(await countSessions(db, roomId)).toBe(1);
+  });
+
+  it('gives everyone a different name when many people join with the same one at once', async () => {
+    const flow = deps();
+    const { code } = await room(flow);
+    const joined = await Promise.all(
+      Array.from({ length: 8 }, (_, i) =>
+        join(flow, code, { name: 'Alice', address: `203.0.115.${i}` }),
+      ),
+    );
+    const names = [];
+    for (const result of joined) {
+      if (!result.ok) throw new Error('join failed');
+      names.push((await resumeSession(flow, { code, token: result.sessionToken }))?.session.name);
+    }
+    expect(new Set(names.map((name) => name?.toLowerCase())).size).toBe(8);
   });
 });
 

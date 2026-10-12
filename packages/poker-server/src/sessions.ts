@@ -7,18 +7,33 @@ export interface SessionRow {
   name: string;
   role: Role;
   moderator: boolean;
+  owner: boolean;
 }
 
-const COLUMNS = `id, room_id as "roomId", name, role, moderator`;
+const COLUMNS = `id, room_id as "roomId", name, role, moderator, owner`;
 
 export async function insertSession(
   db: Db,
-  session: { roomId: string; tokenHash: string; name: string; role: Role; moderator: boolean },
+  session: {
+    roomId: string;
+    tokenHash: string;
+    name: string;
+    role: Role;
+    moderator: boolean;
+    owner?: boolean;
+  },
 ): Promise<SessionRow> {
   const result = await db.query<SessionRow>(
-    `insert into sessions (room_id, token_hash, name, role, moderator)
-     values ($1, $2, $3, $4, $5) returning ${COLUMNS}`,
-    [session.roomId, session.tokenHash, session.name, session.role, session.moderator],
+    `insert into sessions (room_id, token_hash, name, role, moderator, owner)
+     values ($1, $2, $3, $4, $5, $6) returning ${COLUMNS}`,
+    [
+      session.roomId,
+      session.tokenHash,
+      session.name,
+      session.role,
+      session.moderator,
+      session.owner ?? false,
+    ],
   );
   return result.rows[0] as SessionRow;
 }
@@ -65,10 +80,11 @@ export async function setSessionModerator(db: Db, roomId: string, id: string): P
 }
 
 export async function deleteSession(db: Db, roomId: string, id: string): Promise<boolean> {
-  const result = await db.query('delete from sessions where id = $2 and room_id = $1', [
-    roomId,
-    id,
-  ]);
+  // The owner's session is never deleted this way: a room must keep its owner.
+  const result = await db.query(
+    'delete from sessions where id = $2 and room_id = $1 and not owner',
+    [roomId, id],
+  );
   return result.rowCount === 1;
 }
 
@@ -111,4 +127,79 @@ export async function sessionNames(db: Db, roomId: string): Promise<string[]> {
     roomId,
   ]);
   return result.rows.map((row) => row.name);
+}
+
+/**
+ * Adds a session for someone joining, but only if the room's passcode is still
+ * the one their join was checked against. The row lock makes this wait for a
+ * passcode change in progress, so nobody can join a room on a check that is out
+ * of date. Returns null when the passcode has changed.
+ */
+export async function insertJoiningSession(
+  db: Db,
+  session: { roomId: string; tokenHash: string; name: string; role: Role },
+  checkedPasscodeHash: string | null,
+): Promise<SessionRow | null> {
+  const result = await db.query<SessionRow>(
+    `insert into sessions (room_id, token_hash, name, role, moderator)
+     select r.id, $2, $3, $4, false
+     from rooms r
+     where r.id = $1 and r.passcode_hash is not distinct from $5
+     for share of r
+     returning ${COLUMNS}`,
+    [session.roomId, session.tokenHash, session.name, session.role, checkedPasscodeHash],
+  );
+  return result.rows[0] ?? null;
+}
+
+/** Takes moderator rights away. The owner cannot be demoted this way. */
+export async function clearSessionModerator(db: Db, roomId: string, id: string): Promise<boolean> {
+  const result = await db.query(
+    'update sessions set moderator = false where id = $2 and room_id = $1 and not owner',
+    [roomId, id],
+  );
+  return result.rowCount === 1;
+}
+
+/**
+ * Makes one session the room's owner, and a moderator, in one step. Whoever
+ * was the owner before keeps moderator rights but is no longer the owner.
+ */
+export async function transferOwnership(db: Db, roomId: string, id: string): Promise<boolean> {
+  const client = await db.connect();
+  try {
+    await client.query('begin');
+    // Two people using the moderator link at once take turns here.
+    await client.query('select 1 from rooms where id = $1 for update', [roomId]);
+    await client.query('update sessions set owner = false where room_id = $1 and owner', [roomId]);
+    const made = await client.query(
+      'update sessions set owner = true, moderator = true where id = $2 and room_id = $1',
+      [roomId, id],
+    );
+    if (made.rowCount !== 1) {
+      await client.query('rollback');
+      return false;
+    }
+    await client.query('commit');
+    return true;
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/** The room's moderators other than its owner: the people the owner may demote. */
+export async function listCoModerators(
+  db: Db,
+  roomId: string,
+): Promise<{ id: string; name: string }[]> {
+  const result = await db.query<{ id: string; name: string }>(
+    `select id, name from sessions
+     where room_id = $1 and moderator and not owner
+     order by created_at, id`,
+    [roomId],
+  );
+  return result.rows;
 }

@@ -13,7 +13,7 @@
   {#if data.joined}
     <!-- Keyed, so moving to another room starts from a clean state. -->
     {#key data.code}
-      <Room code={data.code} />
+      <Room code={data.code} retentionDays={data.retentionDays} />
     {/key}
   {:else}
     <h1>Join the room</h1>
@@ -35,8 +35,8 @@
         <input id="passcode" name="passcode" type="password" maxlength="64" autocomplete="off" />
       </p>
       <p>
-        Votes are recorded under the name you enter and kept for 30 days after the room was last
-        used.
+        Votes are recorded under the name you enter and kept for {data.retentionDays} days after the room
+        was last used.
       </p>
       <button>Join</button>
     </form>

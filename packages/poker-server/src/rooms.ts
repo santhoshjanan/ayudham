@@ -78,3 +78,26 @@ export async function deleteInactiveRooms(db: Db, olderThanDays: number): Promis
   );
   return result.rowCount ?? 0;
 }
+
+/**
+ * Sets the passcode and signs out everyone except moderators as one step, so
+ * no join can slip between the two. Returns the ids of the sessions removed.
+ */
+export async function setPasscodeAndSignOut(db: Db, id: string, hash: string): Promise<string[]> {
+  const client = await db.connect();
+  try {
+    await client.query('begin');
+    await client.query('update rooms set passcode_hash = $2 where id = $1', [id, hash]);
+    const gone = await client.query<{ id: string }>(
+      'delete from sessions where room_id = $1 and not moderator returning id',
+      [id],
+    );
+    await client.query('commit');
+    return gone.rows.map((row) => row.id);
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}

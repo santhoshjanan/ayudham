@@ -12,10 +12,18 @@ export function snapshotFor(state: RoomState, id: string, now: number): RoomSnap
   const open = state.phase === 'revealed';
   return {
     serverNow: now,
-    you: { id: you.id, name: you.name, role: you.role, moderator: you.moderator, vote: you.vote },
+    you: {
+      id: you.id,
+      name: you.name,
+      role: you.role,
+      moderator: you.moderator,
+      owner: you.owner,
+      vote: you.vote,
+    },
     title: state.title,
     deck: state.deck,
     phase: state.phase,
+    round: state.roundSeq,
     revealAt: state.revealAt,
     timer: { seconds: state.timerSeconds, endsAt: state.timerEndsAt },
     music: state.music,
@@ -24,6 +32,7 @@ export function snapshotFor(state: RoomState, id: string, now: number): RoomSnap
       name: p.name,
       role: p.role,
       moderator: p.moderator,
+      owner: p.owner,
       present: p.present,
       hasVoted: p.vote !== null,
       vote: open ? p.vote : null,

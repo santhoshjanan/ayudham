@@ -15,6 +15,7 @@ describe('loadConfig', () => {
       addressHmacSecret: valid.ADDRESS_HMAC_SECRET,
       retentionDays: 30,
       keyPrefix: 'pokerji:',
+      backupRotationDays: null,
     });
   });
 
@@ -28,6 +29,14 @@ describe('loadConfig', () => {
     for (const bad of ['', 'pokerji', 'Has Space:', '*:', 'x'.repeat(40) + ':']) {
       expect(() => loadConfig({ ...valid, KEY_PREFIX: bad })).toThrow(/KEY_PREFIX/);
     }
+  });
+
+  it('reads the backup rotation period, or leaves it unknown', () => {
+    expect(loadConfig({ ...valid, BACKUP_ROTATION_DAYS: '14' }).backupRotationDays).toBe(14);
+    expect(loadConfig(valid).backupRotationDays).toBeNull();
+    expect(() => loadConfig({ ...valid, BACKUP_ROTATION_DAYS: '0' })).toThrow(
+      /BACKUP_ROTATION_DAYS/,
+    );
   });
 
   it('names every missing or invalid variable', () => {

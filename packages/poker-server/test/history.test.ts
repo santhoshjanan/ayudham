@@ -132,6 +132,18 @@ describe('history', () => {
     expect(Date.now() - (reloaded?.lastActiveAt.getTime() ?? 0)).toBeLessThan(60_000);
   });
 
+  it('returns only the newest rounds when asked for a limited number', async () => {
+    const { room, ann } = await setup();
+    for (const title of ['A', 'B', 'C']) {
+      await saveRound(db, room.id, {
+        id: randomUUID(),
+        title,
+        votes: [{ sessionId: ann.id, name: 'Ann', card: '3' }],
+      });
+    }
+    expect((await listRounds(db, room.id, 2)).map((round) => round.title)).toEqual(['C', 'B']);
+  });
+
   it('returns an empty list for a room with no rounds', async () => {
     const { room } = await setup();
     expect(await listRounds(db, room.id)).toEqual([]);

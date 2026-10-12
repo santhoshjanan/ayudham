@@ -127,10 +127,18 @@ export function createUpgradeHandler(
     if (!allowed) return refuse(socket);
     const host = await app.registry.open(resumed.room);
     if (!host) return refuse(socket);
+    // Loading the room took time. If the session was removed meanwhile (a
+    // passcode was set, the room was deleted), it must not be attached.
+    const still = await resumeSession(app.flows, {
+      code,
+      token: readCookie(req.headers.cookie, SESSION_COOKIE),
+    });
+    if (!still) return refuse(socket);
 
-    const { id, name, role, moderator } = resumed.session;
+    // The re-checked row, so a change of owner or moderator made meanwhile is not missed.
+    const { id, name, role, moderator, owner } = still.session;
     server.handleUpgrade(req, socket, head, (ws) => {
-      attachSocket(host, { id, name, role, moderator }, adapt(ws));
+      attachSocket(host, { id, name, role, moderator, owner }, adapt(ws));
     });
   }
 
