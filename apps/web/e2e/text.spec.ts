@@ -430,3 +430,216 @@ test('lines are tidied in a fixed order, and counts are stated', async ({ browse
   await page.getByRole('button', { name: 'Copy all' }).click();
   expect(await clipboard(page)).toContain('Words: 4');
 });
+
+const TOOL_IDS = [
+  'password',
+  'passphrase',
+  'random',
+  'number',
+  'id',
+  'chance',
+  'case',
+  'slug',
+  'encode',
+  'hash',
+  'lines',
+  'count',
+];
+
+test('a failed random source clears old results and converters still work', async ({ browser }) => {
+  const page = await open(browser);
+  await expect(results(page)).toHaveCount(1);
+  await page.evaluate(() => {
+    crypto.getRandomValues = () => {
+      throw new Error('unavailable');
+    };
+  });
+  await page.getByRole('button', { name: 'Generate again' }).click();
+  await expect(status(page)).toContainText('nothing was generated');
+  await expect(results(page)).toHaveCount(0);
+  await page.getByRole('link', { name: 'Slug', exact: true }).click();
+  await text(page).fill('Still works');
+  await expect.poll(() => values(page)).toEqual(['still-works']);
+});
+
+test('a refused hash clears old sums, reports the failure and can recover', async ({ browser }) => {
+  const page = await open(browser, '#hash');
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await text(page).fill('abc');
+  await expect(results(page)).toHaveCount(3);
+  await page.evaluate(() => {
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    crypto.subtle.digest = (...args) =>
+      args[0] === 'SHA-384' ? Promise.reject(new Error('unavailable')) : digest(...args);
+  });
+  await text(page).fill('different');
+  await expect(status(page)).toContainText('cannot make hashes');
+  await expect(results(page)).toHaveCount(0);
+  expect(errors).toEqual([]);
+  await page.reload();
+  await page.locator('[data-ready]').waitFor();
+  await text(page).fill('abc');
+  await expect(results(page)).toHaveCount(3);
+});
+const TYPED = ['case', 'slug', 'encode', 'hash', 'lines', 'count'];
+
+/** Opens every tool in turn, types the secret where there is a box, and gathers every result. */
+const useEveryTool = async (page: Page, secret: string): Promise<string[]> => {
+  const seen: string[] = [];
+  for (const id of TOOL_IDS) {
+    await page.goto(`/text#${id}`);
+    await expect(page.locator(`a[href="#${id}"]`)).toHaveAttribute('aria-current', 'true');
+    if (TYPED.includes(id)) await text(page).fill(secret);
+    await expect(results(page).first()).toBeVisible();
+    if (!TYPED.includes(id)) await page.getByRole('button', { name: 'Generate again' }).click();
+    seen.push(...(await values(page)));
+    await rail(page).getByRole('button', { name: /^Copy/ }).first().click();
+  }
+  return seen;
+};
+
+test('nothing typed or made is sent anywhere, and the only fetch is the word list', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  const sent: string[] = [];
+  page.on('request', (request) =>
+    sent.push(
+      `${request.method()} ${request.url()} ${JSON.stringify(request.headers())} ${request.postData() ?? ''}`,
+    ),
+  );
+  const secret = 'zebra-quartz-7731';
+  const made = await useEveryTool(page, secret);
+  await page.waitForTimeout(500);
+
+  expect(made.length).toBeGreaterThanOrEqual(12);
+  // Short values (a die, a coin, a PIN) could match ordinary request text by chance.
+  const telling = made.filter((value) => value.length >= 8);
+  expect(telling.length).toBeGreaterThanOrEqual(8);
+  for (const line of sent) {
+    expect(line).not.toContain(secret);
+    expect(line).not.toContain(encodeURIComponent(secret));
+    for (const value of telling) expect(line, value).not.toContain(value);
+  }
+  expect(sent.map((line) => new URL(line.split(' ')[1] ?? '').pathname)).toEqual([
+    '/text/eff_large_wordlist.txt',
+  ]);
+});
+
+test('nothing is kept: no storage entry, no cookie, nothing in the address but the tool', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  const kept = () =>
+    page.evaluate(() => ({
+      local: Object.keys(localStorage).sort(),
+      session: Object.keys(sessionStorage).sort(),
+      cookie: document.cookie,
+    }));
+  const before = await kept();
+  await useEveryTool(page, 'zebra-quartz-7731');
+  expect(await kept()).toEqual(before);
+  expect(new URL(page.url()).search).toBe('');
+  expect(new URL(page.url()).pathname).toBe('/text');
+  expect(new URL(page.url()).hash).toBe('#count');
+
+  // A reload starts again from nothing.
+  await page.reload();
+  await page.locator('[data-ready]').waitFor();
+  await expect(text(page)).toHaveValue('');
+});
+
+test('the text tools never break the content security policy', async ({ browser }) => {
+  const page = await open(browser);
+  const refused: string[] = [];
+  page.on('console', (message) => {
+    if (/content security policy/i.test(message.text())) refused.push(message.text());
+  });
+  page.on('pageerror', (error) => refused.push(error.message));
+  await useEveryTool(page, 'zebra-quartz-7731');
+  expect(refused).toEqual([]);
+});
+
+test('no field hands what is typed to a spelling service or a saved-form store', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  for (const id of [...TYPED, 'chance', 'random']) {
+    await page.goto(`/text#${id}`);
+    await expect(page.locator(`a[href="#${id}"]`)).toHaveAttribute('aria-current', 'true');
+    if (id === 'chance') {
+      await page.getByLabel('Use', { exact: true }).selectOption({ label: 'A list of your own' });
+    }
+    if (id === 'random') {
+      await page.getByLabel('Kind', { exact: true }).selectOption({ label: 'Your own characters' });
+    }
+    const boxes = page.locator('main textarea, main input[type="text"]');
+    expect(await boxes.count(), id).toBeGreaterThan(0);
+    for (const box of await boxes.all()) {
+      await expect(box).toHaveAttribute('spellcheck', 'false');
+      await expect(box).toHaveAttribute('autocomplete', 'off');
+      await expect(box).toHaveAttribute('autocapitalize', 'off');
+      await expect(box).toHaveAttribute('autocorrect', 'off');
+    }
+  }
+  for (const number of await page.locator('main input[type="number"]').all()) {
+    await expect(number).toHaveAttribute('autocomplete', 'off');
+  }
+});
+
+test('on a phone the results follow the options and nothing scrolls sideways', async ({
+  browser,
+}) => {
+  const page = await open(browser, '', NARROW);
+  const wide = () => page.evaluate(() => document.documentElement.scrollWidth);
+  const top = async (locator: ReturnType<Page['locator']>) => (await locator.boundingBox())?.y ?? 0;
+  expect(await top(rail(page))).toBeGreaterThan(
+    await top(page.getByLabel('Length', { exact: true })),
+  );
+
+  await page.getByLabel('Length', { exact: true }).fill('256');
+  await page.getByLabel('How many', { exact: true }).fill('100');
+  await expect(results(page)).toHaveCount(100);
+  expect(await wide()).toBeLessThanOrEqual(NARROW.width);
+
+  await page.goto('/text#encode');
+  await text(page).fill('x'.repeat(100_000));
+  await expect(results(page)).toHaveCount(1);
+  expect(await wide()).toBeLessThanOrEqual(NARROW.width);
+});
+
+test('every tool meets WCAG 2.2 AA in both themes, and no result is red', async ({ browser }) => {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    const context = await browser.newContext({ ...visitor(), viewport: WIDE, colorScheme });
+    const page = await context.newPage();
+    for (const id of TOOL_IDS) {
+      await page.goto(`/text#${id}`);
+      await page.locator('[data-ready]').waitFor();
+      await expect(page.locator(`a[href="#${id}"]`)).toHaveAttribute('aria-current', 'true');
+      if (TYPED.includes(id)) await text(page).fill('Hello, wide world');
+      await expect(results(page).first()).toBeVisible();
+      expect((await scan(page)).violations, `${id} in ${colorScheme}`).toEqual([]);
+      await expect(page.locator('main .danger, main [role="alert"]')).toHaveCount(0);
+    }
+    await context.close();
+  }
+});
+
+test('a tool can be reached and used with the keyboard alone', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('link', { name: 'Password', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Passphrase' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Passphrase', exact: true }),
+  ).toBeVisible();
+  // Choosing a tool leaves focus on its link, so the next press steps on.
+  await expect(page.getByRole('link', { name: 'Passphrase' })).toBeFocused();
+  await expect(results(page)).toHaveCount(1);
+  const [first] = await values(page);
+  await page.getByRole('button', { name: 'Generate again' }).focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await values(page))[0]).not.toBe(first);
+});

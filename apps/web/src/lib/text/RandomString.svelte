@@ -62,6 +62,7 @@
   rows={made.ok ? made.value.map((value) => ({ value })) : []}
   problem={made.ok ? undefined : say(made.problem, range)}
   strength={bits.ok ? bits.value : undefined}
+  keepLast={made.ok || made.problem !== 'no-random'}
   waiting="A random string appears here."
   again={() => (turn += 1)}
   made={made.ok ? `${made.value.length} made.` : ''}

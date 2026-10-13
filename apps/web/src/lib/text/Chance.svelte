@@ -12,7 +12,7 @@
   let list = $state('');
   let turn = $state(0);
 
-  type Made = { rows: Row[] } | { problem: string };
+  type Made = { rows: Row[] } | { problem: string; keepLast: boolean };
 
   const made = $derived.by((): Made => {
     void turn;
@@ -20,6 +20,7 @@
       const rolled = dice(count, sides, random);
       if (!rolled.ok) {
         return {
+          keepLast: rolled.problem !== 'no-random',
           problem: say(
             rolled.problem,
             `Dice must be 1 to ${LIMITS.results}, and sides ${LIMITS.sidesMin} to ${LIMITS.sidesMax.toLocaleString('en')}.`,
@@ -33,13 +34,13 @@
     if (mode === 'coin') {
       const flipped = coins(count, random);
       if (!flipped.ok) {
-        return { problem: say(flipped.problem, `Flips must be 1 to ${LIMITS.results}.`) };
+        return { keepLast: flipped.problem !== 'no-random', problem: say(flipped.problem, `Flips must be 1 to ${LIMITS.results}.`) };
       }
       return { rows: flipped.value.map((face) => ({ value: face === 'heads' ? 'Heads' : 'Tails' })) };
     }
     const picked = pick(list, count, random);
     if (!picked.ok) {
-      return { problem: say(picked.problem, `How many to pick must be 1 to ${LIMITS.results}.`) };
+      return { keepLast: picked.problem !== 'no-random', problem: say(picked.problem, `How many to pick must be 1 to ${LIMITS.results}.`) };
     }
     return { rows: picked.value.map((value) => ({ value })) };
   });
@@ -50,6 +51,7 @@
   blurb="Roll dice, flip a coin, or pick from a list of your own. No outcome is favoured."
   rows={'rows' in made ? made.rows : []}
   problem={'problem' in made ? made.problem : undefined}
+  keepLast={'rows' in made || made.keepLast}
   waiting="The outcome appears here."
   again={() => (turn += 1)}
   made={'rows' in made ? `${made.rows.length} made.` : ''}

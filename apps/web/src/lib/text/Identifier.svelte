@@ -29,6 +29,7 @@
   blurb="A random identifier for a record, a file or a request."
   rows={made.ok ? made.value.map((value) => ({ value })) : []}
   problem={made.ok ? undefined : say(made.problem, `How many must be 1 to ${LIMITS.results}.`)}
+  keepLast={made.ok || made.problem !== 'no-random'}
   waiting="An identifier appears here."
   again={() => (turn += 1)}
   made={made.ok ? `${made.value.length} made.` : ''}

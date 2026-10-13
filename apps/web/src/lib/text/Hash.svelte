@@ -10,15 +10,15 @@
   const can = typeof crypto !== 'undefined' && crypto.subtle !== undefined;
 
   let text = $state('');
+  let failed = $state(false);
   let rows = $state.raw<Row[]>([]);
   const checked = $derived(checkText(text));
 
   $effect(() => {
     const value = text;
-    if (!can || value === '' || !checked.ok) {
-      rows = [];
-      return;
-    }
+    rows = [];
+    failed = false;
+    if (!can || value === '' || !checked.ok) return;
     // Hashing takes a moment; an answer to text that has since changed is thrown away.
     let stale = false;
     const data = utf8(value) as Uint8Array<ArrayBuffer>;
@@ -27,16 +27,21 @@
         name,
         value: toHex(new Uint8Array(await crypto.subtle.digest(name, data))),
       })),
-    ).then((sums) => {
-      if (!stale) rows = sums;
-    });
+    ).then(
+      (sums) => {
+        if (!stale) rows = sums;
+      },
+      () => {
+        if (!stale) failed = true;
+      },
+    );
     return () => {
       stale = true;
     };
   });
 
   const problem = $derived(
-    !can
+    !can || failed
       ? 'This browser cannot make hashes on this page.'
       : checked.ok
         ? undefined

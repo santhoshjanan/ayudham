@@ -51,6 +51,7 @@
   rows={made?.ok ? made.value.map((value) => ({ value })) : []}
   {problem}
   strength={bits.ok ? bits.value : undefined}
+  keepLast={!made || made.ok || made.problem !== 'no-random'}
   waiting={wordList.state === 'loading' ? 'Loading the word list.' : 'A passphrase appears here.'}
   again={() => (turn += 1)}
   retry={wordList.state === 'failed' ? () => void wordList.retry() : undefined}

@@ -8,6 +8,7 @@
     title,
     blurb,
     rows,
+    keepLast = true,
     problem,
     strength,
     waiting,
@@ -20,6 +21,8 @@
     title: string;
     blurb: string;
     rows: Row[];
+    /** Keep results only for an invalid option, never a failed random source. */
+    keepLast?: boolean;
     /** Why there is no result, in a sentence. */
     problem?: string;
     /** Bits, where the tool has a strength to state. */
@@ -45,8 +48,9 @@
   let last = $state.raw<Row[]>([]);
   $effect.pre(() => {
     if (rows.length > 0) last = rows;
+    else if (!keepLast) last = [];
   });
-  const shown = $derived(rows.length > 0 || !again ? rows : last);
+  const shown = $derived(rows.length > 0 || !again || !keepLast ? rows : last);
   const about = (row: Row, index: number): string => row.name ?? `result ${index + 1}`;
 </script>
 

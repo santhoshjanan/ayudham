@@ -32,6 +32,7 @@
   blurb="A PIN of random digits, or a whole number between two ends, both included."
   rows={made.ok ? made.value.map((value) => ({ value })) : []}
   problem={made.ok ? undefined : say(made.problem, range)}
+  keepLast={made.ok || made.problem !== 'no-random'}
   waiting="A number appears here."
   again={() => (turn += 1)}
   made={made.ok ? `${made.value.length} made.` : ''}

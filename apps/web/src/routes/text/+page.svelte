@@ -1,17 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Chance from '#lib/text/Chance.svelte';
-  import Identifier from '#lib/text/Identifier.svelte';
-  import Numbers from '#lib/text/Numbers.svelte';
-  import Passphrase from '#lib/text/Passphrase.svelte';
-  import RandomString from '#lib/text/RandomString.svelte';
   import Case from '#lib/text/Case.svelte';
+  import Chance from '#lib/text/Chance.svelte';
   import Count from '#lib/text/Count.svelte';
   import Encode from '#lib/text/Encode.svelte';
   import Hash from '#lib/text/Hash.svelte';
+  import Identifier from '#lib/text/Identifier.svelte';
   import Lines from '#lib/text/Lines.svelte';
-  import Slug from '#lib/text/Slug.svelte';
+  import Numbers from '#lib/text/Numbers.svelte';
+  import Passphrase from '#lib/text/Passphrase.svelte';
   import Password from '#lib/text/Password.svelte';
+  import RandomString from '#lib/text/RandomString.svelte';
+  import Slug from '#lib/text/Slug.svelte';
   import ToolRow from '#lib/text/ToolRow.svelte';
   import { toolFrom, type ToolId } from '#lib/text/tools.ts';
   import Seo from '#lib/ui/Seo.svelte';
