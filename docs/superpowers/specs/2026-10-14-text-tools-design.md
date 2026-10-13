@@ -261,13 +261,13 @@ The page fetches the list from this site the first time the passphrase tool is o
 
 ## 8. The page
 
-The visual system is the suite's: the tokens in `apps/web/src/app.css`, the components in `apps/web/src/lib/ui` and the rules in `DESIGN.md`. The owner's instruction for new tools is to keep the existing design and add only missing components, matching the existing ones. A short design direction for this page is written through the Impeccable skill before the page is planned.
+The visual system is the suite's: the tokens in `apps/web/src/app.css`, the components in `apps/web/src/lib/ui` and the rules in `DESIGN.md`. The owner's instruction for new tools is to keep the existing design and add only missing components, matching the existing ones. The design direction for this page is `2026-10-14-text-tools-design-direction.md`.
 
 ### Layout
 
 - A band with the heading "Text tools" and one line of promise, as on `/schema`.
 - Below it, two labelled groups, Generate and Convert, each a row of tool tabs: Password, Passphrase, Random string, PIN and number, Identifier, Chance; then Case, Slug, Encode and decode, Hash, Lines, Count.
-- One tool is open at a time: its options, then its results.
+- One tool is open at a time. From 64rem its options or text box are in a column on the left and its results in a rail on the right that stays in view; below that, results follow options in one column.
 - An "about" section under the tools: what the tools do, where the text goes (nowhere), and the word list's credit.
 
 ### The open tool is in the fragment
@@ -288,7 +288,7 @@ Every field and text box sets `spellcheck="false"`, `autocomplete="off"`, `autoc
 
 ### Design rules that constrain it
 
-- Yellow marks the one next step: Generate again on a generator, the first Copy on a converter.
+- Yellow marks the one next step, and it is the rail's first control: Generate again on a generator, Copy on a converter with one result, Copy all on a converter with several.
 - Red is not used. A refusal is a line of words.
 - No inline styles: no `style` attribute and no Svelte `transition:`, `in:`, `out:` or `animate:`.
 - No raw colours in components. Both themes to the same standard.
@@ -321,7 +321,7 @@ No new dependency, third-party script, analytics or outside service is added. Th
 ## 10. Changes to the rest of the site
 
 - The bar gains a "Text tools" link.
-- The home page presents three tools. Its heading and description are rewritten, in the design direction step.
+- The home page presents three tools. Its heading becomes "Small tools, without the sign-up.", and its title and description name all three.
 - `/sitemap.xml` lists `/text`.
 - The privacy page gains a section saying that the text tools run in the browser, send nothing and store nothing, and crediting the word list.
 - `PRODUCT.md`, `DESIGN.md`, `CLAUDE.md` and `README.md` are brought up to date.
