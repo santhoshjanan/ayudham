@@ -67,6 +67,19 @@
     <ThemeToggle />
   </header>
   {@render children()}
+  {#if !roomBar.room}
+    <!-- Not in the live room: the hand is docked along the bottom edge there. -->
+    <footer class="foot">
+      <p>pokerji is free and open source.</p>
+      <ul>
+        <li>
+          <a href="https://github.com/santhoshjanan/pokerji" rel="noopener">Source on GitHub</a>
+        </li>
+        <li>Made by <a href="https://santhoshj.com" rel="noopener">santhoshj.com</a></li>
+        <li><a href="https://phostrich.com" rel="noopener">phostrich.com</a></li>
+      </ul>
+    </footer>
+  {/if}
 </div>
 
 <style>
@@ -74,6 +87,35 @@
     position: relative;
     z-index: 1;
     min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The foot of every page but the live room: quiet, on the tile, pushed to the bottom. */
+  .foot {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 2rem;
+    padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+    border-top: 1px solid var(--line);
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+  .foot p,
+  .foot ul {
+    margin: 0;
+  }
+  .foot ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.5rem;
+  }
+  .foot a {
+    color: var(--ink);
   }
   .bar {
     display: flex;

@@ -56,7 +56,7 @@ packages/ui            design tokens and shared Svelte components
 | `/poker/r/<code>/ws` | WebSocket endpoint |
 | `/privacy` | What is stored and for how long |
 
-All responses carry `Referrer-Policy: same-origin`, so a room link is never sent to another site (`no-referrer` cannot be used: it makes browsers send `Origin: null` on same-site form posts, which the cross-site check refuses). All `/poker` responses also carry `X-Robots-Tag: noindex` and `Cache-Control: no-store`.
+All responses carry `Referrer-Policy: same-origin`, so a room link is never sent to another site (`no-referrer` cannot be used: it makes browsers send `Origin: null` on same-site form posts, which the cross-site check refuses). All `/poker` responses also carry `Cache-Control: no-store`, and everything below `/poker/` (every room and its pages) carries `X-Robots-Tag: noindex, nofollow`. The start page `/poker`, the home page and the privacy page may be indexed: each has its own title, description, canonical address and link-preview tags, and `/robots.txt` and `/sitemap.xml` list them and exclude rooms. Every page but the live room ends with a footer linking to the source code and the maker's sites; these are plain links, and nothing is loaded from those sites.
 
 ### Deployment
 

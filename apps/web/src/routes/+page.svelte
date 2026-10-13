@@ -1,13 +1,15 @@
 <script lang="ts">
   import DemoRow from '#lib/ui/DemoRow.svelte';
+  import Seo from '#lib/ui/Seo.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head>
-  <title>pokerji</title>
-</svelte:head>
+<Seo
+  title="pokerji: free planning poker online, no sign-up"
+  description="Free online planning poker for agile teams. Create a room, share the link and estimate stories together in real time. No account, no trackers."
+/>
 
 <header class="band wide">
   <div class="band-inner split">
@@ -25,7 +27,7 @@
       <div>
         <h2>Planning poker</h2>
         <p>
-          Estimate stories together. Everyone scores in secret, every card turns in the same
+          Free online planning poker for sprint estimation. Everyone scores in secret, every card turns in the same
           instant, and the highest and lowest explain first.
         </p>
       </div>

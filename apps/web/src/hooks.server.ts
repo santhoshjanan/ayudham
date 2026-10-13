@@ -18,6 +18,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname.startsWith('/poker')) {
     // Room links are secrets and create responses carry one: never cache or index them.
     response.headers.set('Cache-Control', 'no-store');
+  }
+  if (event.url.pathname.startsWith('/poker/')) {
+    // Everything below the start page is a room or belongs to one. The start page
+    // itself is public and may be found by search engines.
     response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   }
   return response;
