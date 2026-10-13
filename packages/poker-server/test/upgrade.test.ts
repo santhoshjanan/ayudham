@@ -197,6 +197,50 @@ describe('requestOrigin', () => {
     expect(requestOrigin(req, env, 'http')).toBe('https://poker.example');
   });
 
+  it('uses ORIGIN when it is set, whatever the request headers say', () => {
+    const req = fakeRequest({
+      host: 'web:3000',
+      'x-forwarded-proto': 'http',
+      'x-forwarded-host': 'evil.example',
+    });
+    const env = {
+      ORIGIN: 'https://poker.example',
+      PROTOCOL_HEADER: 'x-forwarded-proto',
+      HOST_HEADER: 'x-forwarded-host',
+    };
+    expect(requestOrigin(req, env, 'http')).toBe('https://poker.example');
+    expect(requestOrigin(fakeRequest({}), { ORIGIN: 'https://poker.example/' }, 'http')).toBe(
+      'https://poker.example',
+    );
+  });
+
+  it('returns nothing for an ORIGIN that is not a URL', () => {
+    expect(
+      requestOrigin(fakeRequest({ host: 'a' }), { ORIGIN: 'poker.example' }, 'https'),
+    ).toBeNull();
+  });
+
+  it('adds the forwarded port, and leaves out the default one', () => {
+    const env = {
+      PROTOCOL_HEADER: 'x-forwarded-proto',
+      HOST_HEADER: 'x-forwarded-host',
+      PORT_HEADER: 'x-forwarded-port',
+    };
+    const at = (port: string) =>
+      requestOrigin(
+        fakeRequest({
+          'x-forwarded-proto': 'https',
+          'x-forwarded-host': 'poker.example',
+          'x-forwarded-port': port,
+        }),
+        env,
+        'http',
+      );
+    expect(at('8443')).toBe('https://poker.example:8443');
+    expect(at('443')).toBe('https://poker.example');
+    expect(at('not a port')).toBeNull();
+  });
+
   it('returns nothing when the host is missing', () => {
     expect(requestOrigin(fakeRequest({}), {}, 'https')).toBeNull();
     expect(

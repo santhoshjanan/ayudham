@@ -28,11 +28,18 @@ export function requestOrigin(
   env: ProxyEnv,
   defaultProtocol: 'http' | 'https',
 ): string | null {
+  // A fixed origin, when configured, is the only answer: no request header is consulted.
+  if (env.ORIGIN) return URL.canParse(env.ORIGIN) ? new URL(env.ORIGIN).origin : null;
   const protocol = env.PROTOCOL_HEADER
     ? (header(req, env.PROTOCOL_HEADER) ?? defaultProtocol)
     : defaultProtocol;
   const host = env.HOST_HEADER ? header(req, env.HOST_HEADER) : header(req, 'host');
-  return host ? `${protocol}://${host}` : null;
+  if (!host) return null;
+  const port = env.PORT_HEADER ? header(req, env.PORT_HEADER) : undefined;
+  if (port === undefined) return `${protocol}://${host}`;
+  // Through URL, so a default port is left out exactly as a browser leaves it out of Origin.
+  const withPort = `${protocol}://${host.replace(/:\d+$/, '')}:${port}`;
+  return URL.canParse(withPort) ? new URL(withPort).origin : null;
 }
 
 /** The client's address. Never throws; "unknown" when it cannot tell. */
