@@ -317,10 +317,10 @@ If local storage is unavailable or full, the builder works without it and says o
 ## 11. Changes to the rest of the site
 
 - **Home page.** A second row in the tool list: "Schema markup builder", a two-sentence description and a "Build markup" button to `/schema`. The hero, which now describes only planning poker, is widened to the suite. Proposed, for the owner to edit:
-  - Heading: "Small team tools without the sign-up."
-  - Text: "Free planning poker and a Schema.org markup builder. No accounts, no trackers: open one and get on with the work."
+  - Heading: "Planning poker and schema markup, without the sign-up." It keeps the words "planning poker", which the existing test of the home page's heading requires and which people search for.
+  - Text: "Free small tools for teams. No accounts, no trackers: open one, use it, get on with the work."
   - The page's title and description follow the same change. The planning poker demo stays in the hero.
-- **Top bar.** A "Schema markup" link beside "Planning poker" and "Privacy". The narrow-screen rule that hides the first link is replaced by one that works for three; its form is part of the design direction.
+- **Top bar.** A "Schema markup" link beside "Planning poker" and "Privacy". On screens up to 34rem the bar keeps the wordmark, Privacy and the theme toggle, and drops both tool links; the home page, which the wordmark opens, lists the tools.
 - **Sitemap.** `/schema` is added to the list in `/sitemap.xml`.
 - **Privacy page.** The new section from section 10.
 - **Documents.** `PRODUCT.md`, `README.md`, `CLAUDE.md` and `DESIGN.md` are brought up to date for a suite of two tools.
