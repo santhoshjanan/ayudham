@@ -10,3 +10,6 @@ export * from './numbers.ts';
 export * from './ids.ts';
 export * from './chance.ts';
 export * from './cases.ts';
+export * from './slug.ts';
+export * from './lines.ts';
+export * from './count.ts';
