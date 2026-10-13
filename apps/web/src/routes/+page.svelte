@@ -7,14 +7,14 @@
 </script>
 
 <Seo
-  title="pokerji: free planning poker and schema markup builder, no sign-up"
-  description="Free tools without the sign-up: real-time planning poker for agile teams and a Schema.org JSON-LD markup builder. No account, no trackers."
+  title="pokerji: free planning poker, schema markup builder and text tools, no sign-up"
+  description="Free tools without the sign-up: planning poker for agile teams, a Schema.org JSON-LD builder, and password and text tools. No account, no trackers."
 />
 
 <header class="band wide">
   <div class="band-inner split">
     <div>
-      <h1>Planning poker and schema markup, without the sign-up.</h1>
+      <h1>Small tools, without the sign-up.</h1>
       <p>
         Free small tools for teams. No accounts, no trackers: open one, use it, get on with the
         work.
@@ -45,6 +45,17 @@
         </p>
       </div>
       <a class="button" href="/schema">Build markup</a>
+    </li>
+
+    <li>
+      <div>
+        <h2>Text tools</h2>
+        <p>
+          Passwords, passphrases, random strings and identifiers; case, Base64, hex, hashes and
+          more. Everything is made in your browser, and nothing is sent or kept.
+        </p>
+      </div>
+      <a class="button" href="/text">Open the tools</a>
     </li>
   </ul>
 

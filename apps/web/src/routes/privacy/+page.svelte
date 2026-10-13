@@ -157,6 +157,28 @@
     it has loaded is the list of Schema.org types, a file served by this site. The draft is one
     entry in your browser’s local storage, named <code class="inline">pj-schema-draft</code>.
   </p>
+  <h2>The text tools</h2>
+  <p>
+    The generators and converters at <a href="/text">/text</a> run in your browser. What you
+    type into them and what they make stay there: nothing is sent to this site and nothing is
+    kept. There is no account, no draft and no saved setting. Close the tab and it is gone.
+  </p>
+  <p>
+    A value you copy is on your device’s clipboard, like anything else you copy, until you copy
+    something else. The address of the page says which tool is open and nothing more.
+  </p>
+  <p>
+    Passphrases are made from the EFF long word list, by the Electronic Frontier Foundation,
+    under the Creative Commons Attribution 3.0 United States licence. The file is served by this
+    site; nothing is fetched from anyone else.
+  </p>
+  <p class="how">
+    <b>How:</b> the page makes no request that carries what you typed or made. The only thing it
+    fetches after it has loaded is the word list, and only when you open the passphrase tool; it
+    checks that file against a checksum built into the page before using a word. The tools are
+    not drawn on the server at all, so the server never makes a password. Every random choice
+    comes from your browser’s cryptographic random source.
+  </p>
 </main>
 
 <style>

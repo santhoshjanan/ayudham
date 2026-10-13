@@ -10,7 +10,7 @@ const visitor = () => {
 
 test('every public page ends with links to the source and to its maker', async ({ browser }) => {
   const page = await (await browser.newContext(visitor())).newPage();
-  for (const path of ['/', '/poker', '/schema', '/privacy']) {
+  for (const path of ['/', '/poker', '/schema', '/text', '/privacy']) {
     await page.goto(path);
     const footer = page.getByRole('contentinfo');
     await expect(footer).toContainText('Free and open source');
@@ -37,10 +37,17 @@ test('every public page ends with links to the source and to its maker', async (
   }
 });
 
-test('the home page headline says what the tool is', async ({ browser }) => {
+test('the home page headline says what the site is, and its title names every tool', async ({
+  browser,
+}) => {
   const page = await (await browser.newContext(visitor())).newPage();
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(/planning poker/i);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Small tools, without the sign-up.',
+  );
+  for (const tool of [/planning poker/i, /schema markup/i, /text tools/i]) {
+    expect(await page.title()).toMatch(tool);
+  }
 });
 
 test('the live room has no footer under the hand', async ({ browser }) => {
@@ -59,7 +66,7 @@ test('public pages describe themselves to search engines and link previews', asy
   const page = await (await browser.newContext(visitor())).newPage();
   const origin = new URL((await page.goto('/'))!.url()).origin;
   const seen = new Set<string>();
-  for (const path of ['/', '/poker', '/schema', '/privacy']) {
+  for (const path of ['/', '/poker', '/schema', '/text', '/privacy']) {
     const response = await page.goto(path);
     expect(response?.headers()['x-robots-tag'], `${path} may be indexed`).toBeUndefined();
     const title = await page.title();
@@ -135,7 +142,7 @@ test('rooms are kept out of search engines, by header and by robots.txt', async 
   expect(sitemap.status()).toBe(200);
   expect(sitemap.headers()['content-type']).toContain('xml');
   const xml = await sitemap.text();
-  for (const path of ['/', '/poker', '/schema', '/privacy'])
+  for (const path of ['/', '/poker', '/schema', '/text', '/privacy'])
     expect(xml).toContain(`<loc>${origin}${path}</loc>`);
   expect(xml).not.toContain('/poker/r/');
 });
@@ -151,20 +158,27 @@ test('the site has an icon', async ({ browser }) => {
   expect(icon.headers()['content-type']).toContain('image/svg+xml');
 });
 
-test('the site offers both tools from the bar and from the home page', async ({ browser }) => {
+test('the site offers every tool from the bar and from the home page', async ({ browser }) => {
   const page = await (await browser.newContext(visitor())).newPage();
   await page.goto('/');
   const bar = page.getByRole('navigation', { name: 'Site' });
   await expect(bar.getByRole('link', { name: 'Planning poker' })).toHaveAttribute('href', '/poker');
   await expect(bar.getByRole('link', { name: 'Schema markup' })).toHaveAttribute('href', '/schema');
+  await expect(bar.getByRole('link', { name: 'Text tools' })).toHaveAttribute('href', '/text');
   await expect(bar.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
 
   await expect(page.getByRole('heading', { level: 2, name: 'Planning poker' })).toBeVisible();
   await expect(
     page.getByRole('heading', { level: 2, name: 'Schema markup builder' }),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'Build markup' }).click();
-  await expect(page).toHaveURL(/\/schema$/);
+  await expect(page.getByRole('heading', { level: 2, name: 'Text tools' })).toBeVisible();
+  // Each row of the programme carries its own next step.
+  await expect(page.locator('.programme a.button')).toHaveCount(3);
+
+  await page.getByRole('link', { name: 'Open the tools' }).click();
+  await expect(page).toHaveURL(/\/text$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Text tools');
+  await bar.getByRole('link', { name: 'Schema markup' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Schema markup builder');
 });
 
@@ -176,6 +190,7 @@ test('on a phone the bar keeps the wordmark, Privacy and the theme toggle', asyn
   await expect(bar.getByRole('link', { name: 'Privacy' })).toBeVisible();
   await expect(bar.getByRole('link', { name: 'Planning poker' })).toBeHidden();
   await expect(bar.getByRole('link', { name: 'Schema markup' })).toBeHidden();
+  await expect(bar.getByRole('link', { name: 'Text tools' })).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
@@ -185,4 +200,27 @@ test('the privacy page says what the builder does with what is typed', async ({ 
   await expect(page.getByRole('heading', { name: 'The schema markup builder' })).toBeVisible();
   await expect(page.getByText('never sent to this site')).toBeVisible();
   await expect(page.getByText('pj-schema-draft')).toBeVisible();
+});
+
+test('the privacy page says the text tools send nothing and keep nothing', async ({ browser }) => {
+  const page = await (await browser.newContext(visitor())).newPage();
+  await page.goto('/privacy');
+  const heading = page.getByRole('heading', { name: 'The text tools' });
+  await expect(heading).toBeVisible();
+  await expect(page.getByText('nothing is sent to this site and nothing is kept')).toBeVisible();
+  await expect(page.getByText('EFF long word list')).toBeVisible();
+});
+
+test('the text tools are a public page, and nothing beneath them is listed', async ({
+  browser,
+}) => {
+  const context = await browser.newContext(visitor());
+  const page = await context.request.get('/text');
+  expect(page.status()).toBe(200);
+  expect(page.headers()['x-robots-tag']).toBeUndefined();
+  expect(page.headers()['set-cookie']).toBeUndefined();
+  const list = await context.request.get('/text/eff_large_wordlist.txt');
+  expect(list.status()).toBe(200);
+  expect((await list.body()).length).toBe(108_800);
+  expect((await context.request.get('/text/LICENSES.md')).status()).toBe(200);
 });
