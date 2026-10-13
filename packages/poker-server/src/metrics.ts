@@ -262,7 +262,8 @@ export const metrics = {
   /** The running version, if it looks like one. Anything else is "unknown". */
   setVersion: (version: unknown) =>
     safe(() => {
-      const plain = typeof version === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(version);
+      const plain =
+        typeof version === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(version);
       buildInfo.reset();
       buildInfo.set({ version: plain ? (version as string) : 'unknown' }, 1);
     }),

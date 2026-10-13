@@ -85,9 +85,9 @@ describe('metrics', () => {
     metrics.httpRequest('POST', '/poker', 303);
     metrics.httpRequest('GET', '/healthz', 200);
     metrics.httpRequest('GET', '/_app/immutable/chunk.js', 304);
-    expect(
-      await sample('pokerji_http_requests_total{route_class="page",status_class="2xx"}'),
-    ).toBe(1);
+    expect(await sample('pokerji_http_requests_total{route_class="page",status_class="2xx"}')).toBe(
+      1,
+    );
     expect(await sample('pokerji_http_requests_total{route_class="api",status_class="3xx"}')).toBe(
       1,
     );
@@ -117,7 +117,10 @@ describe('metrics', () => {
   });
 
   it('counts a probe that never answers as down, without holding the scrape up', async () => {
-    metrics.setProbes({ valkey: () => new Promise(() => undefined), postgres: async () => undefined });
+    metrics.setProbes({
+      valkey: () => new Promise(() => undefined),
+      postgres: async () => undefined,
+    });
     const started = Date.now();
     expect(await sample('pokerji_valkey_up')).toBe(0);
     expect(Date.now() - started).toBeLessThan(3_000);
