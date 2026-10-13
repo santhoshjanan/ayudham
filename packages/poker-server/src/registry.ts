@@ -1,6 +1,7 @@
 import type { RoomHost } from './host.ts';
 import { KEY_PREFIX, type Kv } from './kv.ts';
 import { acquireRoomLock, type RoomLock } from './lock.ts';
+import { metrics } from './metrics.ts';
 import type { RoomRow } from './rooms.ts';
 
 export interface RegistryDeps {
@@ -77,6 +78,7 @@ export class RoomRegistry {
     const entry = this.live.get(roomId);
     if (!entry) return;
     this.live.delete(roomId);
+    metrics.roomUnloaded('closed');
     await entry.host.shutdown();
     await entry.lock.release().catch(() => undefined);
   }
@@ -88,6 +90,7 @@ export class RoomRegistry {
   private async upkeep(roomId: string, entry: LiveRoom, now: number): Promise<void> {
     if (entry.host.shouldUnload()) {
       this.live.delete(roomId);
+      metrics.roomUnloaded('idle');
       await entry.host.shutdown();
       await entry.lock.release().catch(() => undefined);
       return;
@@ -99,22 +102,33 @@ export class RoomRegistry {
     // The entry may have been closed or replaced while we waited.
     if (!held && this.live.get(roomId) === entry) {
       this.live.delete(roomId);
+      metrics.lockLost();
+      metrics.roomUnloaded('lock_lost');
       await entry.host.shutdown();
     }
   }
 
   private async load(room: RoomRow): Promise<RoomHost | null> {
+    const asked = performance.now();
     const lock = await acquireRoomLock(
       this.deps.kv,
       room.id,
       this.deps.owner,
       this.ttlMs,
       this.deps.lockPrefix ?? KEY_PREFIX,
-    );
-    if (!lock) return null;
+    ).catch((error: unknown) => {
+      metrics.lockFailed();
+      throw error;
+    });
+    metrics.lockWaited((performance.now() - asked) / 1000);
+    if (!lock) {
+      metrics.lockFailed();
+      return null;
+    }
     try {
       const host = this.deps.makeHost(room);
       this.live.set(room.id, { host, lock, refreshedAt: this.deps.now() });
+      metrics.roomLoaded();
       return host;
     } catch (error) {
       await lock.release().catch(() => undefined);

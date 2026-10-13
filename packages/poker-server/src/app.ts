@@ -5,6 +5,7 @@ import type { FlowDeps } from './flows.ts';
 import { saveRound } from './history.ts';
 import { RoomHost, type HostStore } from './host.ts';
 import { createKv, type Kv } from './kv.ts';
+import { metrics, type Metrics } from './metrics.ts';
 import { migrate, pendingMigrations } from './migrate.ts';
 import { RoomRegistry } from './registry.ts';
 import { deleteInactiveRooms } from './rooms.ts';
@@ -32,6 +33,8 @@ export interface App {
   kv: Kv;
   registry: RoomRegistry;
   flows: FlowDeps;
+  /** Operational metrics. Aggregates only; see metrics.ts for what may never appear in them. */
+  metrics: Metrics;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -85,6 +88,11 @@ export function createApp(config: Config, options: AppOptions = {}): App {
       );
 
   const begin = async () => {
+    metrics.setVersion(config.version ?? 'dev');
+    metrics.setProbes({ valkey: () => kv.ping(), postgres: () => db.query('select 1') });
+    // The app's own counters are a few numbers in memory and are always kept. The process
+    // metrics run timers and observers, so they start only when someone will read them.
+    if (config.metrics) metrics.startDefaults();
     // Limits are refused when Valkey cannot be reached. Found here, a wrong address or
     // password stops the start; found later, it would be silent refusals for everyone.
     try {
@@ -129,6 +137,7 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     db,
     kv,
     registry,
+    metrics,
     flows: {
       db,
       kv,

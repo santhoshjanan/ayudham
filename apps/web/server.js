@@ -35,6 +35,26 @@ if (!insecure && !migrateOnly && !process.env.ADDRESS_HEADER) {
 }
 if (migrateOnly) process.env.MIGRATIONS = 'apply';
 
+// Metrics for a Prometheus server on a private network. Off unless METRICS_PORT is set.
+// They are served on a port of their own so the public one can never expose them.
+const publicPort = Number(process.env.PORT ?? 3000);
+const metricsPort = process.env.METRICS_PORT ? Number(process.env.METRICS_PORT) : null;
+const metricsToken = process.env.METRICS_TOKEN ?? '';
+if (
+  metricsPort !== null &&
+  (!Number.isInteger(metricsPort) ||
+    metricsPort < 1 ||
+    metricsPort > 65535 ||
+    metricsPort === publicPort)
+) {
+  console.error('METRICS_PORT must be a port number, and not the same as PORT.');
+  process.exit(1);
+}
+if (metricsToken !== '' && metricsToken.length < 16) {
+  console.error('METRICS_TOKEN must have 16 or more characters.');
+  process.exit(1);
+}
+
 // The site's one origin, when ORIGIN is set. This version of the Node adapter takes a fixed
 // origin only at build time, and one image serves any host, so the entry file states it on
 // every request instead, in two headers of its own that it always overwrites. No header a
@@ -109,9 +129,19 @@ const harden = (req, res) => {
   }
 };
 
+const notFound = (res) => {
+  res.statusCode = 404;
+  res.end('Not found');
+};
+
 const server = createServer((req, res) => {
   mark(req);
   harden(req, res);
+  const app = globalThis[RUNTIME]?.app;
+  // Counted by a coarse class and status only. The path is never recorded.
+  res.on('finish', () => app?.metrics.httpRequest(req.method, req.url, res.statusCode));
+  // Metrics are never served here, whatever the app's routes become.
+  if ((req.url ?? '').split('?')[0] === '/metrics') return notFound(res);
   handler(req, res, () => {
     res.statusCode = 404;
     res.end('Not found');
@@ -132,7 +162,58 @@ server.on('upgrade', (req, socket, head) => {
 // request down a connection this side has just closed.
 server.keepAliveTimeout = 95_000;
 server.headersTimeout = 100_000;
-server.listen(Number(process.env.PORT ?? 3000), process.env.HOST ?? '0.0.0.0');
+server.listen(publicPort, process.env.HOST ?? '0.0.0.0');
+
+// The metrics listener answers GET /metrics and nothing else: no pages, no other
+// methods, no WebSockets. Publish its port on an internal network only.
+let metricsServer = null;
+if (metricsPort !== null && !migrateOnly) {
+  // Rendered at most once a second, however often it is asked for.
+  let scrape = { at: -Infinity, body: Promise.resolve('') };
+  metricsServer = createServer((req, res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-store');
+    const app = globalThis[RUNTIME]?.app;
+    if (!app || req.method !== 'GET' || req.url !== '/metrics') return notFound(res);
+    if (!app.metrics.authorized(req.headers.authorization, metricsToken)) {
+      res.statusCode = 401;
+      res.setHeader('WWW-Authenticate', 'Bearer');
+      return res.end('Unauthorized');
+    }
+    if (Date.now() - scrape.at >= 1_000) scrape = { at: Date.now(), body: app.metrics.render() };
+    scrape.body
+      .then((body) => {
+        // An empty body means the metrics could not be written; say so, not "all is well".
+        if (body === '') {
+          res.statusCode = 503;
+          return res.end();
+        }
+        res.setHeader('Content-Type', app.metrics.contentType);
+        res.end(body);
+      })
+      .catch(() => res.destroy());
+  });
+  // A monitoring server makes one short request at a time. Nothing else is expected here.
+  metricsServer.maxConnections = 8;
+  metricsServer.headersTimeout = 5_000;
+  metricsServer.requestTimeout = 10_000;
+  metricsServer.on('upgrade', (_req, socket) => socket.destroy());
+  // Metrics are optional: a port that cannot be opened must not stop the app.
+  metricsServer.on('error', () => {
+    console.error('METRICS_PORT could not be opened. The app is running without metrics.');
+  });
+  metricsServer.listen(
+    metricsPort,
+    process.env.METRICS_HOST ?? process.env.HOST ?? '0.0.0.0',
+    () => {
+      console.log(
+        metricsToken === ''
+          ? 'Metrics are served on METRICS_PORT without a token. Keep that port on a private network.'
+          : 'Metrics are served on METRICS_PORT and require the bearer token.',
+      );
+    },
+  );
+}
 
 let stopping = false;
 for (const signal of ['SIGTERM', 'SIGINT']) {
@@ -141,6 +222,8 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
     stopping = true;
     server.close();
     server.closeAllConnections();
+    metricsServer?.close();
+    metricsServer?.closeAllConnections();
     const stopped = globalThis[RUNTIME]?.app.stop() ?? Promise.resolve();
     stopped.finally(() => process.exit(0));
   });

@@ -8,6 +8,7 @@ export * from './host.ts';
 export * from './kv.ts';
 export * from './limiter.ts';
 export * from './lock.ts';
+export * from './metrics.ts';
 export * from './migrate.ts';
 export * from './moderation.ts';
 export * from './registry.ts';

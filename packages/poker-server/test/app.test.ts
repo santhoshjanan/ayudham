@@ -161,6 +161,15 @@ describe('start with MIGRATIONS=check', () => {
   });
 });
 
+describe('process metrics', () => {
+  it('are not collected unless metrics were asked for', async () => {
+    // The app in this file was started without them.
+    const text = await app.metrics.render();
+    expect(text).not.toContain('nodejs_eventloop_lag_seconds');
+    expect(text).toContain('pokerji_rooms_active');
+  });
+});
+
 describe('start without Valkey', () => {
   it('refuses to start, so a wrong address or password is found at once and not as silent refusals', async () => {
     const lost = createApp(

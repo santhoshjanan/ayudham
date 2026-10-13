@@ -17,7 +17,21 @@ describe('loadConfig', () => {
       keyPrefix: 'pokerji:',
       backupRotationDays: null,
       migrations: 'apply',
+      version: 'dev',
+      metrics: false,
     });
+  });
+
+  it('knows whether metrics were asked for', () => {
+    expect(loadConfig({ ...valid, METRICS_PORT: '9464' }).metrics).toBe(true);
+    expect(loadConfig({ ...valid, METRICS_PORT: '' }).metrics).toBe(false);
+  });
+
+  it('takes a version for the metrics, and refuses one that is not a plain version', () => {
+    expect(loadConfig({ ...valid, POKERJI_VERSION: '1.4.2-rc.1' }).version).toBe('1.4.2-rc.1');
+    expect(() => loadConfig({ ...valid, POKERJI_VERSION: '1.0"} x{y="' })).toThrow(
+      /POKERJI_VERSION/,
+    );
   });
 
   it('treats an empty optional value as not set, as a compose file passes it', () => {

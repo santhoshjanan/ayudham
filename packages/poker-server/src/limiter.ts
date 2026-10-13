@@ -1,4 +1,5 @@
 import { KEY_PREFIX, type Kv } from './kv.ts';
+import { metrics } from './metrics.ts';
 
 export interface Limit {
   max: number;
@@ -36,8 +37,12 @@ export async function withinLimit(
 ): Promise<boolean> {
   try {
     const count = await kv.eval(COUNT, 1, `${prefix}rl:${key}`, limit.windowSeconds);
-    return typeof count === 'number' && count <= limit.max;
+    const allowed = typeof count === 'number' && count <= limit.max;
+    // Only the fixed first part of the key is recorded, never the rest.
+    if (!allowed) metrics.rateLimitHit(key);
+    return allowed;
   } catch {
+    metrics.rateLimitError();
     return false;
   }
 }
@@ -56,6 +61,7 @@ export async function overLimit(
     const count = Number((await kv.get(`${prefix}rl:${key}`)) ?? 0);
     return !(count < limit.max);
   } catch {
+    metrics.rateLimitError();
     return true;
   }
 }

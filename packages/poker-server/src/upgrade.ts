@@ -5,6 +5,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { App } from './app.ts';
 import { resumeSession } from './flows.ts';
 import { withinLimit } from './limiter.ts';
+import { metrics, type RefusalReason } from './metrics.ts';
 import { attachSocket, type Socket } from './socket.ts';
 
 export const SESSION_COOKIE = 'pj_session';
@@ -70,7 +71,8 @@ export function readCookie(cookieHeader: string | undefined, name: string): stri
   return undefined;
 }
 
-function refuse(socket: Duplex): void {
+function refuse(socket: Duplex, reason: RefusalReason): void {
+  metrics.upgradeRefused(reason);
   try {
     socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
   } catch {
@@ -80,7 +82,12 @@ function refuse(socket: Duplex): void {
 }
 
 function adapt(ws: WebSocket): Socket {
-  ws.on('error', () => undefined);
+  // Why this side ended the connection, as a close code, when it was not an ordinary close.
+  // The close event alone often says only that the connection dropped.
+  let ended: number | undefined;
+  ws.on('error', (error: { code?: string }) => {
+    if (error.code === 'WS_ERR_UNSUPPORTED_MESSAGE_LENGTH') ended = 1009;
+  });
   return {
     send: (text) => {
       if (ws.readyState !== ws.OPEN) return;
@@ -94,6 +101,7 @@ function adapt(ws: WebSocket): Socket {
     onMessage: (handler) => {
       ws.on('message', (data, isBinary) => {
         if (isBinary) {
+          ended = 1003;
           ws.close(1003);
           return;
         }
@@ -101,7 +109,7 @@ function adapt(ws: WebSocket): Socket {
       });
     },
     onClose: (handler) => {
-      ws.on('close', handler);
+      ws.on('close', (code) => handler(ended ?? code));
     },
   };
 }
@@ -122,7 +130,7 @@ export function createUpgradeHandler(
     const code = SOCKET_PATH.exec(path)?.[1];
     const origin = requestOrigin(req, options.env, options.defaultProtocol);
     if (code === undefined || origin === null || req.headers.origin !== origin) {
-      return refuse(socket);
+      return refuse(socket, 'bad_request');
     }
 
     // Authenticate first, then limit per session. A limit counted per address
@@ -132,23 +140,23 @@ export function createUpgradeHandler(
       code,
       token: readCookie(req.headers.cookie, SESSION_COOKIE),
     });
-    if (!resumed) return refuse(socket);
+    if (!resumed) return refuse(socket, 'auth');
     const allowed = await withinLimit(
       app.kv,
       `ws:${resumed.session.id}`,
       UPGRADE_LIMIT,
       app.flows.keyPrefix,
     );
-    if (!allowed) return refuse(socket);
+    if (!allowed) return refuse(socket, 'rate_limited');
     const host = await app.registry.open(resumed.room);
-    if (!host) return refuse(socket);
+    if (!host) return refuse(socket, 'unavailable');
     // Loading the room took time. If the session was removed meanwhile (a
     // passcode was set, the room was deleted), it must not be attached.
     const still = await resumeSession(app.flows, {
       code,
       token: readCookie(req.headers.cookie, SESSION_COOKIE),
     });
-    if (!still) return refuse(socket);
+    if (!still) return refuse(socket, 'auth');
 
     // The re-checked row, so a change of owner or moderator made meanwhile is not missed.
     const { id, name, role, moderator, owner } = still.session;
@@ -159,6 +167,6 @@ export function createUpgradeHandler(
 
   return (req, socket, head) => {
     socket.on('error', () => undefined);
-    serve(req, socket, head).catch(() => refuse(socket));
+    serve(req, socket, head).catch(() => refuse(socket, 'error'));
   };
 }

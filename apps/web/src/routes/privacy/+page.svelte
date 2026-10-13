@@ -124,6 +124,11 @@
     </li>
     <li>We do not use analytics, trackers, advertising or fingerprinting.</li>
     <li>
+      To keep the service running we may count totals for the whole service, such as how many
+      rooms are open or how many messages were sent. These totals do not identify any room
+      or any person.
+    </li>
+    <li>
       We do not load anything from other companies' servers: no fonts, scripts, images or
       embeds.
     </li>

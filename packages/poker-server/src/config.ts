@@ -17,6 +17,13 @@ const schema = z.object({
     z.coerce.number().int().min(1).max(3650).optional(),
   ),
   MIGRATIONS: z.enum(['apply', 'check']).default('apply'),
+  // Shown as a metrics label, so it must look like a version and nothing else.
+  POKERJI_VERSION: z
+    .string()
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/)
+    .default('dev'),
+  // Read here only to know whether metrics were asked for; server.js opens the port.
+  METRICS_PORT: z.string().optional(),
 });
 
 export interface Config {
@@ -31,6 +38,10 @@ export interface Config {
   backupRotationDays: number | null;
   /** "check" for a database role that cannot change the schema: verify it, never alter it. */
   migrations?: 'apply' | 'check';
+  /** The running version, for the metrics. */
+  version?: string;
+  /** True when a metrics port is configured. Process metrics are collected only then. */
+  metrics?: boolean;
 }
 
 /** Reads configuration. The error names bad variables and never includes their values. */
@@ -48,5 +59,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     keyPrefix: parsed.data.KEY_PREFIX,
     backupRotationDays: parsed.data.BACKUP_ROTATION_DAYS ?? null,
     migrations: parsed.data.MIGRATIONS,
+    version: parsed.data.POKERJI_VERSION,
+    metrics: (parsed.data.METRICS_PORT ?? '') !== '',
   };
 }
