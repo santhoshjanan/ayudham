@@ -28,7 +28,9 @@ if (insecure && !loopback) {
 }
 if (!insecure && !migrateOnly && !process.env.ADDRESS_HEADER) {
   // Without it every visitor looks like the proxy, and one person can use up everyone's limits.
-  console.error('ADDRESS_HEADER is required (behind Traefik: x-forwarded-for, with XFF_DEPTH=1).');
+  console.error(
+    'ADDRESS_HEADER is required (behind a reverse proxy: x-forwarded-for, with XFF_DEPTH=1).',
+  );
   process.exit(1);
 }
 if (migrateOnly) process.env.MIGRATIONS = 'apply';
@@ -126,7 +128,7 @@ server.on('upgrade', (req, socket, head) => {
   runtime.upgrade(req, socket, head);
 });
 
-// Longer than Traefik keeps an idle connection (90 seconds), so the proxy never sends a
+// Longer than reverse proxies usually keep an idle connection (60 to 90 seconds), so the proxy never sends a
 // request down a connection this side has just closed.
 server.keepAliveTimeout = 95_000;
 server.headersTimeout = 100_000;

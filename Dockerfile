@@ -30,7 +30,7 @@ COPY --from=build /repo/apps/web/server.js ./server.js
 COPY --from=build /repo/packages/poker-server/migrations ./migrations
 USER node
 EXPOSE 3000
-# Probed every two seconds while starting, so Traefik routes to it within seconds, not
+# Probed every two seconds while starting, so a proxy that waits for a healthy container routes to it within seconds, not
 # after the first 30-second interval (needs Docker Engine 25 or later).
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --start-interval=2s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/healthz').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]

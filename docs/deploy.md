@@ -1,10 +1,12 @@
 # Deploying pokerji
 
-These notes take a server that already runs Traefik, Postgres and Valkey to a running pokerji. Follow them in order once; "Updating" covers every later release.
+These notes take a server that already runs a reverse proxy, Postgres and Valkey to a running pokerji. Follow them in order once; "Updating" covers every later release.
+
+This project configures no reverse proxy. The compose file puts the app on your proxy's Docker network and stops there; routing, certificates and the proxy's own settings are yours. Section 3 lists what the proxy must do, whichever one it is.
 
 ## 1. What you are deploying
 
-- One container. It publishes no ports and is reached only through Traefik.
+- One container, named `web`, listening on port 3000 over plain HTTP. It publishes no ports and is reached only through your reverse proxy.
 - One Postgres database with two roles: an owner that applies schema migrations, and an app role that reads and writes rows and cannot change the schema.
 - One Valkey user that can touch only keys under this app's prefix.
 
@@ -14,39 +16,40 @@ Everything is configured through environment variables in `deploy/.env`. Nothing
 
 | You need | How to check |
 |---|---|
-| Traefik 3.2 or later | `docker exec <traefik container> traefik version` |
 | Docker Engine 25 or later | `docker version` |
 | Postgres 13 or later | `select version();` |
-| The name of Traefik's Docker network | `docker network ls` |
+| The name of the Docker network your reverse proxy can reach | `docker network ls` |
 | The name of the network shared with Postgres and Valkey | `docker network ls` |
 | A DNS name pointing at the server | `dig +short <name>` |
-| Traefik redirects HTTP to HTTPS | Its static configuration has `entryPoints.web.http.redirections.entryPoint.to=websecure` and `entryPoints.web.http.redirections.entryPoint.scheme=https` |
-| A certificate resolver configured in Traefik | Its static configuration has a `certificatesResolvers.<name>` section |
 
-## 3. Traefik must be the only way in
+## 3. What your reverse proxy must do
 
-The app limits abuse per client address, and takes that address from the last entry of `X-Forwarded-For`. Two things make that trustworthy:
+You set this up in your proxy; nothing here does it for you. Each item is something the app or its privacy page depends on.
 
-1. **Nothing untrusted can reach the container.** The compose file publishes no ports and joins only Traefik's network and the data network. Do not add a `ports:` entry. Any other container on those two networks can reach the app directly and claim any client address, so keep untrusted containers off both.
-2. **Traefik writes the forwarded headers itself.** This is its default: it discards forwarded headers sent by clients unless an entrypoint sets `forwardedHeaders.insecure` or `forwardedHeaders.trustedIPs`. Check that your `websecure` entrypoint sets neither to trust the public internet.
+1. **Route the site's host name to `web`, port 3000,** on the network named by `PROXY_NETWORK`, over plain HTTP, and terminate TLS itself.
+2. **Pass WebSocket upgrades through.** The live room uses one at `/poker/r/<code>/ws`.
+3. **Redirect HTTP to HTTPS.**
+4. **Write `X-Forwarded-For` itself, and not pass on one a visitor sent.** The app limits abuse per client address and takes that address from the last entry of this header. If the proxy forwards a visitor's own header untouched, a visitor can choose their address and escape the limits. If it sends no header, or one address for everybody, all visitors share one person's limits.
+5. **Keep idle connections to the app open for less than 95 seconds,** which is how long the app keeps them. Most proxies default to 60 or 90.
+6. **Optionally, limit requests per address** as protection against floods. The app has its own limit for every action, so this is a coarse outer guard. Size it so a whole team behind one office address can load the page at once: around 100 requests a second with bursts of 400.
 
-If a CDN or another proxy sits in front of Traefik, raise `XFF_DEPTH` in `deploy/.env` by one for each, list that proxy's addresses in Traefik's `forwardedHeaders.trustedIPs`, and add the label `traefik.http.middlewares.pokerji-flood.ratelimit.sourcecriterion.ipstrategy.depth` with the same number so Traefik's own limit counts visitors and not the proxy.
+The app does not consult `X-Forwarded-Host` or `X-Forwarded-Proto`; its origin is fixed by `POKERJI_HOST`.
 
-Check that Traefik sees real client addresses over IPv6 as well as IPv4. If Docker's IPv6 is not set up, every IPv6 visitor arrives as one internal address and they all share one person's limits. A temporary `traefik/whoami` container behind the same entrypoint shows the address Traefik passes on. Get this wrong in one direction and every visitor shares one limit; in the other, a visitor can pick their own address and escape the limits.
+Nothing untrusted may reach the container directly. The compose file publishes no ports; do not add a `ports:` entry. Any other container on the proxy's network or the data network can reach the app and claim any client address, so keep untrusted containers off both.
 
-The site's origin is fixed by `POKERJI_HOST`. The app does not consult `X-Forwarded-Host` or `X-Forwarded-Proto`.
+If a CDN or a second proxy sits in front, raise `XFF_DEPTH` in `deploy/.env` by one for each, and make sure each proxy trusts only the one before it.
+
+Check that the proxy sees real client addresses over IPv6 as well as IPv4. If Docker's IPv6 is not set up, every IPv6 visitor can arrive as one internal address, and they all share one person's limits.
 
 ## 4. Access logs
 
-A room's code is in its URL path, and the code is what keeps a room private. The privacy page tells visitors that no log is kept of the pages they open. That is true only if Traefik does not log this router's requests.
+A room's code is in its URL path, and the code is what keeps a room private. The privacy page tells visitors that no log is kept of the pages they open. That is true only if your proxy does not record this site's request paths. Three places to check:
 
-- **Traefik 3.2 or later:** the compose file's label `traefik.http.routers.pokerji.observability.accesslogs=false` turns the access log off for this router only. After the first start, open a room and confirm nothing for `POKERJI_HOST` appears in Traefik's access log.
-- **Older Traefik:** turn access logs off, or drop the fields that carry the path in Traefik's static configuration: `accesslog.fields.names.RequestPath=drop`, `accesslog.fields.names.RequestLine=drop`, `accesslog.fields.names.OriginalRequestPath=drop`. Confirm the field names against your version's documentation, then check the log as above.
+- **The proxy's access log for this site.** Turn it off for this host, or drop the request path from what it records.
+- **The HTTP listener.** A request for `http://` is often answered by the proxy's own redirect, separately from the site's HTTPS route, and logged separately. Check it too.
+- **Tracing,** if your proxy sends traces anywhere: spans usually carry the path.
 
-Two more places can record the path:
-
-- **The HTTP entrypoint.** A request for `http://` is answered by Traefik's own redirect, not by this router, so the label above does not cover it. Turn access logs off for the `web` entrypoint too (Traefik 3.2 or later: `entryPoints.web.observability.accessLogs=false` in the static configuration), or drop the path fields as for older versions. Then request `http://<host>/poker/r/AAAAAAAAAAAA` and confirm the path is in no log.
-- **Tracing.** If tracing is enabled in Traefik, spans carry the path. The compose file turns tracing off for this router.
+After the first start, request `https://<host>/poker/r/AAAAAAAAAAAA` and `http://<host>/poker/r/AAAAAAAAAAAA`, then confirm that path appears in no log.
 
 This step is not optional. If you need request logs for this site, change the privacy page first.
 
@@ -105,16 +108,14 @@ cp deploy/.env.example deploy/.env && chmod 600 deploy/.env
 |---|---|---|
 | `POKERJI_IMAGE` | The image tag to run, such as `pokerji:1` | No |
 | `POKERJI_HOST` | The site's DNS name, without `https://` | No |
-| `TRAEFIK_NETWORK` | Traefik's Docker network | No |
+| `PROXY_NETWORK` | The Docker network your reverse proxy can reach | No |
 | `DATA_NETWORK` | The network shared with Postgres and Valkey | No |
-| `TRAEFIK_ENTRYPOINT` | Traefik's HTTPS entrypoint, usually `websecure` | No |
-| `TRAEFIK_CERT_RESOLVER` | The certificate resolver's name in Traefik | No |
 | `DATABASE_URL` | Connection string for the app role | Yes |
 | `MIGRATE_DATABASE_URL` | Connection string for the owner role; used only by the migrate run | Yes |
 | `VALKEY_URL` | Connection string for the Valkey user. No database number at the end: this user may not select one | Yes |
 | `KEY_PREFIX` | Prefix of this app's Valkey keys; must match the ACL, and end with a colon | No |
 | `ADDRESS_HMAC_SECRET` | 32 or more random characters: `openssl rand -base64 48`. Changing it only resets rate-limit counters | Yes |
-| `XFF_DEPTH` | 1 when Traefik is the only proxy; see section 3 | No |
+| `XFF_DEPTH` | 1 when one proxy sits in front of the app; see section 3 | No |
 | `POKERJI_CPUS` | CPUs the app may use, so it cannot starve the services it shares the server with | No |
 | `RETENTION_DAYS` | Days of inactivity after which a room is deleted. The pages show this number | No |
 | `BACKUP_ROTATION_DAYS` | How long your Postgres backups are kept. The privacy page shows this number. Empty if there are no backups | No |
@@ -154,8 +155,8 @@ Check:
 1. `docker compose ps` shows `web` as `healthy` within a minute.
 2. `curl -sI https://$POKERJI_HOST/` shows `content-security-policy` and `strict-transport-security` headers.
 3. `curl -sI http://$POKERJI_HOST/` redirects to HTTPS.
-4. In a browser, create a room. Open its link in a second browser, vote in both, and reveal. The cards should turn in both at once: that proves the WebSocket path through Traefik.
-5. Nothing for this host appears in Traefik's access log (section 4).
+4. In a browser, create a room. Open its link in a second browser, vote in both, and reveal. The cards should turn in both at once: that proves the WebSocket path through your proxy.
+5. No room address appears in your proxy's logs (section 4).
 
 If `web` restarts repeatedly, `docker compose logs web` says why in fixed words: a setting that is missing or malformed (it names the setting, never its value), Valkey unreachable, or "could not start", which means a wrong database connection string, an unreachable database, or migrations not applied.
 
@@ -192,7 +193,6 @@ Back up the `pokerji` database with the rest of Postgres. Set `BACKUP_ROTATION_D
 | Join attempts per IPv6 /48 | 150 per 10 minutes |
 | People in a room | 50, or 60 counting moderators who enter a full room |
 | Rounds kept per room | The newest 1,000 |
-| Requests per address at Traefik | 100 a second, bursts of 400 |
 
 - A room holds 50 people, but more than 30 behind one address (one office) cannot all join within ten minutes. If that happens to you, raise `LIMITS.join` in `packages/poker-server/src/limiter.ts`.
 - While the service-wide ceiling is reached, nobody can create a room until the hour's window ends. Existing rooms are unaffected. The app logs `room creation ceiling reached` at most once every ten minutes while it lasts. Someone with a few hundred addresses can reach it on purpose; if that happens, raise `LIMITS.roomCreateAll`, at the cost of more rows an attacker can make you store.
@@ -211,10 +211,10 @@ The app writes one JSON line to its standard error for each unexpected problem, 
 
 From the security audit of 2026-10-13. Each is something only you can check on the server.
 
-1. Traefik is 3.2 or later, and after the first start neither an `https://` nor an `http://` room address appears in any Traefik log (section 4). Tracing, if you use it, shows no span for this host.
-2. Traefik passes on real client addresses for IPv4 and IPv6 (section 3).
+1. Your reverse proxy does everything in section 3, and after the first start neither an `https://` nor an `http://` room address appears in any of its logs or traces (section 4).
+2. The proxy passes on real client addresses for IPv4 and IPv6 (section 3).
 3. Postgres statement logging is off or accounted for, the two roles are confined to this database, and `BACKUP_ROTATION_DAYS` is the real figure, counting archived write-ahead logs (sections 5 and 12).
 4. The Valkey user is permanent, snapshots are not kept long, and the eviction policy does not drop keys with a time to live early (sections 6 and 13).
-5. No untrusted container shares Traefik's network or the data network, and no untrusted site has a sibling subdomain (sections 3 and 14).
+5. No untrusted container shares the proxy's network or the data network, and no untrusted site has a sibling subdomain (sections 3 and 14).
 6. `postgres-after-first-migrate.sql` has been run (section 9).
 7. You have listened to the sound on a phone and a laptop.

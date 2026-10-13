@@ -1,7 +1,7 @@
 #!/bin/sh
 # Deploys pokerji on this server, or updates it. Run it on the server, from a checkout
 # of the commit you are releasing, after docs/deploy.md sections 2 to 8 are done once
-# (Traefik, the Postgres roles, the Valkey user, and deploy/.env filled in).
+# (your reverse proxy's route, the Postgres roles, the Valkey user, and deploy/.env).
 #
 #   sh deploy/deploy.sh               use the image already loaded under POKERJI_IMAGE
 #   sh deploy/deploy.sh --build       build the image from this checkout first
@@ -50,7 +50,7 @@ step "Checking $ENV_FILE"
 if [ -n "$(find "$ENV_FILE" \( -perm -040 -o -perm -004 \) 2>/dev/null)" ]; then
   stop "$ENV_FILE can be read by other users. Run: chmod 600 $ENV_FILE"
 fi
-for name in POKERJI_IMAGE POKERJI_HOST TRAEFIK_NETWORK DATA_NETWORK TRAEFIK_CERT_RESOLVER \
+for name in POKERJI_IMAGE POKERJI_HOST PROXY_NETWORK DATA_NETWORK \
   DATABASE_URL MIGRATE_DATABASE_URL VALKEY_URL ADDRESS_HMAC_SECRET; do
   value="$(setting "$name")"
   [ -n "$value" ] || stop "$name is not set in $ENV_FILE"
@@ -69,7 +69,7 @@ compose --profile migrate config >/dev/null 2>&1 || stop "the compose file does 
 
 IMAGE="$(setting POKERJI_IMAGE)"
 HOST="$(setting POKERJI_HOST)"
-for name in TRAEFIK_NETWORK DATA_NETWORK; do
+for name in PROXY_NETWORK DATA_NETWORK; do
   docker network inspect "$(setting "$name")" >/dev/null 2>&1 \
     || stop "the Docker network named by $name does not exist"
 done
@@ -126,15 +126,15 @@ if [ "$STATE" != "healthy" ]; then
   stop "the app did not become healthy"
 fi
 
-step "Checking it from outside, through Traefik"
+step "Checking it from outside, through your reverse proxy"
 if command -v curl >/dev/null 2>&1; then
   if HEADERS="$(curl -sS -m 15 -D - -o /dev/null "https://$HOST/" 2>/dev/null)"; then
     echo "$HEADERS" | grep -qi '^strict-transport-security:' \
-      || echo "   WARNING: https://$HOST/ answered without the app's security headers. Is this router serving it?"
+      || echo "   WARNING: https://$HOST/ answered without the app's security headers. Is your proxy routing this host to the app?"
     echo "$HEADERS" | grep -qi '^content-security-policy:' \
       && echo "   https://$HOST/ is answering with the app's headers."
   else
-    echo "   WARNING: https://$HOST/ did not answer. The app is healthy, so look at DNS, the certificate and Traefik's router."
+    echo "   WARNING: https://$HOST/ did not answer. The app is healthy, so look at DNS, the certificate and your proxy's route to web:3000."
   fi
   REDIRECT="$(curl -s -m 15 -o /dev/null -w '%{http_code}' "http://$HOST/" 2>/dev/null || true)"
   case "$REDIRECT" in
@@ -153,7 +153,7 @@ if [ -z "$PREVIOUS" ]; then
   echo "This was the first start. Three things remain, once (docs/deploy.md):"
   echo "  1. Run postgres-after-first-migrate.sql as the owner role (section 9)."
   echo "  2. Create a room, open it in a second browser, vote and reveal (section 9)."
-  echo "  3. Confirm no room address appears in any Traefik log, for https and http (section 4)."
+  echo "  3. Confirm no room address appears in your proxy logs, for https and http (section 4)."
 else
   echo "To go back: set POKERJI_IMAGE=$PREVIOUS in $ENV_FILE and run this script again."
 fi
