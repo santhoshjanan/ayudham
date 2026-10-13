@@ -13,6 +13,10 @@ test('every public page ends with links to the source and to its maker', async (
   for (const path of ['/', '/poker', '/privacy']) {
     await page.goto(path);
     const footer = page.getByRole('contentinfo');
+    await expect(footer).toContainText('Free and open source');
+    await expect(footer).toContainText('Made in New Jersey with');
+    // The heart is a drawing, so it is named for people who cannot see it.
+    await expect(footer.getByRole('img', { name: 'love' })).toBeVisible();
     await expect(footer.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute(
       'href',
       'https://github.com/santhoshjanan/pokerji',
@@ -31,6 +35,12 @@ test('every public page ends with links to the source and to its maker', async (
       }
     }
   }
+});
+
+test('the home page headline says what the tool is', async ({ browser }) => {
+  const page = await (await browser.newContext(visitor())).newPage();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/planning poker/i);
 });
 
 test('the live room has no footer under the hand', async ({ browser }) => {

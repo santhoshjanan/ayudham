@@ -14,8 +14,11 @@
 <header class="band wide">
   <div class="band-inner split">
     <div>
-      <h1>Small tools for teams.</h1>
-      <p>No accounts. No trackers. Open one, share the link, get on with the meeting.</p>
+      <h1>Planning poker without the sign-up.</h1>
+      <p>
+        Free, real-time estimation for agile teams. No accounts, no trackers: open a room, share
+        the link, get on with the meeting.
+      </p>
     </div>
     <DemoRow />
   </div>

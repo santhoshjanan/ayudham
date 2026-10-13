@@ -1,6 +1,6 @@
 ---
 name: pokerji
-description: Small tools for teams. Planning poker staged as a judging panel at a diving meet.
+description: Planning poker staged as a judging panel at a diving meet.
 colors:
   stage: "#0e6f8c"
   stage-deep: "#0a566d"
@@ -335,7 +335,7 @@ The signature component.
 A strip of smaller scorecards (3.4rem wide), always face up. Hover lifts a card 0.3rem; the played card sits 0.5rem up with the yellow ring. A card that cannot be played stays white with its numeral receded and its shadow removed.
 
 ### Footer
-Every page but the live room ends with one quiet line on the tile, above a 1px rule: a sentence on the left, three plain links on the right (source, maker, maker's other site). Small type in soft ink, links in ink. It is absent in the live room, where the hand is docked along the bottom edge.
+Every page but the live room ends with one quiet line on the tile, above a 1px rule, in three parts: the source link on the left, "Made in New Jersey with" and a small drawn heart in the middle, and the maker's two sites on the right. Under 52rem the parts stack. Small type in soft ink, links in ink. The heart is the one use of Flag Red that is not a flag or a deletion, at the owner's request; it is drawn, not an emoji, like the break card's cup. It is absent in the live room, where the hand is docked along the bottom edge.
 
 ### Stage and band
 - **Stage:** full-bleed Pool Aqua with the 32px grid. Holds the timer in the top right corner, the story title, any notice, and the result. After the reveal the result reads as one line in the display face (Low 3, High 13), the average beside it, then who holds Low and High.
