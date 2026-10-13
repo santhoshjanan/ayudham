@@ -643,3 +643,28 @@ test('a tool can be reached and used with the keyboard alone', async ({ browser 
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await values(page))[0]).not.toBe(first);
 });
+
+test('the next step stays visible while a long desktop results rail scrolls', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await page.getByLabel('How many', { exact: true }).fill('100');
+  await page.getByLabel('Length', { exact: true }).fill('64');
+  await expect(results(page)).toHaveCount(100);
+  await rail(page).scrollIntoViewIfNeeded();
+  await rail(page).evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(async () => {
+      const frame = await rail(page).boundingBox();
+      const button = await page.getByRole('button', { name: 'Generate again' }).boundingBox();
+      return (
+        !!frame &&
+        !!button &&
+        button.y >= frame.y &&
+        button.y + button.height <= frame.y + frame.height
+      );
+    })
+    .toBe(true);
+});

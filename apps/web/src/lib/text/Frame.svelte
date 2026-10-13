@@ -150,6 +150,14 @@
   .next {
     display: grid;
   }
+  @media (min-width: 64rem) {
+    .next {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface);
+    }
+  }
   /* The rail's first control is the next thing to do, set as the room's Reveal is. */
   .next :global(button.primary) {
     font-family: var(--font-display);

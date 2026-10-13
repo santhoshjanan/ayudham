@@ -45,6 +45,42 @@ async function pages(name, viewport, colorScheme) {
   await mo.getByRole('button', { name: 'Clear', exact: true }).click();
   await mo.screenshot({ path: `${out}/${name}-schema-confirm.png` });
   await mo.getByRole('button', { name: 'Yes, clear' }).click();
+  // The text tools: a generator, several results, a converter empty and filled, a refusal.
+  const tool = async (id) => {
+    await mo.goto(`${base}/text#${id}`);
+    await mo.locator(`a[href="#${id}"][aria-current="true"]`).waitFor();
+  };
+  await mo.goto(`${base}/text`);
+  await mo.locator('[data-ready]').waitFor();
+  await shot(mo, 'text-password');
+  await mo.getByLabel('How many', { exact: true }).fill('5');
+  await mo.getByLabel('Length', { exact: true }).fill('64');
+  await shot(mo, 'text-password-many');
+  await mo.getByLabel('Length', { exact: true }).fill('4');
+  await shot(mo, 'text-password-refused');
+  await tool('passphrase');
+  await mo.getByTestId('result').first().waitFor();
+  await shot(mo, 'text-passphrase');
+  await tool('id');
+  await mo.getByLabel('Kind', { exact: true }).selectOption({ label: 'UUID version 7' });
+  await shot(mo, 'text-identifier');
+  await tool('case');
+  await shot(mo, 'text-case-empty');
+  await mo.getByLabel('Text', { exact: true }).fill("the return of the iPhone: a buyer's guide");
+  await shot(mo, 'text-case');
+  await tool('encode');
+  await mo.getByRole('button', { name: 'Decode', exact: true }).click();
+  await mo.getByLabel('Text', { exact: true }).fill('not base64!');
+  await shot(mo, 'text-encode-refused');
+  await tool('lines');
+  await mo.getByLabel('Text', { exact: true }).fill('pear\napple\nfig\napple');
+  await mo.getByRole('button', { name: 'Remove repeats' }).click();
+  await mo.getByLabel('Order', { exact: true }).selectOption({ label: 'A to Z' });
+  await shot(mo, 'text-lines');
+  await tool('count');
+  await mo.getByLabel('Text', { exact: true }).fill('Hello, wide world');
+  await shot(mo, 'text-count');
+
   await mo.goto(`${base}/poker`);
   await mo.getByLabel('Your name').fill('Mo');
   await mo.getByRole('button', { name: 'Create room' }).click();
