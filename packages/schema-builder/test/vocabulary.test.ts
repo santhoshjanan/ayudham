@@ -48,6 +48,7 @@ const SMALL = {
     legalName: { d: ['Organization'], r: ['Text'], c: '' },
     priceRange: { d: ['LocalBusiness'], r: ['Text'], c: '' },
     availability: { d: ['Offer'], r: ['ItemAvailability'], c: '' },
+    category: { d: ['Offer'], r: ['ItemAvailability', 'Text', 'Thing'], c: '' },
     validFrom: { d: ['Offer'], r: ['DateTime', 'Date'], c: '' },
     logo: { d: ['Organization'], r: ['Thing', 'URL'], c: '' },
     isFree: { d: ['Offer'], r: ['Boolean'], c: '' },
@@ -133,6 +134,12 @@ describe('a parsed vocabulary', () => {
       kinds: ['text'],
       itemTypes: [],
       choices: ['https://schema.org/InStock', 'https://schema.org/OutOfStock'],
+    });
+    // Free text is allowed too, so the list must not be the only way to answer.
+    expect(expects(vocabulary, 'category')).toEqual({
+      kinds: ['text', 'item', 'reference'],
+      itemTypes: ['Thing'],
+      choices: [],
     });
     expect(expects(vocabulary, 'nonsense')).toEqual({
       kinds: ['text'],

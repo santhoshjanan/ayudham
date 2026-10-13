@@ -88,7 +88,8 @@ Values are held as the person typed them, so a half-typed date is not lost. Whet
 | Values per property | 50 |
 | Properties per item | 100 |
 | Text value length | 5,000 characters |
-| Type or property name | 100 characters |
+| Type or property name | 100 characters, letters and digits only |
+| Values in the whole draft, at every depth | 2,000 |
 
 The editor refuses to go past a limit and says which one was reached. The limits live in `packages/schema-builder` and are enforced there, so stored data read back is held to the same ones.
 
@@ -292,6 +293,8 @@ If local storage is unavailable or full, the builder works without it and says o
 
 "Clear" asks first, then removes the key and empties the editor.
 
+A tab writes to storage only after it has changed the draft itself, so a tab left open and untouched cannot overwrite or remove a draft made in another tab.
+
 ## 10. Privacy and data
 
 | Data | Where | For how long | Who can read it |
@@ -302,6 +305,7 @@ If local storage is unavailable or full, the builder works without it and says o
 - The server stores nothing for this tool and receives nothing typed into it. There is no form, endpoint, cookie or WebSocket for it.
 - Requests the page makes: the page itself, its scripts, styles and fonts, and the vocabulary file. None carries anything typed.
 - No metric is added. The service-wide request counts already cover the page being served; nothing about its use reaches the server to be counted.
+- The builder's fields turn the browser's spell-check off, because some browsers can be set to send text being checked to their maker.
 - No third-party script, font, image or request. The two validator links and the attribution links are plain links.
 - The Content Security Policy is unchanged. The vocabulary fetch is same-origin, allowed by `connect-src 'self'`.
 - The privacy page gains a section saying the above in plain words.

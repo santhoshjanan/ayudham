@@ -88,6 +88,17 @@ describe('serialize', () => {
     });
   });
 
+  it('writes a number that JSON cannot hold as it was typed', () => {
+    const draft = draftOf(
+      make('Thing', {
+        a: text('Infinity', 'number'),
+        b: text('-Infinity', 'number'),
+        c: text('NaN', 'number'),
+      }),
+    );
+    expect(JSON.parse(toJson(draft))).toMatchObject({ a: 'Infinity', b: '-Infinity', c: 'NaN' });
+  });
+
   it('writes booleans, including false', () => {
     const draft = draftOf(make('Thing', { isFamilyFriendly: { kind: 'boolean', on: false } }));
     expect(serialize(draft)).toMatchObject({ isFamilyFriendly: false });

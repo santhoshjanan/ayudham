@@ -69,7 +69,7 @@ const writeScalar = (
   if (value.kind !== 'number') return typed;
   // A JSON number only when it reads back exactly as typed: "19.50" and "007" stay text.
   const parsed = Number(typed);
-  return String(parsed) === typed ? parsed : typed;
+  return Number.isFinite(parsed) && String(parsed) === typed ? parsed : typed;
 };
 
 /**

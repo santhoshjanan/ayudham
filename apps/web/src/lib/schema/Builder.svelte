@@ -45,7 +45,12 @@
     sheetOpen = false;
     await tick();
     const at = { key: finding.item, steps: finding.steps };
-    document.getElementById(fieldId(at, finding.property, finding.index ?? 0))?.focus();
+    const target = document.getElementById(fieldId(at, finding.property, finding.index ?? 0));
+    // The field may sit under "More fields" that are closed; nothing closed can take focus.
+    for (let fold = target?.closest('details'); fold; fold = fold.parentElement?.closest('details')) {
+      fold.open = true;
+    }
+    (target ?? sheetToggle)?.focus();
   };
 
   const items = $derived(builder.draft.items);

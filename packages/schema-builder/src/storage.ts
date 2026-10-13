@@ -14,7 +14,7 @@ export interface Stored {
   form: OutputForm;
 }
 
-/** Larger than any draft within the limits can be. Anything longer is not read at all. */
+/** Far larger than a draft within the limits. Anything longer is not parsed at all. */
 const LARGEST = 5_000_000;
 
 const Name = z.string().min(1).max(LIMITS.name);

@@ -143,12 +143,15 @@ export const expects = (vocabulary: Vocabulary, property: string): Expected => {
   const kinds = new Set<ValueKind>();
   const itemTypes: string[] = [];
   const choices: string[] = [];
+  // Whether the property also takes something typed freely, not only a listed value.
+  let free = false;
   for (const range of vocabulary.properties.get(property)?.ranges ?? []) {
     const ancestors = lineage(vocabulary, range);
     // URL is a kind of Text, so the nearest data type decides.
     const data = ancestors.find((ancestor) => Object.hasOwn(DATA_KINDS, ancestor));
     if (data !== undefined && isData(vocabulary, range)) {
       kinds.add(DATA_KINDS[data] ?? 'text');
+      free = true;
     } else if (ancestors.includes('Enumeration')) {
       kinds.add('text');
       for (const member of vocabulary.enums.get(range) ?? []) {
@@ -161,7 +164,12 @@ export const expects = (vocabulary: Vocabulary, property: string): Expected => {
     }
   }
   if (kinds.size === 0) kinds.add('text');
-  return { kinds: ORDER.filter((kind) => kinds.has(kind)), itemTypes, choices };
+  // A list is offered only when it is the one way to answer.
+  return {
+    kinds: ORDER.filter((kind) => kinds.has(kind)),
+    itemTypes,
+    choices: free ? [] : choices,
+  };
 };
 
 export const describeProperty = (vocabulary: Vocabulary, property: string): string =>

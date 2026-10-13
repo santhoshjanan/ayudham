@@ -10,6 +10,8 @@ export const REFUSALS = [
   'too-long',
   'not-found',
   'duplicate-key',
+  'bad-name',
+  'too-large',
 ] as const;
 export type Refusal = (typeof REFUSALS)[number];
 
@@ -18,6 +20,27 @@ export interface Change {
   draft: Draft;
   refused?: Refusal;
 }
+
+/** A type or property name: letters and digits only, as every Schema.org name is. */
+const NAME = /^[A-Za-z0-9]+$/;
+/** An item's key: what `crypto.randomUUID` gives, and safe inside an element id. */
+const KEY = /^[A-Za-z0-9-]+$/;
+
+/** How many values an item holds, at every depth. */
+const weigh = (item: Item): number =>
+  item.properties.reduce(
+    (sum, property) =>
+      sum +
+      property.values.reduce(
+        (held, value) => held + 1 + (value.kind === 'item' ? weigh(value.item) : 0),
+        0,
+      ),
+    0,
+  );
+
+/** How many values a draft holds, at every depth. */
+export const countValues = (draft: Draft): number =>
+  draft.items.reduce((sum, item) => sum + weigh(item), 0);
 
 /** What is wrong with a value held by an item at `depth`, if anything. */
 export const valueProblem = (value: Value, depth: number): Refusal | undefined => {
@@ -32,9 +55,13 @@ export const itemProblem = (item: Item, depth: number): Refusal | undefined => {
   if (depth > LIMITS.depth) return 'too-deep';
   if (item.type.length > LIMITS.name || item.key.length > LIMITS.name) return 'too-long';
   if (item.id.length > LIMITS.text) return 'too-long';
+  if (!NAME.test(item.type) || !KEY.test(item.key)) return 'bad-name';
   if (item.properties.length > LIMITS.properties) return 'too-many-properties';
+  const names = new Set(item.properties.map((property) => property.name));
+  if (names.size !== item.properties.length) return 'duplicate-key';
   for (const property of item.properties) {
     if (property.name.length > LIMITS.name) return 'too-long';
+    if (!NAME.test(property.name)) return 'bad-name';
     if (property.values.length > LIMITS.values) return 'too-many-values';
     for (const value of property.values) {
       const problem = valueProblem(value, depth);
@@ -52,7 +79,7 @@ export const draftProblem = (draft: Draft): Refusal | undefined => {
     const problem = itemProblem(item, 1);
     if (problem) return problem;
   }
-  return undefined;
+  return countValues(draft) > LIMITS.total ? 'too-large' : undefined;
 };
 
 const refuse = (draft: Draft, refused: Refusal): Change => ({ draft, refused });
@@ -108,6 +135,7 @@ export const addItem = (draft: Draft, item: Item): Change => {
   if (draft.items.some((held) => held.key === item.key)) return refuse(draft, 'duplicate-key');
   const problem = itemProblem(item, 1);
   if (problem) return refuse(draft, problem);
+  if (countValues(draft) + weigh(item) > LIMITS.total) return refuse(draft, 'too-large');
   return { draft: { items: [...draft.items, item] } };
 };
 
@@ -134,15 +162,20 @@ export const setType = (
   edit(draft, at, (item) =>
     type.length > LIMITS.name
       ? 'too-long'
-      : { ...item, type, properties: item.properties.filter((property) => keeps(property.name)) },
+      : !NAME.test(type)
+        ? 'bad-name'
+        : { ...item, type, properties: item.properties.filter((property) => keeps(property.name)) },
   );
 
 export const setId = (draft: Draft, at: ItemPath, id: string): Change =>
   edit(draft, at, (item) => (id.length > LIMITS.text ? 'too-long' : { ...item, id }));
 
-export const addValue = (draft: Draft, at: ItemPath, property: string, value: Value): Change =>
-  edit(draft, at, (item, depth) => {
+export const addValue = (draft: Draft, at: ItemPath, property: string, value: Value): Change => {
+  const adds = 1 + (value.kind === 'item' ? weigh(value.item) : 0);
+  if (countValues(draft) + adds > LIMITS.total) return refuse(draft, 'too-large');
+  return edit(draft, at, (item, depth) => {
     if (property.length > LIMITS.name) return 'too-long';
+    if (!NAME.test(property)) return 'bad-name';
     const held = valuesOf(item, property);
     if (held.length === 0 && item.properties.length >= LIMITS.properties) {
       return 'too-many-properties';
@@ -150,6 +183,7 @@ export const addValue = (draft: Draft, at: ItemPath, property: string, value: Va
     if (held.length >= LIMITS.values) return 'too-many-values';
     return valueProblem(value, depth) ?? withValues(item, property, (values) => [...values, value]);
   });
+};
 
 export const setValue = (draft: Draft, at: ItemPath, step: Step, value: Value): Change =>
   edit(draft, at, (item, depth) => {

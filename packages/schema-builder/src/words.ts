@@ -83,4 +83,6 @@ export const REFUSAL_WORDS: Record<Refusal, string> = {
   'too-long': `A value can be ${LIMITS.text.toLocaleString('en')} characters at most.`,
   'not-found': 'That part of the draft is no longer there.',
   'duplicate-key': 'That item is already in the draft.',
+  'bad-name': 'That name cannot be used. Names are letters and digits only.',
+  'too-large': `A draft holds at most ${LIMITS.total.toLocaleString('en')} values in all.`,
 };

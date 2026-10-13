@@ -15,6 +15,7 @@ import {
   removeItem,
   removeValue,
   setType,
+  setId,
   setValue,
   STORAGE_KEY,
   toJson,
@@ -62,6 +63,8 @@ export class Builder {
   findings = $derived(check(this.draft, this.vocabulary));
 
   #timer: ReturnType<typeof setTimeout> | undefined;
+  /** Whether this tab has changed the draft since it was last written. */
+  #dirty = false;
 
   #apply(change: Change): boolean {
     if (change.refused) {
@@ -109,6 +112,11 @@ export class Builder {
     this.#apply(setType(this.draft, at, type, (property) => this.#keeps(type, property)));
   }
 
+  /** Sets an item's own `@id`. Empty leaves it to be generated when needed. */
+  setId(at: ItemPath, id: string): void {
+    this.#apply(setId(this.draft, at, id));
+  }
+
   addValue(at: ItemPath, property: string, value: Value): void {
     this.#apply(addValue(this.draft, at, property, value));
   }
@@ -127,7 +135,8 @@ export class Builder {
 
   setForm(form: OutputForm): void {
     this.form = form;
-    this.#save();
+    // The form is stored with a draft; without one there is nothing to store it in.
+    if (this.draft.items.length > 0) this.#save();
   }
 
   /** Asks before emptying the draft. */
@@ -146,6 +155,7 @@ export class Builder {
       this.draft = emptyDraft();
       this.refusal = undefined;
       this.closed = {};
+      this.#dirty = true;
       this.flush();
     }
   }
@@ -164,13 +174,20 @@ export class Builder {
   }
 
   #save(): void {
+    this.#dirty = true;
     clearTimeout(this.#timer);
     this.#timer = setTimeout(() => this.flush(), SAVE_AFTER);
   }
 
-  /** Writes the draft to the browser's storage now. An empty draft removes the entry. */
+  /**
+   * Writes the draft to the browser's storage now, if this tab has changed it. A tab that has
+   * changed nothing writes nothing, so it cannot overwrite or remove a draft made in another
+   * tab. An emptied draft removes the entry.
+   */
   flush(): void {
     clearTimeout(this.#timer);
+    if (!this.#dirty) return;
+    this.#dirty = false;
     try {
       if (this.draft.items.length === 0) localStorage.removeItem(STORAGE_KEY);
       else localStorage.setItem(STORAGE_KEY, pack({ draft: this.draft, form: this.form }));

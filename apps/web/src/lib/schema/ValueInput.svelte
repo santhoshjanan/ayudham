@@ -65,8 +65,9 @@
     if (value === undefined) builder.addValue(at, field.property, next);
     else builder.setValue(at, step, next);
   };
-  const tick = (on: boolean) => {
-    if (on) write({ kind: 'boolean', on: true });
+  // Yes, no, or not said at all: three answers, so a checkbox would not do.
+  const answer = (chosen: string) => {
+    if (chosen !== '') write({ kind: 'boolean', on: chosen === 'true' });
     else if (value !== undefined) builder.removeValue(at, step);
   };
   const choiceLabel = (choice: string) => typeLabel(choice.slice(choice.lastIndexOf('/') + 1));
@@ -88,7 +89,8 @@
 
   {#if spec.startsWith('item:')}
     {#if value?.kind === 'item'}
-      <fieldset class="nested">
+      <!-- Named by its legend, and able to take focus so a finding can land on it. -->
+      <fieldset class="nested" {id} tabindex="-1">
         <legend>{typeLabel(value.item.type)}</legend>
         <ItemFields
           {builder}
@@ -120,15 +122,18 @@
       {/each}
     </select>
   {:else if spec === 'boolean'}
-    <input
-      type="checkbox"
+    <select
       {id}
       aria-label={label}
       aria-describedby={describedby}
-      checked={value?.kind === 'boolean' && value.on}
-      onchange={(event) => tick(event.currentTarget.checked)}
-    />
-  {:else if field.choices}
+      value={value?.kind === 'boolean' ? String(value.on) : ''}
+      onchange={(event) => answer(event.currentTarget.value)}
+    >
+      <option value="">Not set</option>
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+  {:else if spec === 'text' && field.choices}
     <select
       {id}
       aria-label={label}
@@ -137,6 +142,10 @@
       onchange={(event) => write({ kind: textKind, text: event.currentTarget.value })}
     >
       <option value="">Not set</option>
+      {#if text !== '' && !field.choices.includes(text)}
+        <!-- A value from an earlier draft that is not on the list is kept, and shown. -->
+        <option value={text}>{text}</option>
+      {/if}
       {#each field.choices as choice (choice)}
         <option value={choice}>{choiceLabel(choice)}</option>
       {/each}
@@ -146,6 +155,7 @@
       {id}
       aria-label={label}
       aria-describedby={describedby}
+      spellcheck="false"
       maxlength={LIMITS.text}
       value={text}
       oninput={(event) => write({ kind: textKind, text: event.currentTarget.value })}
@@ -157,7 +167,7 @@
       aria-label={label}
       aria-describedby={describedby}
       autocomplete="off"
-      spellcheck={textKind === 'text'}
+      spellcheck="false"
       inputmode={textKind === 'number' ? 'decimal' : textKind === 'url' ? 'url' : 'text'}
       placeholder={PLACEHOLDERS[textKind]}
       maxlength={LIMITS.text}

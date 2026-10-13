@@ -57,7 +57,7 @@ Fill in a form, watch the markup form beside it, copy it. Success is markup on t
 - **Nested group.** An item inside an item: a `fieldset` with its legend, stepped in from its parent, bounded by a 1px line. No shadow, and no panel inside a panel.
 - **Compact button.** For Up, Down and Remove on repeated values and items, at the height the bar's copy button already uses, with words, not icons.
 - **Multi-line field.** The input's style on a `textarea`, for descriptions and other long text.
-- **Checkbox.** Native, tinted Pool Aqua like the radios.
+- **Yes or no.** No new control: the existing select with three answers (Not set, Yes, No). A checkbox, first planned here, cannot tell "no" from "not said".
 
 ## 6. States
 

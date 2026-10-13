@@ -550,3 +550,129 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
   }
 }
+
+// ---- From the code review and the security audit ----
+
+test('a finding about an empty nested item lands on that item', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Local business', exact: true }).click();
+  await page.getByRole('button', { name: 'Add address' }).click();
+  await findings(page)
+    .getByRole('button', { name: /Address is required/ })
+    .click();
+  await expect(page.getByRole('group', { name: 'Postal address' })).toBeFocused();
+});
+
+test('a finding about a field under closed More fields opens them and lands on it', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Product', exact: true }).click();
+  await page.getByText('More fields').click();
+  await page.getByRole('button', { name: 'Add average rating' }).click();
+  await page.getByLabel('Average rating', { exact: true }).fill('4');
+  await expect(page.getByLabel('Number of ratings', { exact: true })).toBeHidden();
+  await findings(page)
+    .getByRole('button', { name: /Add at least one of: Number of ratings, Number of reviews/ })
+    .click();
+  await expect(page.getByLabel('Number of ratings', { exact: true })).toBeFocused();
+});
+
+test('a yes-or-no property can be set to no, and unset', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Article', exact: true }).click();
+  await page.getByRole('button', { name: 'Add another property' }).click();
+  await page.getByLabel('Search properties of Article').fill('isAccessibleForFree');
+  await result(page, 'isAccessibleForFree').click();
+  const free = page.getByLabel('isAccessibleForFree', { exact: true });
+  await free.selectOption({ label: 'No' });
+  expect(await rawJson(page)).toEqual({
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    isAccessibleForFree: false,
+  });
+  await free.selectOption({ label: 'Yes' });
+  expect(await rawJson(page)).toMatchObject({ isAccessibleForFree: true });
+  await free.selectOption({ label: 'Not set' });
+  expect(await rawJson(page)).toEqual({ '@context': 'https://schema.org', '@type': 'Article' });
+});
+
+test('a property that takes text or a listed value accepts typed text', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Product', exact: true }).click();
+  await page.getByRole('button', { name: 'Add another property' }).click();
+  await page.getByLabel('Search properties of Product').fill('category');
+  await result(page, 'category').click();
+  await page.getByLabel('category', { exact: true }).fill('Apparel > Shoes');
+  expect(await rawJson(page)).toMatchObject({ category: 'Apparel > Shoes' });
+});
+
+test('an item can be given its own identifier', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Organization', exact: true }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Acme');
+  await page.getByLabel('Identifier', { exact: true }).fill('https://acme.example/#org');
+  expect(await rawJson(page)).toEqual({
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': 'https://acme.example/#org',
+    name: 'Acme',
+  });
+});
+
+test('an empty builder tab does not delete a draft made in another tab', async ({ browser }) => {
+  const context = await browser.newContext({ ...visitor(), viewport: WIDE });
+  const ready = async () => {
+    const page = await context.newPage();
+    await page.goto('/schema');
+    await page.locator('[data-ready]').waitFor();
+    return page;
+  };
+  const idle = await ready();
+  const working = await ready();
+  await working.getByRole('button', { name: 'Website', exact: true }).click();
+  await working.getByLabel('Site name', { exact: true }).fill('Acme');
+  await expect.poll(() => stored(working)).toContain('Acme');
+  await working.close();
+  // The tab that never held a draft is left; it must not take the other's with it.
+  await idle.goto('/privacy');
+  const later = await ready();
+  await expect(later.getByLabel('Site name', { exact: true })).toHaveValue('Acme');
+});
+
+test('fields do not hand what is typed to the browser’s spelling service', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Organization', exact: true }).click();
+  await expect(page.getByLabel('Name', { exact: true })).toHaveAttribute('spellcheck', 'false');
+  await expect(page.getByLabel('Description', { exact: true })).toHaveAttribute(
+    'spellcheck',
+    'false',
+  );
+});
+
+test('a stored draft the editor could never have made gives an empty page', async ({ browser }) => {
+  const page = await open(browser);
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  const value = { kind: 'text', text: 'x' };
+  const draft = (properties: unknown[]) =>
+    JSON.stringify({
+      version: 1,
+      form: 'script',
+      draft: { items: [{ key: 'a', type: 'Thing', id: '', properties }] },
+    });
+  for (const hostile of [
+    draft([
+      { name: 'x', values: [value] },
+      { name: 'x', values: [value] },
+    ]),
+    draft([{ name: '@context', values: [{ kind: 'text', text: 'https://evil.example/' }] }]),
+  ]) {
+    await page.evaluate((text) => localStorage.setItem('pj-schema-draft', text), hostile);
+    await page.reload();
+    await page.locator('[data-ready]').waitFor();
+    await expect(page.getByRole('heading', { name: 'What are you describing?' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Schema markup builder');
+  }
+  expect(errors).toEqual([]);
+});

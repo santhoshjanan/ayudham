@@ -26,6 +26,6 @@ FIRST VIEWPORT: The site bar; the aqua band with the page title and one line; on
 
 FORM: Copy is the one yellow button. Red only on Remove and Clear, with the word. Required and Recommended are role badges (filled, outlined). Findings are ledger rows, never red. Nothing animates.
 
-ADDED COMPONENTS: code block (system monospace, two inks); search with results in the page; nested group (fieldset, stepped in, 1px line); compact button (the bar's copy button height, with words); multi-line field; checkbox tinted aqua.
+ADDED COMPONENTS: code block (system monospace, two inks); search with results in the page; nested group (fieldset, stepped in, 1px line); compact button (the bar's copy button height, with words); multi-line field.
 
 Full brief: `docs/superpowers/specs/2026-10-13-schema-builder-design-direction.md`.

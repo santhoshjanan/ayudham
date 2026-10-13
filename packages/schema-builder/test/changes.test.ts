@@ -189,3 +189,37 @@ describe('references and blanks', () => {
     );
   });
 });
+
+describe('names and the size of the whole draft', () => {
+  it('refuses a property or type name that is not a plain Schema.org name', () => {
+    const start = draftOf(make('Thing', {}, 'a'));
+    for (const name of ['@context', '__proto__', 'a b', '']) {
+      expect(addValue(start, top('a'), name, text('x')).refused, name).toBe('bad-name');
+      expect(setType(start, top('a'), name, () => true).refused, name).toBe('bad-name');
+      expect(addItem(emptyDraft(), newItem('k', name)).refused, name).toBe('bad-name');
+    }
+    expect(addItem(emptyDraft(), newItem('a key', 'Thing')).refused).toBe('bad-name');
+    expect(addItem(emptyDraft(), newItem('k', '3DModel')).refused).toBeUndefined();
+  });
+
+  it('refuses a value once the draft holds as many as the editor can show', () => {
+    let draft = emptyDraft();
+    for (let n = 0; n < LIMITS.items; n += 1)
+      draft = addItem(draft, newItem(`k${n}`, 'Thing')).draft;
+    let held = 0;
+    for (let n = 0; n < LIMITS.items && held < LIMITS.total; n += 1) {
+      for (let p = 0; p < LIMITS.properties && held < LIMITS.total; p += 1) {
+        const change = addValue(draft, top(`k${n}`), `p${p}`, text('x'));
+        expect(change.refused).toBeUndefined();
+        draft = change.draft;
+        held += 1;
+      }
+    }
+    expect(held).toBe(LIMITS.total);
+    expect(addValue(draft, top('k0'), 'another', text('x')).refused).toBe('too-large');
+    const nest = nested(make('Thing', { name: text('x') }));
+    expect(
+      addValue(draftOf(make('Thing', {}, 'a')), top('a'), 'about', nest).refused,
+    ).toBeUndefined();
+  });
+});

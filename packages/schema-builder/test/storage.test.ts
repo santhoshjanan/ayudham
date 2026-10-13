@@ -149,3 +149,53 @@ describe('stored drafts', () => {
     expect(unpack(' '.repeat(6_000_000))).toBeUndefined();
   });
 });
+
+describe('stored drafts the editor could never have made', () => {
+  const item = (extra: Record<string, unknown>) =>
+    stored({ items: [{ key: 'a', type: 'Thing', id: '', properties: [], ...extra }] });
+  const value = { kind: 'text', text: 'x' };
+
+  it('gives nothing for two properties of one name in an item', () => {
+    const twice = [
+      { name: 'x', values: [value] },
+      { name: 'x', values: [value] },
+    ];
+    expect(unpack(item({ properties: twice }))).toBeUndefined();
+    expect(unpack(item({ properties: [twice[0]] }))).toBeDefined();
+  });
+
+  it('gives nothing for a name that is not a plain Schema.org name', () => {
+    for (const name of ['@context', '@type', '__proto__', 'a b', 'a-b', '<b>', 'x"y']) {
+      expect(unpack(item({ properties: [{ name, values: [value] }] })), name).toBeUndefined();
+      expect(unpack(item({ type: name })), name).toBeUndefined();
+    }
+    expect(unpack(item({ type: '3DModel' }))).toBeDefined();
+  });
+
+  it('gives nothing for a key that could not be part of an element id', () => {
+    for (const key of ['a b', 'a"b', '__proto__', 'a.b']) {
+      expect(unpack(item({ key })), key).toBeUndefined();
+    }
+    expect(unpack(item({ key: '0b9c2f0e-7d0a-4b1e-9a57-3f1f6c1d2e33' }))).toBeDefined();
+  });
+
+  it('gives nothing for a draft with more values in all than the editor can show', () => {
+    const many = (count: number) =>
+      Array.from({ length: LIMITS.items }, (_, n) =>
+        make(
+          'Thing',
+          Object.fromEntries(
+            Array.from({ length: count / LIMITS.items / 50 }, (_, p) => [
+              `p${p}`,
+              Array.from({ length: 50 }, () => text('x')),
+            ]),
+          ),
+          `k${n}`,
+        ),
+      );
+    expect(unpack(stored({ items: many(LIMITS.total) }))).toBeDefined();
+    const over = many(LIMITS.total);
+    over[0]!.properties.push({ name: 'extra', values: [text('x')] });
+    expect(unpack(stored({ items: over }))).toBeUndefined();
+  });
+});

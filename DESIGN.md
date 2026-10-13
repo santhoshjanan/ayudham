@@ -372,7 +372,7 @@ The builder at `/schema` is a sibling of the live room: a band in place of the s
 - **Code block:** the markup in the system monospace at 0.875rem on the ground colour, bounded by a 1px line. Two inks and no new colour: property names in ink at 650, values in ink, punctuation in soft ink. It scrolls inside itself; the page never scrolls sideways.
 - **Search with results:** an ordinary field with its matches in a ruled list directly beneath it, in the flow of the page. Each result is the name at 650 and, for a property, one line about it in soft ink. Nothing floats over the page.
 - **Compact button:** 2.25rem tall at 0.95rem, the size of the bar's copy button, for Up, Down, Remove, Add another and the form switch. Always words, never icons.
-- **Multi-line field and checkbox:** the input's style on a `textarea`; a native checkbox tinted Pool Aqua like the radios.
+- **Multi-line field:** the input's style on a `textarea`. A yes-or-no property is the existing select with three answers (Not set, Yes, No), since a checkbox cannot say "no" apart from "not said".
 - **Not there yet:** before there is markup, a 2px dashed outline in the line colour, as an empty seat is drawn.
 
 ### Named Rules

@@ -620,7 +620,7 @@ main form > p {
   flex: 1 1 18rem;
 }
 
-/* ---- Added for the schema builder: three controls in the existing language ---- */
+/* ---- Added for the schema builder: two controls in the existing language ---- */
 
 /* A multi-line field: the input's style on a textarea. */
 textarea {
@@ -636,15 +636,6 @@ textarea {
 }
 textarea:hover {
   border-color: var(--ink);
-}
-
-/* A checkbox, tinted like the radios. */
-input[type='checkbox'] {
-  accent-color: var(--stage);
-  width: 1.1rem;
-  height: 1.1rem;
-  margin: 0 0.4rem 0 0;
-  vertical-align: -0.12em;
 }
 
 /* A compact button, at the height of the bar's copy button, for controls that repeat. */

@@ -5,5 +5,7 @@ export const LIMITS = {
   values: 50,
   properties: 100,
   text: 5_000,
+  /** Values in the whole draft, at every depth: what the editor can show at once. */
+  total: 2_000,
   name: 100,
 } as const;

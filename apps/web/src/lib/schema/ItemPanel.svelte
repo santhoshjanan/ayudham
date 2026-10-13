@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    LIMITS,
     searchTypes,
     topDefinition,
     typeLabel,
@@ -31,6 +32,7 @@
     return '';
   });
   const typeId = $derived(`type-${pathId(at)}`);
+  const ownId = $derived(`id-${pathId(at)}`);
   let retyping = $state(false);
   const toggleRetype = () => {
     retyping = !retyping;
@@ -119,6 +121,26 @@
     {/if}
 
     <ItemFields {builder} {at} {item} {definition} depth={1} />
+
+    <div class="identifier">
+      <label for={ownId}>Identifier</label>
+      <p class="hint" id="{ownId}-hint">
+        Optional. An address that names this item, written as its <code class="inline">@id</code>,
+        such as https://example.com/#organization. Left empty, an item that another refers to is
+        given one such as #organization, which is relative to the page the markup is put on.
+      </p>
+      <input
+        id={ownId}
+        type="text"
+        inputmode="url"
+        autocomplete="off"
+        spellcheck="false"
+        aria-describedby="{ownId}-hint"
+        maxlength={LIMITS.text}
+        value={item.id}
+        oninput={(event) => builder.setId(at, event.currentTarget.value)}
+      />
+    </div>
   </div>
 </details>
 
@@ -171,5 +193,17 @@
   }
   .variant select {
     width: auto;
+  }
+  .identifier {
+    margin: 0.2rem 0 1.1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
+  }
+  .identifier .hint {
+    margin: 0 0 0.4rem;
+  }
+  .identifier .inline {
+    display: inline;
+    padding: 0.05rem 0.3rem;
   }
 </style>
