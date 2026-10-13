@@ -20,6 +20,8 @@
 
 ---
 
+pokerji is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site.
+
 Estimation is judging, so pokerji looks like the judges' row at a diving meet: the story on a field of pool aqua, a row of white scorecards face down, and then every card turned in the same instant. The highest and lowest are flagged, because they speak first.
 
 | Voting: cards stay face down | The reveal: every card at once |
@@ -39,6 +41,12 @@ Estimation is judging, so pokerji looks like the judges' row at a diving meet: t
 - **History.** Each room keeps its rounds: the title, the result and who voted what. Anyone can remove their own name from past votes.
 - **Opt-in sound.** Chopin or Bach during the countdown, a telegraph beep at its end, a tick on each beat of the reveal. Off until you turn it on.
 - **Light and dark, desk and phone.** Both themes are built to the same standard, and the room works one-handed during a call.
+
+## The markup builder
+
+At `/schema`. Pick one of ten common types (organization, local business, website, breadcrumbs, article, FAQ page, product, event, person, recipe) or any other Schema.org type, fill in the form, and copy the JSON-LD as a script tag or as raw JSON. The form says what search engines require and recommend, and what is still missing. Several items can be built together and refer to each other.
+
+It runs entirely in your browser. Nothing typed into it is sent to the server, and the server stores nothing for it; the draft is kept in the browser's own storage until you clear it.
 
 ## Privacy
 
@@ -99,8 +107,9 @@ To run the app outside Docker, copy the development lines from `.env.example` in
 |---|---|
 | [`packages/protocol`](packages/protocol) | Limits, decks and WebSocket message schemas shared by server and browser |
 | [`packages/poker-engine`](packages/poker-engine) | The room's rules as a pure function: no I/O, no clock, no framework. Vote secrecy is enforced in one place here |
+| [`packages/schema-builder`](packages/schema-builder) | The markup builder's rules as pure functions: the draft, the JSON-LD it becomes, the ten guided types, the checks, and a reader for the bundled Schema.org vocabulary |
 | [`packages/poker-server`](packages/poker-server) | Everything that touches Postgres, Valkey, the clock or a socket |
-| [`apps/web`](apps/web) | A thin SvelteKit app: pages, forms and the live room |
+| [`apps/web`](apps/web) | A thin SvelteKit app: pages, forms, the live room and the markup builder's page |
 
 Postgres holds rooms, sessions and history. Valkey holds rate-limit counters and room locks. One server instance holds the live rooms in memory.
 

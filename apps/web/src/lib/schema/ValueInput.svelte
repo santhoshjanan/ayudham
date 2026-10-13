@@ -200,6 +200,10 @@
     gap: 0.4rem;
     margin-bottom: 0.6rem;
   }
+  /* An Add button is as wide as its words, like the other small controls. */
+  .value > button {
+    justify-self: start;
+  }
   .kind {
     width: auto;
     justify-self: start;

@@ -276,7 +276,7 @@ The moderator's controls move with width. At 64rem and up they are a rail, 18.5r
 
 Every other page opens with a band of aqua holding the page title and at most one supporting line, then one column on the tile: 40rem for forms and reading, 62rem for the home page. The home band holds the words on the left and the turning row on the right (below the words under 52rem). The privacy promises on the home page are a ledger, one promise to a ruled line with its term in an 18rem left column, matching the programme above; they are never equal columns. Sections in a column are separated by 2.75rem and a single rule, not boxed. Fields are spaced 0.9rem apart; grouped buttons 0.6rem.
 
-Breakpoints, all in rem: 34rem (the bar drops its text labels, the visitor's name and role badge, keeping icons and links; the role still shows under the person's own card), 40rem (shorter stage, smaller cards), 44rem (home lists take a term column), 52rem (home band puts the row beside the words), 64rem (rail in place of bar).
+Breakpoints, all in rem: 34rem (the bar drops its text labels, the visitor's name and role badge, keeping icons and links; outside a room it drops the links to the tools and keeps Privacy, since the home page lists the tools; the role still shows under the person's own card), 40rem (shorter stage, smaller cards), 44rem (home lists take a term column), 52rem (home band puts the row beside the words), 64rem (rail in place of bar; the same breakpoint turns the markup builder's rail into its dock).
 
 ### Named Rules
 **The Still Stage Rule.** The stage keeps one height through the reveal. The slot for the result is reserved before there is a result (4.25rem, or 5.25rem from 40rem wide), and the count is laid over the stage, not inserted into it. When the cards turn, nothing below the stage moves.
@@ -359,6 +359,27 @@ One bar in deep water for the whole site: the wordmark on the left, links in 0.9
 ### Pointer ripple
 Under a fine pointer, the tiles within about two tiles of the pointer brighten to at most 16% of the ripple colour and fade over roughly a second. It is drawn on one fixed canvas behind the page, aligned to the ground grid, and stops drawing when nothing is lit. It is off on touch devices and under reduced motion.
 
+## The markup builder
+
+The builder at `/schema` is a sibling of the live room: a band in place of the stage, then a floor (the editor) and a rail (the markup). It adds no colour, typeface, radius or shadow.
+
+- **Layout:** from 64rem, two columns: the editor up to 40rem wide and the rail between 22rem and 36rem, which stays in view while the editor scrolls. Below 64rem the rail is a dock on the bottom edge: Copy at full width, and a Markup button that opens the markup and the findings as a sheet up to 60dvh tall. The page reserves room beneath itself so the footer can be scrolled clear of the dock.
+- **The next step:** Copy is the page's one yellow button, set as the room's Reveal is (display face, 800, 1.5rem in the rail and 1.35rem in the dock).
+- **Items:** each top-level item is a panel that opens and closes, headed by its type in the display face (800, 1.5rem) and its name in soft ink.
+- **Nested group:** an item inside an item is a `fieldset` with its legend in the display face (800, 1.25rem), bounded by a 1px line and stepped in by its own padding. It has no fill: it is not a panel inside a panel.
+- **Required and Recommended:** role badges after the field's label. Required is filled (the Owner badge), Recommended is outlined, and an optional field has none. In the findings a third, dashed badge reads Check.
+- **Findings:** a ledger, one finding to a ruled line. Each is a button that opens its item and moves focus to its field. Never red, and never told apart by colour alone: the badge carries a word and the count is stated in a sentence above.
+- **Code block:** the markup in the system monospace at 0.875rem on the ground colour, bounded by a 1px line. Two inks and no new colour: property names in ink at 650, values in ink, punctuation in soft ink. It scrolls inside itself; the page never scrolls sideways.
+- **Search with results:** an ordinary field with its matches in a ruled list directly beneath it, in the flow of the page. Each result is the name at 650 and, for a property, one line about it in soft ink. Nothing floats over the page.
+- **Compact button:** 2.25rem tall at 0.95rem, the size of the bar's copy button, for Up, Down, Remove, Add another and the form switch. Always words, never icons.
+- **Multi-line field and checkbox:** the input's style on a `textarea`; a native checkbox tinted Pool Aqua like the radios.
+- **Not there yet:** before there is markup, a 2px dashed outline in the line colour, as an empty seat is drawn.
+
+### Named Rules
+**The Sibling Rule.** A new tool is assembled from this system as it stands. It adds only the components the system lacks, derived from the ones it has, and records them here.
+
+**The Row's Own Step Rule.** On the suite home, each row of the programme carries its own yellow link, because each row is its own next step. Everywhere else the Moving Yellow Rule holds: one yellow button to a screen.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -372,6 +393,7 @@ Under a fine pointer, the tiles within about two tiles of the pointer brighten t
 - **Do** reserve the space for anything that appears later (the result, a flag), so its arrival moves nothing.
 - **Do** set anything read across a shared screen in Big Shoulders at 800 or 900.
 - **Do** draw disabled buttons with a dashed border, not lowered opacity.
+- **Do** build a new tool from the components already here, and record any you had to add.
 
 ### Don't:
 - **Don't** write a `style` attribute, or use Svelte's `transition:`, `in:`, `out:` or `animate:` directives. The Content Security Policy blocks inline styles and they will fail silently in production.
