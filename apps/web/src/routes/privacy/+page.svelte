@@ -29,7 +29,10 @@
 
   <h2>What a room stores</h2>
   <ul>
-    <li>The room's settings: its deck, its timer length and whether it has a passcode.</li>
+    <li>
+      The room's settings: its deck, its timer length, its music choice and whether it has a
+      passcode.
+    </li>
     <li>
       For each person who joined: their display name, whether they vote or watch, whether they
       are a moderator, and when they joined and were last seen.
@@ -56,8 +59,9 @@
     "Used" means someone joined, a round was revealed, or its settings were changed.
   </p>
   <p>
-    A moderator can delete a single round, all history, or the whole room at any time. Deletion
-    is immediate.
+    A moderator can delete a single round or all history at any time, and the room's owner can
+    delete the whole room. Deletion takes effect at once. A room keeps its newest 1,000 rounds;
+    older ones are deleted as new ones are saved.
   </p>
   <p>
     {#if data.backupRotationDays !== null}

@@ -5,7 +5,7 @@ import type { FlowDeps } from './flows.ts';
 import { saveRound } from './history.ts';
 import { RoomHost, type HostStore } from './host.ts';
 import { createKv, type Kv } from './kv.ts';
-import { migrate } from './migrate.ts';
+import { migrate, pendingMigrations } from './migrate.ts';
 import { RoomRegistry } from './registry.ts';
 import { deleteInactiveRooms } from './rooms.ts';
 import { deleteSession, setSessionModerator, setSessionRole } from './sessions.ts';
@@ -74,7 +74,23 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     );
 
   const begin = async () => {
-    await migrate(db, options.migrationsDir);
+    // Limits are refused when Valkey cannot be reached. Found here, a wrong address or
+    // password stops the start; found later, it would be silent refusals for everyone.
+    try {
+      await kv.ping();
+    } catch {
+      throw new Error('Valkey cannot be reached. Check VALKEY_URL and its user.');
+    }
+    if (config.migrations === 'check') {
+      const pending = await pendingMigrations(db, options.migrationsDir);
+      if (pending.length > 0) {
+        throw new Error(
+          `Database schema is behind: ${pending.length} migration(s) not applied. Run the migrate job, then start again.`,
+        );
+      }
+    } else {
+      await migrate(db, options.migrationsDir);
+    }
     await retain();
     timers = [
       // Not awaited: a slow sweep must never delay the next tick.
@@ -102,7 +118,14 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     db,
     kv,
     registry,
-    flows: { db, kv, addressSecret: config.addressHmacSecret, keyPrefix: config.keyPrefix },
+    flows: {
+      db,
+      kv,
+      addressSecret: config.addressHmacSecret,
+      keyPrefix: config.keyPrefix,
+      report,
+      onSignedOut: (roomId, sessionId) => registry.get(roomId)?.evict([sessionId]),
+    },
     // Each happens once however often it is asked for, as when two signals arrive at shutdown.
     start: () => (started ??= begin()),
     stop: () => (stopped ??= end()),

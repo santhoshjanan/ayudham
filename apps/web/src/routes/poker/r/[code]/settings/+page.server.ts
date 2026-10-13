@@ -92,7 +92,11 @@ export const actions: Actions = {
   removePasscode: async (event) => {
     const actor = await moderatorOf(event);
     const result = await removePasscode(runtime().app, actor);
-    if (!result.ok) return fail(403, { message: REFUSED });
+    if (!result.ok) {
+      return result.reason === 'limited'
+        ? fail(429, { message: LIMITED })
+        : fail(403, { message: REFUSED });
+    }
     return { notice: 'Passcode removed. Anyone with the link can join.' };
   },
 

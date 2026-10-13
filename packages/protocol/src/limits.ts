@@ -1,4 +1,9 @@
 export const MAX_PARTICIPANTS = 50;
+/**
+ * A moderator may join a full room, so it is never left without one. This many
+ * over the limit and no further, so moderator rights cannot grow a room without bound.
+ */
+export const MODERATOR_HEADROOM = 10;
 export const MAX_MESSAGE_BYTES = 2048;
 export const TITLE_MAX = 200;
 export const NAME_MIN = 1;

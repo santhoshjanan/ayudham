@@ -86,6 +86,46 @@ describe('createRoomFlow', () => {
     });
   });
 
+  it('refuses the fifty-first room from one IPv6 /48 in an hour, and not a neighbouring /48', async () => {
+    const flow = deps();
+    // Fifty different /64s inside one /48: each is a different client to the per-client limit.
+    for (let n = 0; n < 50; n += 1) {
+      expect((await create(flow, `2001:db8:7:${n.toString(16)}::1`)).ok).toBe(true);
+    }
+    expect(await create(flow, '2001:db8:7:ffff::1')).toEqual({ ok: false, reason: 'refused' });
+    expect((await create(flow, '2001:db8:8::1')).ok).toBe(true);
+  }, 30_000);
+
+  it('refuses every new room once the whole service has made its hourly ceiling', async () => {
+    const flow = deps({ roomCreateCeiling: { max: 2, windowSeconds: 3_600 } });
+    expect((await create(flow, '198.51.100.1')).ok).toBe(true);
+    expect((await create(flow, '198.51.100.2')).ok).toBe(true);
+    expect(await create(flow, '198.51.100.3')).toEqual({ ok: false, reason: 'refused' });
+  });
+
+  it('does not count a room refused for its own client against the whole service', async () => {
+    const flow = deps({ roomCreateCeiling: { max: 12, windowSeconds: 3_600 } });
+    for (let n = 0; n < 10; n += 1) expect((await create(flow, '198.51.100.9')).ok).toBe(true);
+    // Refused by the per-client limit, five times over.
+    for (let n = 0; n < 5; n += 1) expect((await create(flow, '198.51.100.9')).ok).toBe(false);
+    // The ceiling has counted ten, so two more clients still fit.
+    expect((await create(flow, '198.51.100.10')).ok).toBe(true);
+    expect((await create(flow, '198.51.100.11')).ok).toBe(true);
+    expect((await create(flow, '198.51.100.12')).ok).toBe(false);
+  });
+
+  it('reports once when the service-wide ceiling is reached, however many are then refused', async () => {
+    const problems: string[] = [];
+    const flow = deps({
+      roomCreateCeiling: { max: 1, windowSeconds: 3_600 },
+      report: (problem) => problems.push(problem),
+    });
+    expect((await create(flow, '198.51.100.21')).ok).toBe(true);
+    expect((await create(flow, '198.51.100.22')).ok).toBe(false);
+    expect((await create(flow, '198.51.100.23')).ok).toBe(false);
+    expect(problems).toEqual(['room creation ceiling reached']);
+  });
+
   it('refuses the eleventh room from one client in an hour, and not another client', async () => {
     const flow = deps();
     for (let i = 0; i < 10; i += 1) expect((await create(flow)).ok).toBe(true);
@@ -168,6 +208,51 @@ describe('joinRoomFlow', () => {
     for (let i = 0; i < 7; i += 1) {
       expect((await join(flow, code, { passcode: 'open sesame' })).ok).toBe(true);
     }
+  });
+
+  it('does not count a passcode check refused for load as a wrong guess', async () => {
+    const flow = deps();
+    const { code } = await room(flow);
+    const stored = await findRoomByCode(db, code);
+    await setPasscodeHash(db, stored?.id as string, await hashPasscode('open sesame'));
+
+    // Six in a row would lock this client out if they counted: the limit is five.
+    const overloaded = { ...flow, checkPasscode: async () => 'busy' as const };
+    for (let i = 0; i < 6; i += 1) {
+      expect(await join(overloaded, code, { passcode: 'open sesame' })).toEqual({
+        ok: false,
+        reason: 'refused',
+      });
+    }
+    expect((await join(flow, code, { passcode: 'open sesame' })).ok).toBe(true);
+  });
+
+  it('refuses the 151st join attempt from one IPv6 /48 in ten minutes, and not a neighbouring /48', async () => {
+    const flow = deps();
+    const { code } = await room(flow);
+    for (let n = 0; n < 150; n += 1) {
+      const joined = await join(flow, code, { address: `2001:db8:9:${n.toString(16)}::1` });
+      expect(joined.ok).toBe(true);
+    }
+    expect(await join(flow, code, { address: '2001:db8:9:ffff::1' })).toEqual({
+      ok: false,
+      reason: 'refused',
+    });
+    expect((await join(flow, code, { address: '2001:db8:a::1' })).ok).toBe(true);
+  }, 60_000);
+
+  it('tells the room when it signs someone out to make space', async () => {
+    const signedOut: string[] = [];
+    const flow = deps({
+      maxSessionsPerRoom: 2,
+      onSignedOut: (_roomId, sessionId) => signedOut.push(sessionId),
+    });
+    const { code } = await room(flow);
+    const first = await join(flow, code, { name: 'First' });
+    if (!first.ok) throw new Error('join failed');
+    const firstSession = await resumeSession(flow, { code, token: first.sessionToken });
+    expect((await join(flow, code, { name: 'Second', address: '203.0.113.50' })).ok).toBe(true);
+    expect(signedOut).toEqual([firstSession?.session.id]);
   });
 
   it('refuses the thirty-first join attempt from one client in ten minutes', async () => {

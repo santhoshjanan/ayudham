@@ -107,19 +107,19 @@ export async function countSessions(db: Db, roomId: string): Promise<number> {
 
 /**
  * Signs out the non-moderator who was seen longest ago, to make room in a full
- * room. Returns false when there is nobody who may be signed out.
+ * room. Returns their id, or null when there is nobody who may be signed out.
  */
-export async function deleteStalestSession(db: Db, roomId: string): Promise<boolean> {
-  const result = await db.query(
+export async function deleteStalestSession(db: Db, roomId: string): Promise<string | null> {
+  const result = await db.query<{ id: string }>(
     `delete from sessions where id = (
        select id from sessions
        where room_id = $1 and not moderator
        order by last_seen_at asc, created_at asc
        limit 1
-     )`,
+     ) returning id`,
     [roomId],
   );
-  return result.rowCount === 1;
+  return result.rows[0]?.id ?? null;
 }
 
 export async function sessionNames(db: Db, roomId: string): Promise<string[]> {

@@ -20,6 +20,14 @@ if (unset INSECURE_HTTP ADDRESS_HEADER; node server.js >/dev/null 2>&1); then
   fail "started without ADDRESS_HEADER"
 fi
 
+# The migrate-only run applies migrations and exits without serving.
+[ "$(MIGRATE_ONLY=1 node server.js)" = "Migrations applied." ] || fail "migrate-only run"
+# A schema that cannot be verified stops the app rather than letting it serve errors.
+if MIGRATIONS=check MIGRATIONS_DIR="$(mktemp -d)/none" node server.js >/dev/null 2>&1; then
+  fail "started with an unreadable migrations directory in check mode"
+fi
+export MIGRATIONS=check
+
 node server.js &
 PID=$!
 trap 'kill $PID 2>/dev/null || true' EXIT
@@ -40,6 +48,18 @@ echo "$HEADERS" | grep -qi "referrer-policy: same-origin" || fail "referrer poli
 echo "$HEADERS" | grep -qi "cache-control: no-store" || fail "no-store on room pages"
 echo "$HEADERS" | grep -qi "x-robots-tag: noindex" || fail "noindex on room pages"
 echo "$HEADERS" | grep -qi "cross-origin-opener-policy: same-origin" || fail "opener policy"
+
+# Static files do not pass through the page hooks; they must carry the base headers too.
+AUDIO=$(curl -s -D - -o /dev/null "http://127.0.0.1:$PORT/audio/bach-goldberg-var1.mp3")
+echo "$AUDIO" | grep -qi "^HTTP/1.1 200" || fail "audio file not served"
+echo "$AUDIO" | grep -qi "x-content-type-options: nosniff" || fail "nosniff on static files"
+echo "$AUDIO" | grep -qi "cross-origin-resource-policy: same-origin" || fail "resource policy on static files"
+echo "$AUDIO" | grep -qi "cache-control: public, max-age=604800" || fail "cache lifetime on audio"
+RANGE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-99' "http://127.0.0.1:$PORT/audio/bach-goldberg-var1.mp3")
+[ "$RANGE" = "206" ] || fail "audio does not answer range requests (got $RANGE)"
+MISSING=$(curl -s -D - -o /dev/null "http://127.0.0.1:$PORT/audio/nothing.mp3")
+echo "$MISSING" | grep -qi "x-content-type-options: nosniff" || fail "nosniff on a missing file"
+if echo "$MISSING" | grep -qi "cache-control: public"; then fail "a missing audio file is cacheable"; fi
 
 CROSS=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' \
   -d 'name=Mo&deck=fibonacci' "http://127.0.0.1:$PORT/poker")

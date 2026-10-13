@@ -29,6 +29,13 @@ export const MAX_CONNECTIONS_PER_PARTICIPANT = 4;
 /** Messages one participant may send per window, across all their connections. */
 export const MESSAGE_LIMIT = { max: 30, windowMs: 10_000 };
 
+/**
+ * Snapshots sent at once per window. Every change sends each person their own
+ * view of the room, so a room's cost grows with the square of its size; past
+ * this allowance changes are gathered and sent together on the next tick.
+ */
+export const BROADCAST_LIMIT = { max: 20, windowMs: 1_000 };
+
 export interface Connection {
   send(text: string): void;
   /** `code` is a WebSocket close code telling the browser why. */
@@ -73,6 +80,9 @@ export class RoomHost {
   private readonly removed = new Set<string>();
   /** Writes to the store, in order. A failure is retried; nothing later overtakes it. */
   private readonly writes: Write[] = [];
+  private broadcasts = { start: 0, count: 0 };
+  /** The room changed and not everyone has been sent it yet. */
+  private stale = false;
   private writing = false;
   private nextWriteAt = 0;
   private emptySince: number | null;
@@ -150,6 +160,15 @@ export class RoomHost {
     this.dispatch({ type: 'evict', ids });
   }
 
+  /**
+   * Signs out everyone here who is not a moderator, going by who is in the room
+   * and not by any list from the database: someone whose stored session has
+   * already gone must not stay connected.
+   */
+  evictAllButModerators(): void {
+    this.evict(this.state.participants.filter((p) => !p.moderator).map((p) => p.id));
+  }
+
   grantModerator(id: string): void {
     this.dispatch({ type: 'grantModerator', id });
   }
@@ -172,6 +191,7 @@ export class RoomHost {
   tick(): void {
     const now = this.deps.now();
     this.dispatch({ type: 'tick' });
+    if (this.stale) this.broadcast();
     for (const [id, budget] of this.budgets) {
       if (now - budget.start >= MESSAGE_LIMIT.windowMs) this.budgets.delete(id);
     }
@@ -205,7 +225,7 @@ export class RoomHost {
     const before = this.state;
     const outcome = apply(before, command, this.deps.now());
     this.state = outcome.state;
-    if (this.state !== before) this.broadcast();
+    if (this.state !== before) this.announce();
     for (const effect of outcome.effects) this.perform(effect);
   }
 
@@ -300,7 +320,22 @@ export class RoomHost {
     }
   }
 
+  /** Sends the room to everyone now if the allowance permits, or leaves it for the next tick. */
+  private announce(): void {
+    const now = this.deps.now();
+    if (now - this.broadcasts.start >= BROADCAST_LIMIT.windowMs) {
+      this.broadcasts = { start: now, count: 0 };
+    }
+    if (this.broadcasts.count >= BROADCAST_LIMIT.max) {
+      this.stale = true;
+      return;
+    }
+    this.broadcasts.count += 1;
+    this.broadcast();
+  }
+
   private broadcast(): void {
+    this.stale = false;
     const now = this.deps.now();
     for (const id of [...this.connections.keys()]) {
       const room = snapshotFor(this.state, id, now);

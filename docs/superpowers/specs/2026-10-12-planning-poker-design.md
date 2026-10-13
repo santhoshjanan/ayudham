@@ -66,7 +66,9 @@ All responses carry `Referrer-Policy: same-origin`, so a room link is never sent
 - A dedicated Postgres database and role, with no rights on other databases.
 - A dedicated Valkey ACL user restricted to the `pokerji:` key prefix.
 - Configuration and secrets come from environment variables only.
-- The client address is read from Traefik's forwarded header, and only when the request comes from a configured trusted proxy address.
+- The client address is read from the last entry of Traefik's `X-Forwarded-For`. The container publishes no ports and sits only on Traefik's network and the data network, so Traefik is the only thing that can reach it; the app does not check the sender's address itself. The site's origin is fixed by `ORIGIN`, which the entry file states on every request, so forwarded host and protocol headers are never trusted.
+- The app's database role cannot change the schema; migrations are applied by a one-shot run of the same image under a separate owner role, and the app refuses to start if the schema is behind.
+- The image runs as a non-root user on a read-only filesystem with all capabilities dropped.
 - Deployment notes must state that Traefik access logging for this router should be disabled or have the request path redacted, because the room code is in the path.
 
 ### Scaling position
@@ -146,6 +148,8 @@ Defaults, all configurable:
 | Limit | Value |
 |---|---|
 | Room creations per client | 10 per hour |
+| Room creations per IPv6 /48 | 50 per hour |
+| Room creations by the whole service | 1,000 per hour |
 | Join attempts per client | 30 per 10 minutes |
 | Passcode failures per client per room | 5 per 10 minutes |
 | Passcode failures per room, all clients | 50 per hour |
@@ -156,11 +160,17 @@ Defaults, all configurable:
 | Moderator-link attempts, per session | 30 per 10 minutes |
 | Remove-my-name requests, per session | 20 per 10 minutes |
 | History shown | The newest 200 rounds |
+| Passcode checks at once | 4 running and 64 waiting; any more are refused like a wrong passcode, but are not counted as a failed guess |
+| Join attempts per IPv6 /48 | 150 per 10 minutes |
+| Rounds kept per room | The newest 1,000; older rounds are deleted with their votes |
+| Snapshots sent per room | 20 at once per second; further changes are gathered and sent together within 250 ms |
 | Sessions per room | 200; when full, the non-moderator seen longest ago is signed out to make room |
-| Participants per room | 50, not counting moderators, who can always enter |
+| Participants per room | 50. A moderator can enter a full room, up to 60 in all |
 | WebSocket message size | 2 KB |
 | Story title length | 200 characters |
 | Custom deck | up to 20 cards, 4 characters each |
+
+The service-wide ceiling protects the database from a flood from many addresses. While it is reached, nobody can create a room until the hour's window ends; existing rooms are unaffected, and the app reports it once every ten minutes.
 
 Limits are keyed in Valkey by an HMAC of the client address with a server secret, with a TTL matching the window. The address is never written to Postgres or logs.
 

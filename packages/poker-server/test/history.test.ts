@@ -40,6 +40,31 @@ async function setup() {
   return { room, ann: await person('Ann'), bo: await person('Bo') };
 }
 
+describe('saveRound with a limit on how many a room keeps', () => {
+  it('keeps the newest rounds and deletes the rest with their votes', async () => {
+    const { room, ann } = await setup();
+    for (let i = 1; i <= 5; i += 1) {
+      await saveRound(
+        db,
+        room.id,
+        {
+          id: randomUUID(),
+          title: `R${i}`,
+          votes: [{ sessionId: ann.id, name: 'Ann', card: '5' }],
+        },
+        3,
+      );
+    }
+    const kept = await listRounds(db, room.id);
+    expect(kept.map((round) => round.title)).toEqual(['R5', 'R4', 'R3']);
+    const votes = await db.query(
+      'select 1 from votes v join rounds r on r.id = v.round_id where r.room_id = $1',
+      [room.id],
+    );
+    expect(votes.rowCount).toBe(3);
+  });
+});
+
 describe('history', () => {
   it('saves a round with its votes in order and lists newest first', async () => {
     const { room, ann, bo } = await setup();

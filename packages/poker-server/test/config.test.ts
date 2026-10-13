@@ -16,7 +16,19 @@ describe('loadConfig', () => {
       retentionDays: 30,
       keyPrefix: 'pokerji:',
       backupRotationDays: null,
+      migrations: 'apply',
     });
+  });
+
+  it('treats an empty optional value as not set, as a compose file passes it', () => {
+    expect(loadConfig({ ...valid, BACKUP_ROTATION_DAYS: '' }).backupRotationDays).toBeNull();
+    expect(loadConfig({ ...valid, BACKUP_ROTATION_DAYS: '14' }).backupRotationDays).toBe(14);
+  });
+
+  it('applies migrations unless told to check only', () => {
+    expect(loadConfig(valid).migrations).toBe('apply');
+    expect(loadConfig({ ...valid, MIGRATIONS: 'check' }).migrations).toBe('check');
+    expect(() => loadConfig({ ...valid, MIGRATIONS: 'sometimes' })).toThrow(/MIGRATIONS/);
   });
 
   it('accepts a retention override and a key prefix', () => {

@@ -11,7 +11,12 @@ const schema = z.object({
     .string()
     .regex(/^[a-z0-9:_-]{0,31}:$/)
     .default('pokerji:'),
-  BACKUP_ROTATION_DAYS: z.coerce.number().int().min(1).max(3650).optional(),
+  // A compose file passes an unset optional value as an empty string.
+  BACKUP_ROTATION_DAYS: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().int().min(1).max(3650).optional(),
+  ),
+  MIGRATIONS: z.enum(['apply', 'check']).default('apply'),
 });
 
 export interface Config {
@@ -24,6 +29,8 @@ export interface Config {
   keyPrefix: string;
   /** How long database backups are kept, for the privacy page. Null when not stated. */
   backupRotationDays: number | null;
+  /** "check" for a database role that cannot change the schema: verify it, never alter it. */
+  migrations?: 'apply' | 'check';
 }
 
 /** Reads configuration. The error names bad variables and never includes their values. */
@@ -40,5 +47,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     retentionDays: parsed.data.RETENTION_DAYS,
     keyPrefix: parsed.data.KEY_PREFIX,
     backupRotationDays: parsed.data.BACKUP_ROTATION_DAYS ?? null,
+    migrations: parsed.data.MIGRATIONS,
   };
 }

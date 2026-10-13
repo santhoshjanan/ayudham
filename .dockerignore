@@ -1,0 +1,16 @@
+.git
+**/node_modules
+**/build
+**/.svelte-kit
+**/test-results
+**/coverage
+**/.env
+**/.env.*
+docs
+deploy
+apps/web/e2e
+apps/web/.impeccable
+.impeccable
+.superpowers
+*.md
+!apps/web/static/audio/LICENSES.md
