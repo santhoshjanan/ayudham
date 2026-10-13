@@ -121,6 +121,14 @@ cp deploy/.env.example deploy/.env && chmod 600 deploy/.env
 
 ## 9. First start
 
+The short way, from the repository root on the server:
+
+```bash
+sh deploy/deploy.sh
+```
+
+It checks `deploy/.env` (present, private, complete, no example values left), checks the two networks and the image, applies migrations, starts the app, waits until it is healthy and then asks the site for a page from outside. It stops with a reason at the first thing that is wrong, and prints no setting's value. Add `--build` to build the image from the checkout first. It does the same as the steps below, which you can also run by hand.
+
 From the `deploy` folder:
 
 ```bash
@@ -152,6 +160,8 @@ Check:
 If `web` restarts repeatedly, `docker compose logs web` says why in fixed words: a setting that is missing or malformed (it names the setting, never its value), Valkey unreachable, or "could not start", which means a wrong database connection string, an unreachable database, or migrations not applied.
 
 ## 10. Updating
+
+The short way: back up the database, ship or build the new image, set `POKERJI_IMAGE`, and run `sh deploy/deploy.sh`. On an update it asks whether the database is backed up (or takes `--backed-up`), and if the new version does not become healthy it tells you the image that was running before. By hand:
 
 1. Run `pnpm check:image` on a development machine at the new commit.
 2. Back up the `pokerji` database.
