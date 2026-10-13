@@ -1,7 +1,7 @@
 # Schema Markup Builder — Design
 
 Date: 2026-10-13
-Status: awaiting review
+Status: approved 2026-10-13; amended the same day (sections 3, 5, 6 and 7) after reading the sources
 
 ## 1. Purpose
 
@@ -88,6 +88,7 @@ Values are held as the person typed them, so a half-typed date is not lost. Whet
 | Values per property | 50 |
 | Properties per item | 100 |
 | Text value length | 5,000 characters |
+| Type or property name | 100 characters |
 
 The editor refuses to go past a limit and says which one was reached. The limits live in `packages/schema-builder` and are enforced there, so stored data read back is held to the same ones.
 
@@ -136,12 +137,12 @@ Ten guided definitions:
 |---|---|---|
 | Organization | | PostalAddress, ContactPoint |
 | LocalBusiness | | PostalAddress, GeoCoordinates, OpeningHoursSpecification |
-| WebSite | | SearchAction |
+| WebSite | | |
 | BreadcrumbList | | ListItem |
 | Article | Article, BlogPosting, NewsArticle | Person, Organization, ImageObject |
 | FAQPage | | Question, Answer |
 | Product | | Offer, AggregateRating, Brand, Review |
-| Event | | Place, PostalAddress, Offer, VirtualLocation |
+| Event | | Place, PostalAddress, Offer, Person, Organization, PerformingGroup |
 | Person | | PostalAddress |
 | Recipe | | NutritionInformation, HowToStep, AggregateRating |
 
@@ -149,7 +150,8 @@ A guided definition is data:
 
 - the type, and any variants the person can switch between without losing values;
 - an ordered list of fields. Each field names a property, a label and a one-line hint in plain English, the kinds of value it takes, whether it repeats, a level (required, recommended or optional), and for a nested item the definition used for it;
-- optionally a note shown at the top of the form, for anything Google states about eligibility.
+- optionally a note shown at the top of the form, for anything Google states about eligibility;
+- optionally groups of fields of which at least one must have a value (a product needs an offer, a rating or a review).
 
 Nested types have definitions of the same shape, without variants.
 
@@ -163,7 +165,11 @@ Required and recommended levels come from Google Search Central's structured dat
 
 `packages/schema-builder/RULES.md` records, for each guided type, the documentation page used and the date it was checked. The package exports that date. The page shows it, and says that meeting these rules does not guarantee a rich result.
 
-Where Google documents no rich result for a type (Person, for example), the definition has no required fields, its recommended fields are the ones the definition's author judged most useful, and `RULES.md` says so.
+Where Google documents no rich result for a type, the definition has no required fields, its recommended fields are the ones the definition's author judged most useful, and `RULES.md` says so. That is the case for Person, and for FAQPage: Google removed its FAQ result and its documentation in June 2026. FAQPage stays a guided type because the markup is valid Schema.org that other readers use, and its form says so in a note.
+
+Two things in Google's current documentation shaped the guided fields. Its WebSite guidance covers the site name only, so `SearchAction` is not a guided field. Its event result covers physical events only, so `VirtualLocation` is not one either. Both remain available through "Add another property".
+
+Where a definition departs from its source on purpose (identifiers on Organization are optional, for example), `RULES.md` lists the departure and the reason.
 
 ## 6. The checks
 
@@ -181,7 +187,7 @@ Where Google documents no rich result for a type (Person, for example), the defi
 | dangling-reference | Refers to an item that no longer exists |
 | unknown-property | A property the vocabulary does not list for this type (only once the vocabulary is loaded) |
 
-Findings carry kinds, not sentences. The page turns a kind into words.
+Findings carry kinds, not sentences. The page turns a kind into words. A `missing-required` finding for an at-least-one group also lists the group's properties, and is reported once for the group, not once for each member.
 
 Rules:
 
@@ -193,7 +199,7 @@ Rules:
 
 ### Source and licence
 
-The official Schema.org release file `schemaorg-current-https.jsonld`, from one named release. Schema.org is published under the Creative Commons Attribution-ShareAlike 3.0 licence.
+The official Schema.org release file `schemaorg-current-https.jsonld`, from one named release: 30.1 at the time of writing. Schema.org is published under the Creative Commons Attribution-ShareAlike 3.0 licence.
 
 The release file is not committed. Its compacted form is, at `apps/web/static/schema/vocabulary.json`, as an adaptation under the same licence.
 
@@ -216,10 +222,12 @@ A test recomputes the SHA-256 of the committed file and compares it with `LICENS
 
 ### Descriptions
 
-Schema.org's descriptions make the escape hatch usable without a second tab, and are most of the file's weight. The first task of the implementation plan measures both variants and applies this rule:
+Schema.org's descriptions make the escape hatch usable without a second tab, and are most of the file's weight. The rule:
 
 - If the compacted file with descriptions, cut to their first sentence and stripped of markup, is under 150 kB compressed with gzip, they are included in `vocabulary.json`.
 - Otherwise they go in a second file, `apps/web/static/schema/descriptions.json`, fetched only when someone first expands a property's help, and recorded in `LICENSES.md` the same way.
+
+Measured on 2026-10-13 against release 30.1: about 62 kB compressed with descriptions, about 28 kB without. Descriptions are included in `vocabulary.json`, and there is no second file.
 
 ### Loading
 
