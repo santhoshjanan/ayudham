@@ -15,3 +15,5 @@ export * from './lines.ts';
 export * from './count.ts';
 export * from './entities.ts';
 export * from './encode.ts';
+export * from './wordlist.ts';
+export * from './passphrase.ts';
