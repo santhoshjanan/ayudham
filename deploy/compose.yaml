@@ -13,6 +13,13 @@ x-app: &app
   security_opt: ['no-new-privileges:true']
   pids_limit: 256
   mem_limit: 512m
+  # So a busy app cannot starve the Postgres, Valkey and Traefik it shares the server with.
+  cpus: ${POKERJI_CPUS:-2}
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
 
 services:
   # One-shot: applies migrations as the role that owns the schema, then exits.
@@ -46,7 +53,8 @@ services:
       XFF_DEPTH: ${XFF_DEPTH:-1}
       RETENTION_DAYS: ${RETENTION_DAYS:-30}
       BACKUP_ROTATION_DAYS: ${BACKUP_ROTATION_DAYS:-}
-    # No ports: the container is reachable only from Traefik's network.
+    # Run exactly one. A second instance would not see the first one's live rooms.
+    # No ports: the container is reachable only from Traefik's network and the data network.
     networks: [proxy, data]
     labels:
       - traefik.enable=true
@@ -58,6 +66,7 @@ services:
       - traefik.http.routers.pokerji.middlewares=pokerji-flood
       # Room codes are in the path, so this router writes no access log (Traefik 3.2 or later).
       - traefik.http.routers.pokerji.observability.accesslogs=false
+      - traefik.http.routers.pokerji.observability.tracing=false
       # Flood protection only; the app has its own limits per action. Sized so that a
       # whole team behind one office address can load the page at the same moment.
       - traefik.http.middlewares.pokerji-flood.ratelimit.average=100

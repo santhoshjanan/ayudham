@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { hash, verify } from '@node-rs/argon2';
-import { createGate } from './gate.ts';
+import { createGate, GateFull } from './gate.ts';
 
 const CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -46,11 +46,23 @@ export function hashPasscode(passcode: string): Promise<string> {
   return argon2.run(() => hash(passcode), { mustRun: true });
 }
 
+export type PasscodeCheck = 'match' | 'wrong' | 'busy';
+
+/**
+ * Checks a passcode. "busy" means the check was not made because too many are
+ * waiting: the caller refuses as for a wrong passcode, but must not count it
+ * as a failed guess, or a flood of joins would lock real members out.
+ */
+export async function checkPasscode(passcode: string, stored: string): Promise<PasscodeCheck> {
+  try {
+    return (await argon2.run(() => verify(stored, passcode))) ? 'match' : 'wrong';
+  } catch (error) {
+    // A malformed hash is simply not a match.
+    return error instanceof GateFull ? 'busy' : 'wrong';
+  }
+}
+
 /** False for a wrong passcode, a malformed hash, or a check refused because too many are waiting. */
 export async function passcodeMatches(passcode: string, stored: string): Promise<boolean> {
-  try {
-    return await argon2.run(() => verify(stored, passcode));
-  } catch {
-    return false;
-  }
+  return (await checkPasscode(passcode, stored)) === 'match';
 }

@@ -59,6 +59,7 @@ RANGE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-99' "http://12
 [ "$RANGE" = "206" ] || fail "audio does not answer range requests (got $RANGE)"
 MISSING=$(curl -s -D - -o /dev/null "http://127.0.0.1:$PORT/audio/nothing.mp3")
 echo "$MISSING" | grep -qi "x-content-type-options: nosniff" || fail "nosniff on a missing file"
+if echo "$MISSING" | grep -qi "cache-control: public"; then fail "a missing audio file is cacheable"; fi
 
 CROSS=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' \
   -d 'name=Mo&deck=fibonacci' "http://127.0.0.1:$PORT/poker")

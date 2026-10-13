@@ -4,8 +4,8 @@
 **/.svelte-kit
 **/test-results
 **/coverage
-.env
-.env.*
+**/.env
+**/.env.*
 docs
 deploy
 apps/web/e2e

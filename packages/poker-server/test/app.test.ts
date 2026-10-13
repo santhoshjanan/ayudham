@@ -160,3 +160,14 @@ describe('start with MIGRATIONS=check', () => {
     await current.stop();
   });
 });
+
+describe('start without Valkey', () => {
+  it('refuses to start, so a wrong address or password is found at once and not as silent refusals', async () => {
+    const lost = createApp(
+      { ...config(), valkeyUrl: 'redis://127.0.0.1:1' },
+      { schema, report: () => undefined },
+    );
+    await expect(lost.start()).rejects.toThrow('Valkey');
+    await lost.stop();
+  }, 20_000);
+});

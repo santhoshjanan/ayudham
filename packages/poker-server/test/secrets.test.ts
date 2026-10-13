@@ -90,3 +90,18 @@ describe('Argon2 under load', () => {
     expect(hashes.every((value) => value.startsWith('$argon2id$'))).toBe(true);
   }, 30_000);
 });
+
+describe('checkPasscode', () => {
+  it('tells a match from a wrong passcode, and both from a check refused for load', async () => {
+    const stored = await secrets.hashPasscode('correct horse');
+    expect(await secrets.checkPasscode('correct horse', stored)).toBe('match');
+    expect(await secrets.checkPasscode('wrong horse', stored)).toBe('wrong');
+    expect(await secrets.checkPasscode('anything', 'not-a-hash')).toBe('wrong');
+    const room = secrets.ARGON2_CONCURRENT + secrets.ARGON2_WAITING;
+    const results = await Promise.all(
+      Array.from({ length: room + 3 }, () => secrets.checkPasscode('correct horse', stored)),
+    );
+    expect(results.slice(room)).toEqual(['busy', 'busy', 'busy']);
+    expect(results.slice(0, room).every((result) => result === 'match')).toBe(true);
+  }, 30_000);
+});

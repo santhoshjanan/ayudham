@@ -220,6 +220,18 @@ describe('requestOrigin', () => {
     ).toBeNull();
   });
 
+  it('returns nothing for an ORIGIN that parses but is not an http or https origin', () => {
+    for (const bad of ['poker.example.org:443', 'ftp://poker.example', 'https://']) {
+      expect(requestOrigin(fakeRequest({ host: 'a' }), { ORIGIN: bad }, 'https')).toBeNull();
+    }
+  });
+
+  it('treats an empty forwarded port as no port at all', () => {
+    const env = { HOST_HEADER: 'x-forwarded-host', PORT_HEADER: 'x-forwarded-port' };
+    const req = fakeRequest({ 'x-forwarded-host': 'poker.example:8443', 'x-forwarded-port': '' });
+    expect(requestOrigin(req, env, 'https')).toBe('https://poker.example:8443');
+  });
+
   it('adds the forwarded port, and leaves out the default one', () => {
     const env = {
       PROTOCOL_HEADER: 'x-forwarded-proto',

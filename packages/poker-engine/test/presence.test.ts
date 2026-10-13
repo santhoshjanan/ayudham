@@ -1,4 +1,4 @@
-import { AWAY_DROP_MS, MAX_PARTICIPANTS } from '@pokerji/protocol';
+import { AWAY_DROP_MS, MAX_PARTICIPANTS, MODERATOR_HEADROOM } from '@pokerji/protocol';
 import { describe, expect, it } from 'vitest';
 import { apply, createRoom, snapshotFor, type RoomState } from '../src/index.ts';
 import { ann, FIB, mo, run, seeded } from './helpers.ts';
@@ -82,6 +82,23 @@ describe('join when full', () => {
     const outcome = apply(full, { type: 'join', participant: mo }, 0);
     expect(outcome.effects).toEqual([]);
     expect(outcome.state.participants.at(-1)).toMatchObject({ id: 'm', moderator: true });
+  });
+});
+
+describe('join when far over the limit', () => {
+  it('turns even a moderator away, so moderator rights cannot grow a room without bound', () => {
+    const joins = Array.from({ length: MAX_PARTICIPANTS + MODERATOR_HEADROOM }, (_, i) => ({
+      type: 'join' as const,
+      participant: { id: `p${i}`, name: `P${i}`, role: 'voter' as const, moderator: true },
+    }));
+    const full = run(createRoom({ deck: FIB, timerSeconds: null, music: null }), joins);
+    expect(full.participants).toHaveLength(MAX_PARTICIPANTS + MODERATOR_HEADROOM);
+    const outcome = apply(full, { type: 'join', participant: mo }, 0);
+    expect(outcome.state).toBe(full);
+    expect(outcome.effects).toEqual([
+      { type: 'send', to: 'm', message: { type: 'error', code: 'room_full' } },
+      { type: 'close', id: 'm' },
+    ]);
   });
 });
 

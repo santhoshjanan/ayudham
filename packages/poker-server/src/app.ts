@@ -74,6 +74,13 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     );
 
   const begin = async () => {
+    // Limits are refused when Valkey cannot be reached. Found here, a wrong address or
+    // password stops the start; found later, it would be silent refusals for everyone.
+    try {
+      await kv.ping();
+    } catch {
+      throw new Error('Valkey cannot be reached. Check VALKEY_URL and its user.');
+    }
     if (config.migrations === 'check') {
       const pending = await pendingMigrations(db, options.migrationsDir);
       if (pending.length > 0) {
@@ -111,7 +118,14 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     db,
     kv,
     registry,
-    flows: { db, kv, addressSecret: config.addressHmacSecret, keyPrefix: config.keyPrefix },
+    flows: {
+      db,
+      kv,
+      addressSecret: config.addressHmacSecret,
+      keyPrefix: config.keyPrefix,
+      report,
+      onSignedOut: (roomId, sessionId) => registry.get(roomId)?.evict([sessionId]),
+    },
     // Each happens once however often it is asked for, as when two signals arrive at shutdown.
     start: () => (started ??= begin()),
     stop: () => (stopped ??= end()),

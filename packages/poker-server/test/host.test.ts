@@ -1,6 +1,6 @@
 import { BUILT_IN_DECKS, MAX_PARTICIPANTS, ROOM_UNLOAD_MS } from '@pokerji/protocol';
 import { describe, expect, it } from 'vitest';
-import { MAX_CONNECTIONS_PER_PARTICIPANT, RoomHost } from '../src/index.ts';
+import { BROADCAST_LIMIT, MAX_CONNECTIONS_PER_PARTICIPANT, RoomHost } from '../src/index.ts';
 import { fakeClock, fakeConnection, fakeStore, flush } from './fakes.ts';
 
 const mo = { id: 'm', name: 'Mo', role: 'voter', moderator: true, owner: true } as const;
@@ -167,6 +167,31 @@ describe('RoomHost', () => {
     host.receive('a', { type: 'reveal' });
     expect(annTab.sent.at(-1)).toEqual({ type: 'error', code: 'forbidden' });
     expect(moTab.sent).toHaveLength(before);
+  });
+
+  it('sends a bounded burst of snapshots in one second, then catches everyone up on the next tick', () => {
+    const { host, clock, annTab } = setup();
+    const before = annTab.sent.length;
+    for (let i = 0; i < 100; i += 1) host.receive('m', { type: 'setTitle', title: `T${i}` });
+    expect(annTab.sent.length - before).toBeLessThanOrEqual(BROADCAST_LIMIT.max);
+    expect(annTab.room().title).not.toBe('T99');
+
+    host.tick();
+    expect(annTab.room().title).toBe('T99');
+
+    // A new second starts with a fresh allowance: a change is seen at once again.
+    clock.advance(BROADCAST_LIMIT.windowMs);
+    host.receive('m', { type: 'setTitle', title: 'later' });
+    expect(annTab.room().title).toBe('later');
+  });
+
+  it('signs out everyone who is not a moderator when asked, whoever the database knows', () => {
+    const { host, moTab, annTab } = setup();
+    host.evictAllButModerators();
+    expect(annTab.sent.at(-1)).toEqual({ type: 'removed' });
+    expect(annTab.isClosed()).toBe(true);
+    expect(moTab.isClosed()).toBe(false);
+    expect(moTab.room().participants.map((p) => p.name)).toEqual(['Mo']);
   });
 
   it('turns away a joiner when the room is full', () => {

@@ -22,6 +22,14 @@ function header(req: IncomingMessage, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** A configured origin, if it really is one: http or https, with a host. Null otherwise. */
+export function fixedOrigin(value: string): string | null {
+  if (!URL.canParse(value)) return null;
+  const url = new URL(value);
+  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.host === '') return null;
+  return url.origin;
+}
+
 /** The site's own origin as the browser sees it, or null when it cannot be worked out. */
 export function requestOrigin(
   req: IncomingMessage,
@@ -29,14 +37,14 @@ export function requestOrigin(
   defaultProtocol: 'http' | 'https',
 ): string | null {
   // A fixed origin, when configured, is the only answer: no request header is consulted.
-  if (env.ORIGIN) return URL.canParse(env.ORIGIN) ? new URL(env.ORIGIN).origin : null;
+  if (env.ORIGIN) return fixedOrigin(env.ORIGIN);
   const protocol = env.PROTOCOL_HEADER
     ? (header(req, env.PROTOCOL_HEADER) ?? defaultProtocol)
     : defaultProtocol;
   const host = env.HOST_HEADER ? header(req, env.HOST_HEADER) : header(req, 'host');
   if (!host) return null;
   const port = env.PORT_HEADER ? header(req, env.PORT_HEADER) : undefined;
-  if (port === undefined) return `${protocol}://${host}`;
+  if (!port) return `${protocol}://${host}`;
   // Through URL, so a default port is left out exactly as a browser leaves it out of Origin.
   const withPort = `${protocol}://${host.replace(/:\d+$/, '')}:${port}`;
   return URL.canParse(withPort) ? new URL(withPort).origin : null;

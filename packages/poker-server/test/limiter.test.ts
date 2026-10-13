@@ -55,6 +55,7 @@ describe('withinLimit', () => {
       roomCreateWide: { max: 50, windowSeconds: 3_600 },
       roomCreateAll: { max: 1_000, windowSeconds: 3_600 },
       join: { max: 30, windowSeconds: 600 },
+      joinWide: { max: 150, windowSeconds: 600 },
       passcodeClient: { max: 5, windowSeconds: 600 },
       passcodeRoom: { max: 50, windowSeconds: 3_600 },
     });

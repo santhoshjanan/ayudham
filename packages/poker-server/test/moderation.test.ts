@@ -18,6 +18,7 @@ import {
   removePasscode,
   resumeSession,
   roomHistory,
+  deleteSession,
   saveRound,
   saveSettings,
   setPasscode,
@@ -222,6 +223,30 @@ describe('setPasscode and removePasscode', () => {
     expect(annTab.sent.at(-1)).toEqual({ type: 'removed' });
     expect(annTab.isClosed()).toBe(true);
     expect(moTab.isClosed()).toBe(false);
+  });
+
+  it('signs out someone still connected whose session is already gone from the database', async () => {
+    const { mo, ann } = await setup();
+    const host = await app.registry.open(mo.room);
+    const annTab = fakeConnection();
+    host?.connect(joiner(ann), annTab.connection);
+    // As when a full room made space by dropping the session seen longest ago.
+    await deleteSession(app.db, mo.room.id, ann.session.id);
+
+    await setPasscode(app, mo, 'open sesame');
+    expect(annTab.sent.at(-1)).toEqual({ type: 'removed' });
+    expect(annTab.isClosed()).toBe(true);
+  });
+
+  it('counts removing the passcode against the same allowance as setting it', async () => {
+    const { code, mo } = await setup();
+    for (let i = 0; i < 5; i += 1) {
+      expect(await setPasscode(app, mo, `passcode number ${i}`)).toEqual({ ok: true });
+    }
+    expect(await removePasscode(app, await resumeAgain(code, mo))).toEqual({
+      ok: false,
+      reason: 'limited',
+    });
   });
 
   it('allows five passcode changes in ten minutes for a room, then asks for patience', async () => {

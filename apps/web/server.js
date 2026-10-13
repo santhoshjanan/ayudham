@@ -4,6 +4,16 @@ import { createServer } from 'node:http';
 
 const RUNTIME = Symbol.for('pokerji.runtime');
 
+// A last resort. Node's own report of an uncaught error prints the error, and a database
+// error can carry names and ids. Nothing reaches here today; this keeps the log promise
+// true if something ever does.
+for (const event of ['uncaughtException', 'unhandledRejection']) {
+  process.on(event, () => {
+    console.error(JSON.stringify({ level: 'error', problem: 'unexpected failure, stopping' }));
+    process.exit(1);
+  });
+}
+
 // Local testing only. Marks every request as plain HTTP so form posts and
 // sockets pass the origin checks without a TLS proxy, and drops the cookie's
 // Secure flag. Needs PROTOCOL_HEADER=x-forwarded-proto.
@@ -29,11 +39,13 @@ if (migrateOnly) process.env.MIGRATIONS = 'apply';
 // client or a proxy sends can then change what the app believes its origin is.
 let fixed = null;
 if (process.env.ORIGIN) {
-  if (!URL.canParse(process.env.ORIGIN)) {
+  const url = URL.canParse(process.env.ORIGIN) ? new URL(process.env.ORIGIN) : null;
+  // Strict, because a value such as "poker.example.org:443" parses as a URL with no host.
+  if (!url || !['https:', 'http:'].includes(url.protocol) || url.host === '') {
     console.error('ORIGIN must be a full origin, such as https://poker.example.org');
     process.exit(1);
   }
-  fixed = new URL(process.env.ORIGIN);
+  fixed = url;
   process.env.PROTOCOL_HEADER = 'x-pokerji-protocol';
   process.env.HOST_HEADER = 'x-pokerji-host';
   delete process.env.PORT_HEADER;
@@ -45,7 +57,11 @@ let handler;
 try {
   ({ handler } = await import('./build/handler.js'));
   await globalThis[RUNTIME]?.started;
-} catch {
+} catch (error) {
+  // These two messages are written by the app, name settings only, and are safe to show.
+  const known = ['Invalid or missing configuration', 'Valkey cannot be reached'];
+  const message = error instanceof Error ? error.message : '';
+  if (known.some((start) => message.startsWith(start))) console.error(message);
   console.error(
     migrateOnly
       ? 'Migration failed. Check DATABASE_URL and that its role owns the schema.'
@@ -55,7 +71,11 @@ try {
 }
 
 if (migrateOnly) {
-  await globalThis[RUNTIME]?.app.stop();
+  if (!globalThis[RUNTIME]) {
+    console.error('Migration failed: the app did not start.');
+    process.exit(1);
+  }
+  await globalThis[RUNTIME].app.stop();
   console.log('Migrations applied.');
   process.exit(0);
 }
@@ -76,7 +96,15 @@ const harden = (req, res) => {
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   // The recordings never change under one name, and are large: let browsers keep them a week.
-  if (req.url?.startsWith('/audio/')) res.setHeader('Cache-Control', 'public, max-age=604800');
+  if (req.url?.startsWith('/audio/')) {
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    // Only for a file that is there: a missing one must not be remembered as missing.
+    const writeHead = res.writeHead;
+    res.writeHead = function (status, ...rest) {
+      if (status >= 400) this.removeHeader('Cache-Control');
+      return writeHead.call(this, status, ...rest);
+    };
+  }
 };
 
 const server = createServer((req, res) => {
@@ -98,6 +126,10 @@ server.on('upgrade', (req, socket, head) => {
   runtime.upgrade(req, socket, head);
 });
 
+// Longer than Traefik keeps an idle connection (90 seconds), so the proxy never sends a
+// request down a connection this side has just closed.
+server.keepAliveTimeout = 95_000;
+server.headersTimeout = 100_000;
 server.listen(Number(process.env.PORT ?? 3000), process.env.HOST ?? '0.0.0.0');
 
 let stopping = false;

@@ -6,10 +6,11 @@ import { findRoomByCode, insertRoom, touchRoom, type RoomRow } from './rooms.ts'
 import {
   addressKey,
   hashPasscode,
+  checkPasscode,
   hashToken,
   newRoomCode,
   newToken,
-  passcodeMatches,
+  type PasscodeCheck,
 } from './secrets.ts';
 import {
   countSessions,
@@ -38,6 +39,25 @@ export interface FlowDeps {
   maxSessionsPerRoom?: number;
   /** Rooms the whole service creates in a window. Tests lower it. */
   roomCreateCeiling?: Limit;
+  /** Receives a fixed description of a problem. Never room content. */
+  report?: (problem: string) => void;
+  /** Told when a join signs someone out to make space, so a live room can drop them too. */
+  onSignedOut?: (roomId: string, sessionId: string) => void;
+  /** The passcode check. Tests replace it. */
+  checkPasscode?: (passcode: string, stored: string) => Promise<PasscodeCheck>;
+}
+
+const CEILING_REPORT_MS = 600_000;
+/** Keyed by key prefix: one entry for the service, one each for tests. */
+const ceilingReportedAt = new Map<string, number>();
+/** Says once in a while, not on every refusal, that the service-wide ceiling was reached. */
+function reportCeiling(deps: FlowDeps): void {
+  const key = deps.keyPrefix ?? KEY_PREFIX;
+  const last = ceilingReportedAt.get(key) ?? -Infinity;
+  const now = Date.now();
+  if (now - last < CEILING_REPORT_MS) return;
+  ceilingReportedAt.set(key, now);
+  deps.report?.('room creation ceiling reached');
 }
 
 const DEFAULT_MAX_SESSIONS = 200;
@@ -98,7 +118,11 @@ export async function createRoomFlow(
   }
   // Last, so a request already refused above is not counted against everyone.
   const ceiling = deps.roomCreateCeiling ?? LIMITS.roomCreateAll;
-  if (!(await withinLimit(deps.kv, 'create:all', ceiling, prefix))) return REFUSED;
+  if (!(await withinLimit(deps.kv, 'create:all', ceiling, prefix))) {
+    // Nobody can create a room until the window ends: the operator should know.
+    reportCeiling(deps);
+    return REFUSED;
+  }
 
   const recoveryToken = newToken();
   let room: RoomRow | undefined;
@@ -141,6 +165,18 @@ export async function joinRoomFlow(
   const prefix = deps.keyPrefix ?? KEY_PREFIX;
   const client = clientKey(deps, input.address);
   if (!(await withinLimit(deps.kv, `join:${client}`, LIMITS.join, prefix))) return REFUSED;
+  const wide = widerNetwork(input.address);
+  if (
+    wide !== null &&
+    !(await withinLimit(
+      deps.kv,
+      `join48:${addressKey(deps.addressSecret, wide)}`,
+      LIMITS.joinWide,
+      prefix,
+    ))
+  ) {
+    return REFUSED;
+  }
 
   const code = roomCodeSchema.safeParse(input.code);
   const room = code.success ? await findRoomByCode(deps.db, code.data) : null;
@@ -148,7 +184,11 @@ export async function joinRoomFlow(
 
   // Exactly one Argon2 verification on every path, so timing does not reveal
   // whether the room exists or has a passcode.
-  const matches = await passcodeMatches(passcode, room?.passcodeHash ?? (await dummy()));
+  const check = await (deps.checkPasscode ?? checkPasscode)(
+    passcode,
+    room?.passcodeHash ?? (await dummy()),
+  );
+  const matches = check === 'match';
 
   let admitted = room !== null && room.passcodeHash === null;
   if (room && room.passcodeHash !== null) {
@@ -158,8 +198,9 @@ export async function joinRoomFlow(
       (await overLimit(deps.kv, perClient, LIMITS.passcodeClient, prefix)) ||
       (await overLimit(deps.kv, perRoom, LIMITS.passcodeRoom, prefix));
     admitted = matches && !locked;
-    if (!matches && !locked) {
-      // Only failures count, so the right passcode never locks its owner out.
+    if (check === 'wrong' && !locked) {
+      // Only real failures count: the right passcode never locks its owner out, and
+      // neither does a check that was refused because the service was busy.
       await withinLimit(deps.kv, perClient, LIMITS.passcodeClient, prefix);
       await withinLimit(deps.kv, perRoom, LIMITS.passcodeRoom, prefix);
     }
@@ -170,7 +211,11 @@ export async function joinRoomFlow(
   // room cannot be filled for good with sessions nobody uses. Moderators are kept.
   const limit = deps.maxSessionsPerRoom ?? DEFAULT_MAX_SESSIONS;
   const full = (await countSessions(deps.db, room.id)) >= limit;
-  if (full && !(await deleteStalestSession(deps.db, room.id))) return REFUSED;
+  if (full) {
+    const signedOut = await deleteStalestSession(deps.db, room.id);
+    if (signedOut === null) return REFUSED;
+    deps.onSignedOut?.(room.id, signedOut);
+  }
 
   // The name index can still refuse a name two people asked for at the same
   // instant; the next attempt sees the other one and picks the next number.

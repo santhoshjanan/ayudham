@@ -119,7 +119,10 @@ export async function setPasscode(app: App, actor: Actor, passcode: unknown): Pr
   if (!(await allowed(app, `passcode:${room.id}`, CHANGE_LIMITS.passcode))) return LIMITED;
 
   const signedOut = await setPasscodeAndSignOut(app.db, room.id, await hashPasscode(parsed.data));
-  app.registry.get(room.id)?.evict(signedOut);
+  const host = app.registry.get(room.id);
+  host?.evict(signedOut);
+  // And anyone connected whose stored session had already gone, so nobody outlasts the change.
+  host?.evictAllButModerators();
   // Failed guesses at the old passcode no longer count against the room.
   await clearLimit(app.kv, `pass:${room.id}`, app.flows.keyPrefix);
   return OK;
@@ -127,6 +130,7 @@ export async function setPasscode(app: App, actor: Actor, passcode: unknown): Pr
 
 export async function removePasscode(app: App, actor: Actor): Promise<FlowOutcome> {
   if (!actor.session.moderator) return REFUSED;
+  if (!(await allowed(app, `passcode:${actor.room.id}`, CHANGE_LIMITS.passcode))) return LIMITED;
   await setPasscodeHash(app.db, actor.room.id, null);
   await clearLimit(app.kv, `pass:${actor.room.id}`, app.flows.keyPrefix);
   return OK;

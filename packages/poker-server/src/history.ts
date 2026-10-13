@@ -14,7 +14,18 @@ export interface SavedRound {
   votes: { sessionId: string | null; name: string | null; card: string }[];
 }
 
-export async function saveRound(db: Db, roomId: string, round: RoundToSave): Promise<void> {
+/**
+ * Rounds one room keeps. Without a limit, a script revealing every three seconds
+ * could fill the database, which other applications share.
+ */
+export const MAX_SAVED_ROUNDS = 1_000;
+
+export async function saveRound(
+  db: Db,
+  roomId: string,
+  round: RoundToSave,
+  keep: number = MAX_SAVED_ROUNDS,
+): Promise<void> {
   const client = await db.connect();
   try {
     await client.query('begin');
@@ -40,6 +51,14 @@ export async function saveRound(db: Db, roomId: string, round: RoundToSave): Pro
         ],
       );
       await client.query('update rooms set last_active_at = now() where id = $1', [roomId]);
+      // The oldest rounds beyond the limit go, with their votes.
+      await client.query(
+        `delete from rounds where id in (
+           select id from rounds where room_id = $1
+           order by revealed_at desc, id offset $2
+         )`,
+        [roomId, keep],
+      );
     }
     await client.query('commit');
   } catch (error) {

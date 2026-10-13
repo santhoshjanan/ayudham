@@ -27,7 +27,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-docker build -t "$IMAGE" . >/dev/null 2>&1 || fail "build"
+docker build -t "$IMAGE" . >/dev/null 2>"${TMPDIR:-/tmp}/pokerji-build.log" \
+  || { tail -20 "${TMPDIR:-/tmp}/pokerji-build.log"; fail "build"; }
 
 # The image itself.
 [ "$(docker run --rm "$IMAGE" id -u)" != "0" ] || fail "runs as root"
@@ -65,6 +66,12 @@ fi
 [ "$(docker run --rm $COMMON -e DATABASE_URL="$OWNER_URL" -e MIGRATE_ONLY=1 "$IMAGE")" = "Migrations applied." ] \
   || fail "migrate run as owner"
 
+# The step the notes give for after the first migrate: the app may read the record of
+# migrations, not change it.
+docker compose exec -T -e PGPASSWORD="$PW" postgres psql -v ON_ERROR_STOP=1 -U "${DB}_owner" -d "$DB" \
+  -v app="${DB}_app" < deploy/postgres-after-first-migrate.sql >/dev/null \
+  || fail "postgres-after-first-migrate.sql"
+
 # The app, as production runs it.
 # shellcheck disable=SC2086
 docker run -d --name pokerji-check $COMMON -p "127.0.0.1:$PORT:3000" \
@@ -99,6 +106,10 @@ OWNHEADERS=$(curl -s -o /dev/null -w '%{http_code}' -H "$FWD" -H 'Origin: https:
 if docker compose exec -T -e PGPASSWORD="$PW" postgres psql -U "${DB}_app" -d "$DB" \
   -c 'create table intruder (id int)' >/dev/null 2>&1; then
   fail "the app role created a table"
+fi
+if docker compose exec -T -e PGPASSWORD="$PW" postgres psql -v ON_ERROR_STOP=1 -U "${DB}_app" -d "$DB" \
+  -c "delete from schema_migrations" >/dev/null 2>&1; then
+  fail "the app role changed the record of migrations"
 fi
 kv_admin --user "$KVUSER" --pass "$PW" --no-auth-warning SET other:key 1 2>&1 | grep -q NOPERM \
   || fail "the Valkey user wrote outside its prefix"

@@ -160,14 +160,17 @@ Defaults, all configurable:
 | Moderator-link attempts, per session | 30 per 10 minutes |
 | Remove-my-name requests, per session | 20 per 10 minutes |
 | History shown | The newest 200 rounds |
-| Passcode checks at once | 4 running and 64 waiting; any more are refused as a wrong passcode |
-
-The service-wide ceiling protects the database from a flood from many addresses. While it is reached, nobody can create a room until the hour's window ends; existing rooms are unaffected.
+| Passcode checks at once | 4 running and 64 waiting; any more are refused like a wrong passcode, but are not counted as a failed guess |
+| Join attempts per IPv6 /48 | 150 per 10 minutes |
+| Rounds kept per room | The newest 1,000; older rounds are deleted with their votes |
+| Snapshots sent per room | 20 at once per second; further changes are gathered and sent together within 250 ms |
 | Sessions per room | 200; when full, the non-moderator seen longest ago is signed out to make room |
-| Participants per room | 50, not counting moderators, who can always enter |
+| Participants per room | 50. A moderator can enter a full room, up to 60 in all |
 | WebSocket message size | 2 KB |
 | Story title length | 200 characters |
 | Custom deck | up to 20 cards, 4 characters each |
+
+The service-wide ceiling protects the database from a flood from many addresses. While it is reached, nobody can create a room until the hour's window ends; existing rooms are unaffected, and the app reports it once every ten minutes.
 
 Limits are keyed in Valkey by an HMAC of the client address with a server secret, with a TTL matching the window. The address is never written to Postgres or logs.
 
