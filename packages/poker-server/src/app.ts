@@ -5,7 +5,7 @@ import type { FlowDeps } from './flows.ts';
 import { saveRound } from './history.ts';
 import { RoomHost, type HostStore } from './host.ts';
 import { createKv, type Kv } from './kv.ts';
-import { migrate } from './migrate.ts';
+import { migrate, pendingMigrations } from './migrate.ts';
 import { RoomRegistry } from './registry.ts';
 import { deleteInactiveRooms } from './rooms.ts';
 import { deleteSession, setSessionModerator, setSessionRole } from './sessions.ts';
@@ -74,7 +74,16 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     );
 
   const begin = async () => {
-    await migrate(db, options.migrationsDir);
+    if (config.migrations === 'check') {
+      const pending = await pendingMigrations(db, options.migrationsDir);
+      if (pending.length > 0) {
+        throw new Error(
+          `Database schema is behind: ${pending.length} migration(s) not applied. Run the migrate job, then start again.`,
+        );
+      }
+    } else {
+      await migrate(db, options.migrationsDir);
+    }
     await retain();
     timers = [
       // Not awaited: a slow sweep must never delay the next tick.

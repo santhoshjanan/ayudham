@@ -20,6 +20,14 @@ if (unset INSECURE_HTTP ADDRESS_HEADER; node server.js >/dev/null 2>&1); then
   fail "started without ADDRESS_HEADER"
 fi
 
+# The migrate-only run applies migrations and exits without serving.
+[ "$(MIGRATE_ONLY=1 node server.js)" = "Migrations applied." ] || fail "migrate-only run"
+# A schema that cannot be verified stops the app rather than letting it serve errors.
+if MIGRATIONS=check MIGRATIONS_DIR="$(mktemp -d)/none" node server.js >/dev/null 2>&1; then
+  fail "started with an unreadable migrations directory in check mode"
+fi
+export MIGRATIONS=check
+
 node server.js &
 PID=$!
 trap 'kill $PID 2>/dev/null || true' EXIT

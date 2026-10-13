@@ -44,3 +44,21 @@ export async function migrate(db: Db, directory: string = MIGRATIONS): Promise<s
     client.release();
   }
 }
+
+/**
+ * The migrations not yet applied, in order. It only reads, so a database role
+ * that cannot change the schema can run it.
+ */
+export async function pendingMigrations(db: Db, directory: string = MIGRATIONS): Promise<string[]> {
+  const files = (await readdir(directory)).filter((file) => file.endsWith('.sql')).sort();
+  let applied: Set<string>;
+  try {
+    const done = await db.query<{ name: string }>('select name from schema_migrations');
+    applied = new Set(done.rows.map((row) => row.name));
+  } catch (error) {
+    // 42P01: the table is not there, so nothing has been applied yet.
+    if ((error as { code?: unknown }).code !== '42P01') throw error;
+    applied = new Set();
+  }
+  return files.filter((file) => !applied.has(file));
+}

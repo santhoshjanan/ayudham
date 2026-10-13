@@ -134,3 +134,29 @@ describe('createApp', () => {
     }
   });
 });
+
+describe('start with MIGRATIONS=check', () => {
+  it('refuses to start when the schema is behind, and creates nothing', async () => {
+    const empty = await testSchema();
+    const behind = createApp(
+      { ...config(), migrations: 'check' },
+      { schema: empty.schema, report: () => undefined },
+    );
+    await expect(behind.start()).rejects.toThrow('Database schema is behind');
+    const tables = await behind.db.query(
+      `select 1 from information_schema.tables where table_schema = current_schema()`,
+    );
+    expect(tables.rowCount).toBe(0);
+    await behind.stop();
+    await empty.drop();
+  });
+
+  it('starts when the schema is current', async () => {
+    const current = createApp(
+      { ...config(), migrations: 'check' },
+      { schema, report: () => undefined },
+    );
+    await expect(current.start()).resolves.toBeUndefined();
+    await current.stop();
+  });
+});

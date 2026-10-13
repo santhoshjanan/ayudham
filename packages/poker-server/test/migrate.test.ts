@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { migrate, type Db } from '../src/index.ts';
-import { testDb } from './services.ts';
+import { createPool, migrate, pendingMigrations, type Db } from '../src/index.ts';
+import { DATABASE_URL, testDb, testSchema } from './services.ts';
 
 let db: Db;
 let drop: () => Promise<void>;
@@ -91,5 +91,29 @@ describe('migrate', () => {
       ]);
     await insert();
     await expect(insert()).rejects.toThrow();
+  });
+});
+
+describe('pendingMigrations', () => {
+  it('lists every migration for an empty schema, in order, without creating anything', async () => {
+    const empty = await testSchema();
+    const pool = createPool(DATABASE_URL, empty.schema);
+    try {
+      const pending = await pendingMigrations(pool);
+      expect(pending[0]).toBe('001_init.sql');
+      expect(pending).toEqual([...pending].sort());
+      expect(pending.length).toBeGreaterThanOrEqual(4);
+      const tables = await pool.query(
+        `select 1 from information_schema.tables where table_schema = current_schema()`,
+      );
+      expect(tables.rowCount).toBe(0);
+    } finally {
+      await pool.end();
+      await empty.drop();
+    }
+  });
+
+  it('lists nothing once every migration is applied', async () => {
+    expect(await pendingMigrations(db)).toEqual([]);
   });
 });
