@@ -164,6 +164,7 @@ Defaults, all configurable:
 | Join attempts per IPv6 /48 | 150 per 10 minutes |
 | Rounds kept per room | The newest 1,000; older rounds are deleted with their votes |
 | Snapshots sent per room | 20 at once per second; further changes are gathered and sent together within 250 ms |
+| Session lifetime | A session not used for the retention period is deleted by the hourly job, except the owner's. Past votes keep the name |
 | Sessions per room | 200; when full, the non-moderator seen longest ago is signed out to make room |
 | Participants per room | 50. A moderator can enter a full room, up to 60 in all |
 | WebSocket message size | 2 KB |

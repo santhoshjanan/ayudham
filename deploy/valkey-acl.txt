@@ -1,4 +1,6 @@
 # One Valkey user that can touch only this app's keys, with only the commands it uses.
 # Replace PREFIX with the app's KEY_PREFIX without its trailing colon (default: pokerji)
-# and PASSWORD with a long random value, then run the line in valkey-cli as an admin:
-ACL SETUSER PREFIX on >PASSWORD resetkeys ~PREFIX:* resetchannels -@all +get +set +del +incr +expire +pexpire +eval +evalsha +ping +info +hello +auth +client|setname +client|setinfo
+# and PASSWORD with a long random value, then run the line in valkey-cli as an admin.
+# Running it again replaces the password. Do not put a database number in VALKEY_URL:
+# this user may not select one.
+ACL SETUSER PREFIX on resetpass >PASSWORD resetkeys ~PREFIX:* resetchannels -@all +get +set +del +incr +expire +pexpire +eval +ping +hello +auth +client|setname +client|setinfo

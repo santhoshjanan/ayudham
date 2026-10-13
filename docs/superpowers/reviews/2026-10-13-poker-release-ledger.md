@@ -27,13 +27,17 @@ Final Octopus security audit of the whole app as deployed, and Octopus code revi
 - The service-wide ceiling stays at 1,000 rooms an hour. Someone with a few hundred addresses can reach it and deny room creation for the rest of the hour. Raising it lets the same person store more rows. Cost if wrong: an hour without new rooms, visible in the log. The audit's alternative, deleting rooms never used within 24 hours so the ceiling can be much higher, is a change to what the service promises and is the owner's decision.
 - While a socket stays open, a session's "last seen" time does not move, so in a room with 200 sessions the longest-connected person can be the one signed out to make space. They are now told and removed cleanly. Cost if wrong: one person rejoins.
 
+## Fixed afterwards, at the owner's request (`fix/deferred-lows`)
+
+- The moderator link is spent by a conditional update, so of two simultaneous uses exactly one takes the room. Test: "lets only one of two people who use the link in the same instant take the room".
+- Sessions not used for the retention period are deleted hourly, except the owner's. Test: "signs out people not seen for the retention period, and keeps the owner whatever their age".
+- Valkey trouble after start is reported, at most once a minute. Test: "says that Valkey is in trouble, and says it once".
+- The Valkey user loses `+evalsha` and `+info`; the client no longer asks the server for its statistics on connecting. `+ping` stays: the app pings at start. Proved by the image check.
+- The base image is pinned by digest, the floating Dockerfile syntax image is gone, and pnpm is pinned by checksum.
+
 ## Deferred
 
-- Low: two simultaneous uses of the moderator link can both succeed in showing the new link (L5). Fix: swap the stored hash conditionally and proceed only if one row changed.
-- Low: the base image, the Dockerfile syntax image and pnpm are not pinned by checksum (L7).
-- Low: sessions do not expire while their room is in use (L10).
-- Low: Valkey trouble after start is still silent; only the start is checked (L8, second half).
-- Low: the Valkey user has `+evalsha`, `+ping` and `+info`; the first two are unused and the third exposes server-wide statistics. Removing them needs a check that the client still connects.
+- A live participant whose session expires stays connected until their socket next drops. Expiry needs 30 days without a page load or reconnect, so this needs a socket open that long.
 - Minor: `check-image.sh` and `smoke.sh` hang rather than fail if a "must refuse to start" case regresses.
 - Minor: the Dockerfile reinstalls dependencies after any source change.
 - Minor: no test opens a WebSocket with `ORIGIN` set; the unit tests cover `requestOrigin`, and the image check covers form posts.

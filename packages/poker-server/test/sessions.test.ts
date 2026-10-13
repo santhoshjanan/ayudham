@@ -4,6 +4,7 @@ import {
   countSessions,
   deleteNonModeratorSessions,
   deleteSession,
+  deleteStaleSessions,
   findSession,
   insertRoom,
   insertSession,
@@ -234,5 +235,43 @@ describe('sessions', () => {
     expect(removed.sort()).toEqual([first.id, second.id].sort());
     expect(await countSessions(db, roomId)).toBe(1);
     expect(removed).not.toContain(moderator.id);
+  });
+});
+
+describe('deleteStaleSessions', () => {
+  const seenDaysAgo = (id: string, days: number) =>
+    db.query(`update sessions set last_seen_at = now() - make_interval(days => $2) where id = $1`, [
+      id,
+      days,
+    ]);
+
+  it('signs out people not seen for the retention period, and keeps the owner whatever their age', async () => {
+    const made = await room();
+    const recent = await session(made.id);
+    const old = await session(made.id);
+    const oldModerator = await session(made.id, true);
+    const owner = await insertSession(db, {
+      roomId: made.id,
+      tokenHash: `hash${(n += 1)}`,
+      name: 'Owner',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
+    await seenDaysAgo(recent.id, 29);
+    await seenDaysAgo(old.id, 31);
+    await seenDaysAgo(oldModerator.id, 31);
+    await seenDaysAgo(owner.id, 400);
+
+    expect(await deleteStaleSessions(db, 30)).toBeGreaterThanOrEqual(2);
+    const left = await db.query<{ id: string }>('select id from sessions where room_id = $1', [
+      made.id,
+    ]);
+    expect(left.rows.map((row) => row.id).sort()).toEqual([recent.id, owner.id].sort());
+  });
+
+  it('refuses a period that is not a whole number of days', async () => {
+    await expect(deleteStaleSessions(db, 0)).rejects.toThrow(RangeError);
+    await expect(deleteStaleSessions(db, 1.5)).rejects.toThrow(RangeError);
   });
 });

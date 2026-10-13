@@ -93,7 +93,7 @@ docker tag pokerji:check pokerji:1 && docker save pokerji:1 | ssh <server> docke
 
 If your development machine and server have different processor types (an Apple laptop and an x86 server, for example), build on the server instead, from a checkout of the same commit, and accept that it is a rebuild: `docker build -t pokerji:1 .`
 
-Use a new tag for each release, so you can go back. The base image and pnpm are not pinned by checksum; see the release ledger.
+Use a new tag for each release, so you can go back. The base image is pinned by digest in the `Dockerfile`, and pnpm by checksum in `package.json`; the `Dockerfile` says how to move to a newer base image.
 
 ## 8. Configure
 
@@ -187,7 +187,7 @@ Back up the `pokerji` database with the rest of Postgres. Set `BACKUP_ROTATION_D
 - A room holds 50 people, but more than 30 behind one address (one office) cannot all join within ten minutes. If that happens to you, raise `LIMITS.join` in `packages/poker-server/src/limiter.ts`.
 - While the service-wide ceiling is reached, nobody can create a room until the hour's window ends. Existing rooms are unaffected. The app logs `room creation ceiling reached` at most once every ten minutes while it lasts. Someone with a few hundred addresses can reach it on purpose; if that happens, raise `LIMITS.roomCreateAll`, at the cost of more rows an attacker can make you store.
 - If the shared Valkey evicts keys under memory pressure (an `allkeys-*` policy), counters and lockouts can disappear early. Use `noeviction` or a `volatile-*` policy with enough memory.
-- All limits are refused, not skipped, when Valkey is unreachable: no rooms can be created or joined until it returns. Live rooms carry on.
+- All limits are refused, not skipped, when Valkey is unreachable: no rooms can be created or joined until it returns. Live rooms carry on. The app logs `valkey unreachable` at most once a minute while it lasts.
 
 ## 14. Sibling subdomains
 

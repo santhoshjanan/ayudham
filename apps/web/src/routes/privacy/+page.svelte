@@ -101,7 +101,9 @@
   <h2>Cookies and your browser</h2>
   <p>
     We set one cookie for each room you join. It keeps you in that room and does nothing else.
-    It cannot be read by scripts and is sent only to this site.
+    It cannot be read by scripts and is sent only to this site. If you do not open the room for
+    {data.retentionDays} days you are signed out of it, unless you are its owner; your past votes
+    keep your name.
   </p>
   <p>
     Your browser also remembers whether you chose the light or the dark theme, whether you turned

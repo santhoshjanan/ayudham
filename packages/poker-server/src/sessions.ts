@@ -203,3 +203,19 @@ export async function listCoModerators(
   );
   return result.rows;
 }
+
+/**
+ * Signs out everyone not seen for this many days, except a room's owner, so a
+ * copied session cookie does not work for as long as the room lives. Their
+ * past votes keep the name they were cast under.
+ */
+export async function deleteStaleSessions(db: Db, olderThanDays: number): Promise<number> {
+  if (!Number.isInteger(olderThanDays) || olderThanDays < 1) {
+    throw new RangeError('Session lifetime must be a whole number of days, at least 1');
+  }
+  const result = await db.query(
+    'delete from sessions where not owner and last_seen_at < now() - make_interval(days => $1)',
+    [olderThanDays],
+  );
+  return result.rowCount ?? 0;
+}

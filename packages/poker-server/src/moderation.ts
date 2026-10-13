@@ -20,6 +20,7 @@ import {
   setPasscodeAndSignOut,
   setPasscodeHash,
   setRecoveryHash,
+  swapRecoveryHash,
   updateRoomSettings,
   type RoomRow,
 } from './rooms.ts';
@@ -166,12 +167,24 @@ export async function recoverModerator(
   const token = input.recoveryToken;
   if (typeof token !== 'string' || token.length > 128) return FAILED;
   if (!tokenMatches(token, room.recoveryHash)) return FAILED;
+  // The link is spent first, and only by whoever finds it still unspent: of two people
+  // using it at the same moment, one takes the room and the other is refused.
+  const recoveryToken = newToken();
+  const spent = await swapRecoveryHash(
+    app.db,
+    room.id,
+    room.recoveryHash,
+    hashToken(recoveryToken),
+  );
+  if (!spent) return FAILED;
   if (!session.owner) {
-    if (!(await transferOwnership(app.db, room.id, session.id))) return FAILED;
+    if (!(await transferOwnership(app.db, room.id, session.id))) {
+      // Nobody took the room, so the link they hold must still work.
+      await setRecoveryHash(app.db, room.id, room.recoveryHash);
+      return FAILED;
+    }
     app.registry.get(room.id)?.transferOwnership(session.id);
   }
-  const recoveryToken = newToken();
-  await setRecoveryHash(app.db, room.id, hashToken(recoveryToken));
   return { ok: true, recoveryToken };
 }
 
