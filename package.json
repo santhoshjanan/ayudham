@@ -10,7 +10,8 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check:image": "sh deploy/check-image.sh"
   },
   "devDependencies": {
     "prettier": "^3.9.10",

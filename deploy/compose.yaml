@@ -1,0 +1,74 @@
+# Production. Runs beside an existing Traefik, Postgres and Valkey.
+# From this folder, with a filled-in .env (see .env.example and docs/deploy.md):
+#   docker compose --profile migrate run --rm migrate     apply migrations
+#   docker compose up -d                                   start or update the app
+name: pokerji
+
+x-app: &app
+  image: ${POKERJI_IMAGE:?set POKERJI_IMAGE}
+  init: true
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  pids_limit: 256
+  mem_limit: 512m
+
+services:
+  # One-shot: applies migrations as the role that owns the schema, then exits.
+  migrate:
+    <<: *app
+    profiles: [migrate]
+    restart: 'no'
+    environment:
+      MIGRATE_ONLY: '1'
+      DATABASE_URL: ${MIGRATE_DATABASE_URL:?set MIGRATE_DATABASE_URL}
+      VALKEY_URL: ${VALKEY_URL:?set VALKEY_URL}
+      ADDRESS_HMAC_SECRET: ${ADDRESS_HMAC_SECRET:?set ADDRESS_HMAC_SECRET}
+      KEY_PREFIX: ${KEY_PREFIX:-pokerji:}
+    networks: [data]
+
+  web:
+    <<: *app
+    restart: unless-stopped
+    stop_grace_period: 15s
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      VALKEY_URL: ${VALKEY_URL:?set VALKEY_URL}
+      ADDRESS_HMAC_SECRET: ${ADDRESS_HMAC_SECRET:?set ADDRESS_HMAC_SECRET}
+      KEY_PREFIX: ${KEY_PREFIX:-pokerji:}
+      # The app role cannot change the schema; it verifies it and refuses to start if behind.
+      MIGRATIONS: check
+      # The one origin the app answers to. Forwarded host and protocol headers are not consulted.
+      ORIGIN: https://${POKERJI_HOST:?set POKERJI_HOST}
+      # Traefik is the only hop, so the client is the last entry it wrote.
+      ADDRESS_HEADER: x-forwarded-for
+      XFF_DEPTH: ${XFF_DEPTH:-1}
+      RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      BACKUP_ROTATION_DAYS: ${BACKUP_ROTATION_DAYS:-}
+    # No ports: the container is reachable only from Traefik's network.
+    networks: [proxy, data]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:?set TRAEFIK_NETWORK}
+      - traefik.http.routers.pokerji.rule=Host(`${POKERJI_HOST}`)
+      - traefik.http.routers.pokerji.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.pokerji.tls=true
+      - traefik.http.routers.pokerji.tls.certresolver=${TRAEFIK_CERT_RESOLVER:?set TRAEFIK_CERT_RESOLVER}
+      - traefik.http.routers.pokerji.middlewares=pokerji-flood
+      # Room codes are in the path, so this router writes no access log (Traefik 3.2 or later).
+      - traefik.http.routers.pokerji.observability.accesslogs=false
+      # Flood protection only; the app has its own limits per action. Sized so that a
+      # whole team behind one office address can load the page at the same moment.
+      - traefik.http.middlewares.pokerji-flood.ratelimit.average=100
+      - traefik.http.middlewares.pokerji-flood.ratelimit.burst=400
+      - traefik.http.middlewares.pokerji-flood.ratelimit.period=1s
+      - traefik.http.services.pokerji.loadbalancer.server.port=3000
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK}
+  data:
+    external: true
+    name: ${DATA_NETWORK:?set DATA_NETWORK}

@@ -20,6 +20,11 @@ describe('loadConfig', () => {
     });
   });
 
+  it('treats an empty optional value as not set, as a compose file passes it', () => {
+    expect(loadConfig({ ...valid, BACKUP_ROTATION_DAYS: '' }).backupRotationDays).toBeNull();
+    expect(loadConfig({ ...valid, BACKUP_ROTATION_DAYS: '14' }).backupRotationDays).toBe(14);
+  });
+
   it('applies migrations unless told to check only', () => {
     expect(loadConfig(valid).migrations).toBe('apply');
     expect(loadConfig({ ...valid, MIGRATIONS: 'check' }).migrations).toBe('check');
