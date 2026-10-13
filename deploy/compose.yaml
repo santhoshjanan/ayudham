@@ -1,11 +1,17 @@
 # Production. Runs beside an existing Traefik, Postgres and Valkey.
 # From this folder, with a filled-in .env (see .env.example and docs/deploy.md):
+#   docker compose build                                   build the image from this checkout
 #   docker compose --profile migrate run --rm migrate     apply migrations
 #   docker compose up -d                                   start or update the app
 name: pokerji
 
 x-app: &app
   image: ${POKERJI_IMAGE:?set POKERJI_IMAGE}
+  # Only used by `docker compose build`. With an image loaded under this tag already
+  # (docs/deploy.md, section 7), nothing is built.
+  build:
+    context: ..
+  pull_policy: never
   init: true
   read_only: true
   tmpfs: [/tmp]
