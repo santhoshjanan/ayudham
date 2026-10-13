@@ -561,7 +561,7 @@ const open = async (browser: Browser, viewport = WIDE): Promise<Page> => {
   return page;
 };
 
-const markup = (page: Page) => page.getByLabel('The markup');
+const markup = (page: Page) => page.getByLabel('The markup', { exact: true });
 const clipboard = (page: Page) => page.evaluate(() => navigator.clipboard.readText());
 const stored = (page: Page) => page.evaluate(() => localStorage.getItem('pj-schema-draft'));
 const rawJson = async (page: Page) => {
@@ -790,7 +790,9 @@ test('without JavaScript the page says what it is and that it needs JavaScript',
   const page = await context.newPage();
   await page.goto('/schema');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Schema markup builder');
-  await expect(page.getByText('The builder needs JavaScript')).toBeVisible();
+  // Playwright's text search skips noscript, so the element is found by its tag.
+  await expect(page.locator('noscript p')).toBeVisible();
+  await expect(page.locator('noscript p')).toContainText('The builder needs JavaScript');
   await expect(page.getByRole('button', { name: 'Local business' })).toBeVisible();
   await expect(page.getByText('never sent to this site')).toBeVisible();
 });

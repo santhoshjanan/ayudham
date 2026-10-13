@@ -57,6 +57,9 @@ importers:
       '@pokerji/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@pokerji/schema-builder':
+        specifier: workspace:*
+        version: link:../../packages/schema-builder
       '@sveltejs/adapter-node':
         specifier: ^6.0.0
         version: 6.0.0(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2)(vite@8.3.4(@types/node@24.19.2)))(svelte@5.57.2)(typescript@6.0.3)(vite@8.3.4(@types/node@24.19.2)))
