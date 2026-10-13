@@ -11,7 +11,11 @@ export const load: PageServerLoad = async (event) => {
   // An unknown room and a room you have not joined look exactly the same: a join form.
   if (!resumed || token === undefined) return { joined: false as const };
   // Each visit renews the cookie's 30 days.
-  event.cookies.set(SESSION_COOKIE, token, sessionCookie(resumed.room.code));
+  event.cookies.set(
+    SESSION_COOKIE,
+    token,
+    sessionCookie(resumed.room.code, runtime().app.config.retentionDays),
+  );
   return { joined: true as const, code: resumed.room.code };
 };
 
@@ -32,7 +36,11 @@ export const actions: Actions = {
             message: 'Could not join. Check the link and the passcode, then try again.',
           });
     }
-    event.cookies.set(SESSION_COOKIE, result.sessionToken, sessionCookie(event.params.code));
+    event.cookies.set(
+      SESSION_COOKIE,
+      result.sessionToken,
+      sessionCookie(event.params.code, runtime().app.config.retentionDays),
+    );
     redirect(303, event.url.pathname);
   },
 };

@@ -29,19 +29,25 @@ Final Octopus security audit of the whole app as deployed, and Octopus code revi
 
 ## Fixed afterwards, at the owner's request (`fix/deferred-lows`)
 
-- The moderator link is spent by a conditional update, so of two simultaneous uses exactly one takes the room. Test: "lets only one of two people who use the link in the same instant take the room".
-- Sessions not used for the retention period are deleted hourly, except the owner's. Test: "signs out people not seen for the retention period, and keeps the owner whatever their age".
-- Valkey trouble after start is reported, at most once a minute. Test: "says that Valkey is in trouble, and says it once".
-- The Valkey user loses `+evalsha` and `+info`; the client no longer asks the server for its statistics on connecting. `+ping` stays: the app pings at start. Proved by the image check.
+Reviewed by an Octopus security review, which found two Medium problems in the first attempt; both are fixed below.
+
+- The moderator link is spent and the room taken in one transaction (`takeRoom`), so of two simultaneous uses exactly one takes the room, and a failure part-way leaves the old link working. The first attempt spent the link in a separate step and could have left a room with no link anyone had been shown. Tests: "lets only one of two people who use the link in the same instant take the room", "spends the link and moves ownership together, or does neither".
+- Sessions not used for the retention period are deleted hourly, except the owner's, and anyone still connected is dropped from the live room. The cookie now lasts the retention period too, so browser and server agree. Test: "signs out people not seen for the retention period, and keeps the owner whatever their age".
+- Valkey trouble after start is reported, at most once a minute. The client's ready check stays on: the first attempt turned it off, which let a wrong password go unnoticed against an open default user and made a dropped connection hang instead of fail. Tests: "says that Valkey is in trouble, and says it once", "gives up on a command quickly when the server accepts connections and drops them", "survives a listener that throws".
+- The Valkey user loses `+evalsha`, `+hello` and the two `client` commands, none of which the client sends. `+info` stays, for the ready check. Proved by the image check.
 - The base image is pinned by digest, the floating Dockerfile syntax image is gone, and pnpm is pinned by checksum.
+
+## Rulings
+
+- Session expiry is sliding: a session in use, by anyone holding its cookie, does not expire, and the owner's never does. An absolute lifetime would sign active people out of long-lived rooms. Cost if wrong: a copied cookie that is used at least once a month keeps working until the room is deleted; the owner can end it by setting a passcode (non-moderators) or demoting (moderators).
 
 ## Deferred
 
-- A live participant whose session expires stays connected until their socket next drops. Expiry needs 30 days without a page load or reconnect, so this needs a socket open that long.
 - Minor: `check-image.sh` and `smoke.sh` hang rather than fail if a "must refuse to start" case regresses.
 - Minor: the Dockerfile reinstalls dependencies after any source change.
 - Minor: no test opens a WebSocket with `ORIGIN` set; the unit tests cover `requestOrigin`, and the image check covers form posts.
 - Informational: static files carry no Content Security Policy of their own; `/healthz` reports that the app started, not that its services are well; Traefik's rate limit does not bound audio bandwidth.
+- Not verified: that the pinned digest is the multi-architecture index (it was read from `docker buildx imagetools inspect`, which reports the index); a build on the server's architecture will show it.
 
 ## Not verifiable here
 

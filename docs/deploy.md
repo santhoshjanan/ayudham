@@ -111,7 +111,7 @@ cp deploy/.env.example deploy/.env && chmod 600 deploy/.env
 | `TRAEFIK_CERT_RESOLVER` | The certificate resolver's name in Traefik | No |
 | `DATABASE_URL` | Connection string for the app role | Yes |
 | `MIGRATE_DATABASE_URL` | Connection string for the owner role; used only by the migrate run | Yes |
-| `VALKEY_URL` | Connection string for the Valkey user | Yes |
+| `VALKEY_URL` | Connection string for the Valkey user. No database number at the end: this user may not select one | Yes |
 | `KEY_PREFIX` | Prefix of this app's Valkey keys; must match the ACL, and end with a colon | No |
 | `ADDRESS_HMAC_SECRET` | 32 or more random characters: `openssl rand -base64 48`. Changing it only resets rate-limit counters | Yes |
 | `XFF_DEPTH` | 1 when Traefik is the only proxy; see section 3 | No |

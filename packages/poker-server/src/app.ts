@@ -77,7 +77,10 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     deleteInactiveRooms(db, config.retentionDays)
       .then(() => deleteStaleSessions(db, config.retentionDays))
       .then(
-        () => undefined,
+        (gone) => {
+          // Anyone signed out while still connected leaves the live room too.
+          for (const { roomId, id } of gone) registry.get(roomId)?.evict([id]);
+        },
         () => report('retention'),
       );
 

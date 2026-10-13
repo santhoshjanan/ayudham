@@ -3,4 +3,4 @@
 # and PASSWORD with a long random value, then run the line in valkey-cli as an admin.
 # Running it again replaces the password. Do not put a database number in VALKEY_URL:
 # this user may not select one.
-ACL SETUSER PREFIX on resetpass >PASSWORD resetkeys ~PREFIX:* resetchannels -@all +get +set +del +incr +expire +pexpire +eval +ping +hello +auth +client|setname +client|setinfo
+ACL SETUSER PREFIX on resetpass >PASSWORD resetkeys ~PREFIX:* resetchannels -@all +get +set +del +incr +expire +pexpire +eval +ping +info +auth
