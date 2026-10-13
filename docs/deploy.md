@@ -91,7 +91,7 @@ It must end with `IMAGE CHECK OK`. The check leaves the image it tested as `poke
 docker tag pokerji:check pokerji:1 && docker save pokerji:1 | ssh <server> docker load
 ```
 
-If your development machine and server have different processor types (an Apple laptop and an x86 server, for example), build on the server instead, from a checkout of the same commit, and accept that it is a rebuild: `docker build -t pokerji:1 .`
+If your development machine and server have different processor types (an Apple laptop and an x86 server, for example), build on the server instead, from a checkout of the same commit, and accept that it is a rebuild. From the `deploy` folder, with `POKERJI_IMAGE=pokerji:1` in `.env`: `docker compose build`
 
 Use a new tag for each release, so you can go back. The base image is pinned by digest in the `Dockerfile`, and pnpm by checksum in `package.json`; the `Dockerfile` says how to move to a newer base image.
 
