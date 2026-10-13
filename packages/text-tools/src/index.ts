@@ -9,3 +9,4 @@ export * from './strings.ts';
 export * from './numbers.ts';
 export * from './ids.ts';
 export * from './chance.ts';
+export * from './cases.ts';
