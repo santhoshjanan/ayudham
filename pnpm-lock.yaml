@@ -131,6 +131,16 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
 
+  packages/schema-builder:
+    dependencies:
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.2
+
 packages:
 
   '@fontsource-variable/atkinson-hyperlegible-next@5.3.0':
