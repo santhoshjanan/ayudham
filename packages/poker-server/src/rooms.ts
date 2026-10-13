@@ -55,6 +55,23 @@ export async function setRecoveryHash(db: Db, id: string, hash: string): Promise
   return result.rowCount === 1;
 }
 
+/**
+ * Replaces the recovery secret only if it is still the one given. Of two people
+ * using the same link at the same moment, exactly one gets true.
+ */
+export async function swapRecoveryHash(
+  db: Db,
+  id: string,
+  expected: string,
+  next: string,
+): Promise<boolean> {
+  const result = await db.query(
+    'update rooms set recovery_hash = $3 where id = $1 and recovery_hash = $2',
+    [id, expected, next],
+  );
+  return result.rowCount === 1;
+}
+
 export async function touchRoom(db: Db, id: string): Promise<void> {
   await db.query('update rooms set last_active_at = now() where id = $1', [id]);
 }

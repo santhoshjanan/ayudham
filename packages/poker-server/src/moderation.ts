@@ -20,16 +20,12 @@ import {
   setPasscodeAndSignOut,
   setPasscodeHash,
   setRecoveryHash,
+  swapRecoveryHash,
   updateRoomSettings,
   type RoomRow,
 } from './rooms.ts';
 import { hashPasscode, hashToken, newToken, tokenMatches } from './secrets.ts';
-import {
-  clearSessionModerator,
-  listCoModerators,
-  transferOwnership,
-  type SessionRow,
-} from './sessions.ts';
+import { clearSessionModerator, listCoModerators, takeRoom, type SessionRow } from './sessions.ts';
 import { passcodeSchema } from './validate.ts';
 
 /**
@@ -166,12 +162,17 @@ export async function recoverModerator(
   const token = input.recoveryToken;
   if (typeof token !== 'string' || token.length > 128) return FAILED;
   if (!tokenMatches(token, room.recoveryHash)) return FAILED;
-  if (!session.owner) {
-    if (!(await transferOwnership(app.db, room.id, session.id))) return FAILED;
+  // Of two people using the link at the same moment, one finds it unspent and the other
+  // is refused. Spending it and taking the room are one step, so nothing that fails
+  // part-way can leave the link spent and shown to nobody.
+  const recoveryToken = newToken();
+  const next = hashToken(recoveryToken);
+  if (session.owner) {
+    if (!(await swapRecoveryHash(app.db, room.id, room.recoveryHash, next))) return FAILED;
+  } else {
+    if (!(await takeRoom(app.db, room.id, session.id, room.recoveryHash, next))) return FAILED;
     app.registry.get(room.id)?.transferOwnership(session.id);
   }
-  const recoveryToken = newToken();
-  await setRecoveryHash(app.db, room.id, hashToken(recoveryToken));
   return { ok: true, recoveryToken };
 }
 

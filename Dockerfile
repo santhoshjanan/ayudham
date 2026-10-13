@@ -1,6 +1,8 @@
-# syntax=docker/dockerfile:1
+# The base image is pinned by digest, so a rebuild cannot silently pick up a different one.
+# To move to a newer Node 24 image: docker buildx imagetools inspect node:24-bookworm-slim,
+# put the new digest in both FROM lines, and run pnpm check:image.
 # Build: the whole workspace, to bundle the app.
-FROM node:24-bookworm-slim AS build
+FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS build
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 # Corepack would otherwise stop and ask before fetching pnpm.
@@ -16,7 +18,7 @@ RUN pnpm --filter @pokerji/web build
 RUN pnpm --filter @pokerji/web deploy --prod --legacy /out
 
 # Run: Node, the built app, its dependencies and the migrations. No compiler, no sources.
-FROM node:24-bookworm-slim
+FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
 # Argon2 runs on Node's worker pool. Four checks at once would fill the default pool of
 # four and hold up file reads and DNS lookups behind them, so the pool is larger.
 ENV NODE_ENV=production PORT=3000 HOST=0.0.0.0 MIGRATIONS_DIR=/app/migrations UV_THREADPOOL_SIZE=8

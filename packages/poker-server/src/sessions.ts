@@ -203,3 +203,67 @@ export async function listCoModerators(
   );
   return result.rows;
 }
+
+/**
+ * Uses the moderator link: spends it and makes this session the owner, as one
+ * step. Either both happen or neither does, so a failure part-way can never
+ * leave a room whose link is spent and shown to nobody. False when the link is
+ * no longer the stored one (someone else used it first) or the session has gone.
+ */
+export async function takeRoom(
+  db: Db,
+  roomId: string,
+  id: string,
+  expectedHash: string,
+  nextHash: string,
+): Promise<boolean> {
+  const client = await db.connect();
+  try {
+    await client.query('begin');
+    const spent = await client.query(
+      'update rooms set recovery_hash = $3 where id = $1 and recovery_hash = $2',
+      [roomId, expectedHash, nextHash],
+    );
+    if (spent.rowCount !== 1) {
+      await client.query('rollback');
+      return false;
+    }
+    await client.query('update sessions set owner = false where room_id = $1 and owner', [roomId]);
+    const made = await client.query(
+      'update sessions set owner = true, moderator = true where id = $2 and room_id = $1',
+      [roomId, id],
+    );
+    if (made.rowCount !== 1) {
+      await client.query('rollback');
+      return false;
+    }
+    await client.query('commit');
+    return true;
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Signs out everyone not seen for this many days, except a room's owner, and
+ * says who went. "Seen" is any page load or connection, so this ends sessions
+ * that have been abandoned; a session still in use, by anyone holding its
+ * cookie, stays. Past votes keep the name they were cast under.
+ */
+export async function deleteStaleSessions(
+  db: Db,
+  olderThanDays: number,
+): Promise<{ roomId: string; id: string }[]> {
+  if (!Number.isInteger(olderThanDays) || olderThanDays < 1) {
+    throw new RangeError('Session lifetime must be a whole number of days, at least 1');
+  }
+  const result = await db.query<{ roomId: string; id: string }>(
+    `delete from sessions where not owner and last_seen_at < now() - make_interval(days => $1)
+     returning room_id as "roomId", id`,
+    [olderThanDays],
+  );
+  return result.rows;
+}

@@ -94,14 +94,16 @@
   </p>
   <p>
     This reaches the votes you cast since you last joined. If you were removed from a room, or
-    signed out because a passcode was set, you come back as a new participant and cannot reach
+    signed out because a passcode was set or because you had not visited, you come back as a new participant and cannot reach
     your earlier votes; a moderator can delete those rounds for you.
   </p>
 
   <h2>Cookies and your browser</h2>
   <p>
     We set one cookie for each room you join. It keeps you in that room and does nothing else.
-    It cannot be read by scripts and is sent only to this site.
+    It cannot be read by scripts and is sent only to this site. If you do not open the room for
+    {data.retentionDays} days you are signed out of it. The room's owner can come back with the
+    moderator link. Your past votes keep your name.
   </p>
   <p>
     Your browser also remembers whether you chose the light or the dark theme, whether you turned

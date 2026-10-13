@@ -306,6 +306,31 @@ describe('recovery', () => {
     expect(moTab.room().you).toMatchObject({ moderator: true, owner: false });
   });
 
+  it('lets only one of two people who use the link in the same instant take the room', async () => {
+    const { ann, mo, who, annToken, moToken, recoveryToken } = await setup();
+    const bo = await joinRoomFlow(app.flows, {
+      address: '198.51.100.200',
+      code: mo.room.code,
+      name: 'Bo',
+      role: 'voter',
+      passcode: '',
+    });
+    if (!bo.ok) throw new Error('join failed');
+    const results = await Promise.all([
+      recoverModerator(app, { actor: ann, recoveryToken }),
+      recoverModerator(app, { actor: await who(bo.sessionToken), recoveryToken }),
+    ]);
+    // One wins and is shown the new link. The other is refused and learns nothing.
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    const owners = [
+      (await who(annToken)).session.owner,
+      (await who(bo.sessionToken)).session.owner,
+      (await who(moToken)).session.owner,
+    ];
+    expect(owners.filter(Boolean)).toHaveLength(1);
+    expect(owners[results[0]!.ok ? 0 : 1]).toBe(true);
+  });
+
   it('replaces the link every time it is used, so a used link is worth nothing', async () => {
     const { ann, mo, who, annToken, moToken, recoveryToken } = await setup();
     const taken = await recoverModerator(app, { actor: ann, recoveryToken });

@@ -8,7 +8,12 @@ import { createKv, type Kv } from './kv.ts';
 import { migrate, pendingMigrations } from './migrate.ts';
 import { RoomRegistry } from './registry.ts';
 import { deleteInactiveRooms } from './rooms.ts';
-import { deleteSession, setSessionModerator, setSessionRole } from './sessions.ts';
+import {
+  deleteSession,
+  deleteStaleSessions,
+  setSessionModerator,
+  setSessionRole,
+} from './sessions.ts';
 
 const SWEEP_MS = 250;
 const RETENTION_MS = 60 * 60 * 1_000;
@@ -53,7 +58,8 @@ export function createApp(config: Config, options: AppOptions = {}): App {
     options.report ??
     ((problem: string) => console.error(JSON.stringify({ level: 'error', problem })));
   const db = createPool(config.databaseUrl, options.schema);
-  const kv = createKv(config.valkeyUrl);
+  // While Valkey is away every limit refuses, so nobody can create or join a room.
+  const kv = createKv(config.valkeyUrl, () => report('valkey unreachable'));
   const registry = new RoomRegistry({
     kv,
     owner: randomUUID(),
@@ -68,10 +74,15 @@ export function createApp(config: Config, options: AppOptions = {}): App {
 
   let timers: NodeJS.Timeout[] = [];
   const retain = () =>
-    deleteInactiveRooms(db, config.retentionDays).then(
-      () => undefined,
-      () => report('retention'),
-    );
+    deleteInactiveRooms(db, config.retentionDays)
+      .then(() => deleteStaleSessions(db, config.retentionDays))
+      .then(
+        (gone) => {
+          // Anyone signed out while still connected leaves the live room too.
+          for (const { roomId, id } of gone) registry.get(roomId)?.evict([id]);
+        },
+        () => report('retention'),
+      );
 
   const begin = async () => {
     // Limits are refused when Valkey cannot be reached. Found here, a wrong address or

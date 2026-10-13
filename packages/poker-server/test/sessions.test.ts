@@ -4,6 +4,9 @@ import {
   countSessions,
   deleteNonModeratorSessions,
   deleteSession,
+  deleteStaleSessions,
+  takeRoom,
+  findRoomByCode,
   findSession,
   insertRoom,
   insertSession,
@@ -234,5 +237,79 @@ describe('sessions', () => {
     expect(removed.sort()).toEqual([first.id, second.id].sort());
     expect(await countSessions(db, roomId)).toBe(1);
     expect(removed).not.toContain(moderator.id);
+  });
+});
+
+describe('deleteStaleSessions', () => {
+  const seenDaysAgo = (id: string, days: number) =>
+    db.query(`update sessions set last_seen_at = now() - make_interval(days => $2) where id = $1`, [
+      id,
+      days,
+    ]);
+
+  it('signs out people not seen for the retention period, and keeps the owner whatever their age', async () => {
+    const made = await room();
+    const recent = await session(made.id);
+    const old = await session(made.id);
+    const oldModerator = await session(made.id, true);
+    const owner = await insertSession(db, {
+      roomId: made.id,
+      tokenHash: `hash${(n += 1)}`,
+      name: 'Owner',
+      role: 'voter',
+      moderator: true,
+      owner: true,
+    });
+    await seenDaysAgo(recent.id, 29);
+    await seenDaysAgo(old.id, 31);
+    await seenDaysAgo(oldModerator.id, 31);
+    await seenDaysAgo(owner.id, 400);
+
+    const gone = await deleteStaleSessions(db, 30);
+    // It says who went and from which room, so a live room can drop them too.
+    expect(gone).toEqual(
+      expect.arrayContaining([
+        { roomId: made.id, id: old.id },
+        { roomId: made.id, id: oldModerator.id },
+      ]),
+    );
+    expect(gone.some((entry) => entry.id === recent.id || entry.id === owner.id)).toBe(false);
+    const left = await db.query<{ id: string }>('select id from sessions where room_id = $1', [
+      made.id,
+    ]);
+    expect(left.rows.map((row) => row.id).sort()).toEqual([recent.id, owner.id].sort());
+  });
+
+  it('refuses a period that is not a whole number of days', async () => {
+    await expect(deleteStaleSessions(db, 0)).rejects.toThrow(RangeError);
+    await expect(deleteStaleSessions(db, 1.5)).rejects.toThrow(RangeError);
+  });
+});
+
+describe('takeRoom', () => {
+  it('spends the link and moves ownership together, or does neither', async () => {
+    const made = await room();
+    const ann = await session(made.id);
+    const stored = async () => (await findRoomByCode(db, made.code))?.recoveryHash;
+    const isOwner = async () =>
+      (await db.query<{ owner: boolean }>('select owner from sessions where id = $1', [ann.id]))
+        .rows[0]?.owner;
+
+    // Someone whose session has gone: nothing changes, so the link they hold still works.
+    expect(await takeRoom(db, made.id, '00000000-0000-4000-8000-000000000000', 'rh', 'new')).toBe(
+      false,
+    );
+    expect(await stored()).toBe('rh');
+
+    // A link that is no longer the stored one: refused, and nobody becomes owner.
+    expect(await takeRoom(db, made.id, ann.id, 'not-the-hash', 'new')).toBe(false);
+    expect(await isOwner()).toBe(false);
+
+    expect(await takeRoom(db, made.id, ann.id, 'rh', 'new')).toBe(true);
+    expect(await stored()).toBe('new');
+    expect(await isOwner()).toBe(true);
+    // Spent: the same link does nothing a second time.
+    expect(await takeRoom(db, made.id, ann.id, 'rh', 'newer')).toBe(false);
+    expect(await stored()).toBe('new');
   });
 });

@@ -27,17 +27,27 @@ Final Octopus security audit of the whole app as deployed, and Octopus code revi
 - The service-wide ceiling stays at 1,000 rooms an hour. Someone with a few hundred addresses can reach it and deny room creation for the rest of the hour. Raising it lets the same person store more rows. Cost if wrong: an hour without new rooms, visible in the log. The audit's alternative, deleting rooms never used within 24 hours so the ceiling can be much higher, is a change to what the service promises and is the owner's decision.
 - While a socket stays open, a session's "last seen" time does not move, so in a room with 200 sessions the longest-connected person can be the one signed out to make space. They are now told and removed cleanly. Cost if wrong: one person rejoins.
 
+## Fixed afterwards, at the owner's request (`fix/deferred-lows`)
+
+Reviewed by an Octopus security review, which found two Medium problems in the first attempt; both are fixed below.
+
+- The moderator link is spent and the room taken in one transaction (`takeRoom`), so of two simultaneous uses exactly one takes the room, and a failure part-way leaves the old link working. The first attempt spent the link in a separate step and could have left a room with no link anyone had been shown. Tests: "lets only one of two people who use the link in the same instant take the room", "spends the link and moves ownership together, or does neither".
+- Sessions not used for the retention period are deleted hourly, except the owner's, and anyone still connected is dropped from the live room. The cookie now lasts the retention period too, so browser and server agree. Test: "signs out people not seen for the retention period, and keeps the owner whatever their age".
+- Valkey trouble after start is reported, at most once a minute. The client's ready check stays on: the first attempt turned it off, which let a wrong password go unnoticed against an open default user and made a dropped connection hang instead of fail. Tests: "says that Valkey is in trouble, and says it once", "gives up on a command quickly when the server accepts connections and drops them", "survives a listener that throws".
+- The Valkey user loses `+evalsha`, `+hello` and the two `client` commands, none of which the client sends. `+info` stays, for the ready check. Proved by the image check.
+- The base image is pinned by digest, the floating Dockerfile syntax image is gone, and pnpm is pinned by checksum.
+
+## Rulings
+
+- Session expiry is sliding: a session in use, by anyone holding its cookie, does not expire, and the owner's never does. An absolute lifetime would sign active people out of long-lived rooms. Cost if wrong: a copied cookie that is used at least once a month keeps working until the room is deleted; the owner can end it by setting a passcode (non-moderators) or demoting (moderators).
+
 ## Deferred
 
-- Low: two simultaneous uses of the moderator link can both succeed in showing the new link (L5). Fix: swap the stored hash conditionally and proceed only if one row changed.
-- Low: the base image, the Dockerfile syntax image and pnpm are not pinned by checksum (L7).
-- Low: sessions do not expire while their room is in use (L10).
-- Low: Valkey trouble after start is still silent; only the start is checked (L8, second half).
-- Low: the Valkey user has `+evalsha`, `+ping` and `+info`; the first two are unused and the third exposes server-wide statistics. Removing them needs a check that the client still connects.
 - Minor: `check-image.sh` and `smoke.sh` hang rather than fail if a "must refuse to start" case regresses.
 - Minor: the Dockerfile reinstalls dependencies after any source change.
 - Minor: no test opens a WebSocket with `ORIGIN` set; the unit tests cover `requestOrigin`, and the image check covers form posts.
 - Informational: static files carry no Content Security Policy of their own; `/healthz` reports that the app started, not that its services are well; Traefik's rate limit does not bound audio bandwidth.
+- Not verified: that the pinned digest is the multi-architecture index (it was read from `docker buildx imagetools inspect`, which reports the index); a build on the server's architecture will show it.
 
 ## Not verifiable here
 
