@@ -17,12 +17,13 @@ Package manager is pnpm (Node 24+).
 - One test by name: add `-t "part of the test name"` to the line above
 - Typecheck: `pnpm typecheck`
 - Format: `pnpm format` (check only: `pnpm format:check`)
-- Dev Postgres and Valkey: `docker compose up -d --wait` (stop: `docker compose down`; wipe data: `docker compose down -v`). Development only; production uses existing shared services.
+- Dev Postgres and Valkey: `pnpm services:up` (stop: `pnpm services:down`; wipe data: `pnpm services:wipe`). They are defined in `compose.dev.yaml`; a bare `docker compose` in the repository root finds no file, on purpose, so it cannot be confused with the production file in `deploy/`. Development only; production uses existing shared services.
 - `packages/poker-server` tests need those services running. Each test file uses its own throwaway Postgres schema and Valkey key prefix, so they never touch development data.
 - Run the app: copy `.env.example` to `.env`, then `pnpm --filter @pokerji/web dev` and open http://localhost:5173/poker
 - Web typecheck: `pnpm --filter @pokerji/web typecheck`
 - End-to-end tests: `pnpm --filter @pokerji/web e2e` (builds the app and drives Chromium; first run needs `pnpm --filter @pokerji/web exec playwright install chromium`)
 - Check the image as production runs it: `pnpm check:image` (needs the development services; builds the image and runs it under the database roles and Valkey user from `deploy/`)
+- Deploy or update on the server: `sh deploy/deploy.sh` (see `docs/deploy.md`). Never run it from a development machine against real settings.
 - Smoke check of a build: `pnpm --filter @pokerji/web build && pnpm --filter @pokerji/web smoke`
 
 Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.

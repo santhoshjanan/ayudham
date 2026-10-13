@@ -1,9 +1,12 @@
 # Local development and test services only. Production uses the existing
 # shared Postgres and Valkey; nothing here is deployed.
 #
-#   docker compose up -d --wait    start both and wait until healthy
-#   docker compose down            stop, keep data
-#   docker compose down -v         stop and delete data
+#   pnpm services:up      start both and wait until healthy
+#   pnpm services:down    stop, keep data
+#   pnpm services:wipe    stop and delete data
+# (each is: docker compose -f compose.dev.yaml ...)
+#
+# The production file is deploy/compose.yaml.
 #
 # Ports bind to 127.0.0.1 only. Override ports or passwords in a local .env
 # (see .env.example).
