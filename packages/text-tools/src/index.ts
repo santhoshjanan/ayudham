@@ -13,3 +13,5 @@ export * from './cases.ts';
 export * from './slug.ts';
 export * from './lines.ts';
 export * from './count.ts';
+export * from './entities.ts';
+export * from './encode.ts';
