@@ -1,3 +1,4 @@
+import * as secrets from '../src/index.ts';
 import { describe, expect, it } from 'vitest';
 import {
   addressKey,
@@ -67,4 +68,25 @@ describe('passcodes', () => {
   it('do not match a stored value that is not a hash', async () => {
     expect(await passcodeMatches('anything', 'not-a-hash')).toBe(false);
   });
+});
+
+describe('Argon2 under load', () => {
+  it('checks as many passcodes as may run or wait, and refuses the rest as wrong', async () => {
+    const stored = await secrets.hashPasscode('correct horse');
+    const room = secrets.ARGON2_CONCURRENT + secrets.ARGON2_WAITING;
+    const results = await Promise.all(
+      Array.from({ length: room + 12 }, () => secrets.passcodeMatches('correct horse', stored)),
+    );
+    expect(results.filter(Boolean)).toHaveLength(room);
+    expect(results.slice(room)).toEqual(Array<boolean>(12).fill(false));
+  }, 30_000);
+
+  it('never refuses to hash a new passcode for load', async () => {
+    const hashes = await Promise.all(
+      Array.from({ length: secrets.ARGON2_CONCURRENT + secrets.ARGON2_WAITING + 5 }, () =>
+        secrets.hashPasscode('x'.repeat(12)),
+      ),
+    );
+    expect(hashes.every((value) => value.startsWith('$argon2id$'))).toBe(true);
+  }, 30_000);
 });
