@@ -83,6 +83,36 @@ test('public pages describe themselves to search engines and link previews', asy
       'pokerji',
     );
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+    // A picture for link previews, by its full address, with its size and a description.
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+      'content',
+      `${origin}/og.jpg`,
+    );
+    await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute(
+      'content',
+      '1200',
+    );
+    await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute(
+      'content',
+      '630',
+    );
+    expect(
+      (await page.locator('meta[property="og:image:alt"]').getAttribute('content'))?.length,
+    ).toBeGreaterThan(20);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+      'content',
+      'summary_large_image',
+    );
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+      'content',
+      `${origin}/og.jpg`,
+    );
+  }
+  const image = await page.request.get('/og.jpg');
+  expect(image.status()).toBe(200);
+  expect(image.headers()['content-type']).toBe('image/jpeg');
+  expect((await image.body()).length).toBeLessThan(300_000);
+  {
   }
 });
 
