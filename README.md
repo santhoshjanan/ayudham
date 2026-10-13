@@ -20,7 +20,7 @@
 
 ---
 
-pokerji is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site.
+pokerji is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site. The third is a set of [text generators and converters](#the-text-tools): make a password or an identifier, or turn text into another form.
 
 Estimation is judging, so pokerji looks like the judges' row at a diving meet: the story on a field of pool aqua, a row of white scorecards face down, and then every card turned in the same instant. The highest and lowest are flagged, because they speak first.
 
@@ -47,6 +47,12 @@ Estimation is judging, so pokerji looks like the judges' row at a diving meet: t
 At `/schema`. Pick one of ten common types (organization, local business, website, breadcrumbs, article, FAQ page, product, event, person, recipe) or any other Schema.org type, fill in the form, and copy the JSON-LD as a script tag or as raw JSON. The form says what search engines require and recommend, and what is still missing. Several items can be built together and refer to each other.
 
 It runs entirely in your browser. Nothing typed into it is sent to the server, and the server stores nothing for it; the draft is kept in the browser's own storage until you clear it.
+
+## The text tools
+
+At `/text`. Generators: passwords (with an exact strength figure and an option to leave out look-alike characters), passphrases from the EFF long word list, random strings in hex, Base64 and other alphabets, PINs and numbers, UUID v4 and v7, ULID and short identifiers, dice, coins and picks from a list. Converters: twelve case forms, slugs, Base64, hex, URL and HTML entity encoding both ways, SHA-2 hashes, line tools and counts.
+
+They run entirely in your browser. Every random choice comes from the browser's cryptographic random source, without bias. Nothing typed or made is sent to the server, and nothing is stored anywhere.
 
 ## Privacy
 
@@ -108,8 +114,9 @@ To run the app outside Docker, copy the development lines from `.env.example` in
 | [`packages/protocol`](packages/protocol) | Limits, decks and WebSocket message schemas shared by server and browser |
 | [`packages/poker-engine`](packages/poker-engine) | The room's rules as a pure function: no I/O, no clock, no framework. Vote secrecy is enforced in one place here |
 | [`packages/schema-builder`](packages/schema-builder) | The markup builder's rules as pure functions: the draft, the JSON-LD it becomes, the ten guided types, the checks, and a reader for the bundled Schema.org vocabulary |
+| [`packages/text-tools`](packages/text-tools) | The text tools' rules as pure functions: unbiased sampling, the generators, the converters and a reader for the bundled word list |
 | [`packages/poker-server`](packages/poker-server) | Everything that touches Postgres, Valkey, the clock or a socket |
-| [`apps/web`](apps/web) | A thin SvelteKit app: pages, forms, the live room and the markup builder's page |
+| [`apps/web`](apps/web) | A thin SvelteKit app: pages, forms, the live room, the markup builder's page and the text tools' page |
 
 Postgres holds rooms, sessions and history. Valkey holds rate-limit counters and room locks. One server instance holds the live rooms in memory.
 
