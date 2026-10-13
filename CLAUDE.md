@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. What remains is release (Dockerfile, Traefik notes, final security audit). The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
+Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. It is packaged for release: `Dockerfile`, `deploy/` and `docs/deploy.md`. Deployment is the owner's action. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
 
 ## Commands
 
@@ -22,6 +22,7 @@ Package manager is pnpm (Node 24+).
 - Run the app: copy `.env.example` to `.env`, then `pnpm --filter @pokerji/web dev` and open http://localhost:5173/poker
 - Web typecheck: `pnpm --filter @pokerji/web typecheck`
 - End-to-end tests: `pnpm --filter @pokerji/web e2e` (builds the app and drives Chromium; first run needs `pnpm --filter @pokerji/web exec playwright install chromium`)
+- Check the image as production runs it: `pnpm check:image` (needs the development services; builds the image and runs it under the database roles and Valkey user from `deploy/`)
 - Smoke check of a build: `pnpm --filter @pokerji/web build && pnpm --filter @pokerji/web smoke`
 
 Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.
@@ -39,6 +40,9 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - SvelteKit 3 differences that matter here: configuration is in `vite.config.ts` (no `svelte.config.js`); hook types come from `@sveltejs/kit/hooks`; the library alias is `#lib` and imports through it carry the file extension.
 - One runtime object per process lives on `globalThis` under `Symbol.for('pokerji.runtime')` (`apps/web/src/lib/server/pokerji.ts`). `apps/web/server.js`, the production entry, uses it to hand WebSocket upgrades to `createUpgradeHandler`; a Vite plugin does the same in dev.
 - Behind Traefik the app needs `PROTOCOL_HEADER=x-forwarded-proto`, `HOST_HEADER=x-forwarded-host`, `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`. Without the first two, every form post is refused. `INSECURE_HTTP=1` is for local testing only; `server.js` refuses to start with it unless `HOST` is a loopback address, and refuses to start without `ADDRESS_HEADER` otherwise.
+- In production the app's database role cannot change the schema: `MIGRATIONS=check` makes it verify and refuse to start if behind, and migrations are applied by a one-shot run of the same image with `MIGRATE_ONLY=1` under the owner role. A new migration therefore needs the migrate job run before the new image starts.
+- `apps/web/server.js` sets the base security headers on every response, because static files never reach `hooks.server.ts`. When `ORIGIN` is set it also states the site's origin on every request, in two headers of its own that it overwrites; this version of the Node adapter takes a fixed origin only at build time. The WebSocket upgrade reads `ORIGIN` directly.
+- `deploy/postgres-roles.sql` and `deploy/valkey-acl.txt` are what `docs/deploy.md` tells the owner to run and what `pnpm check:image` tests. A new Valkey command or database need must be added there, or production will refuse it.
 - The Content Security Policy applies to builds, not to `vite dev`. It forbids inline styles: no `style` attributes and no Svelte `transition:` or `animate:` directives in `apps/web`. The single exception, allowed by hash in `vite.config.ts`, is SvelteKit's own route announcer.
 - `Referrer-Policy` must stay `same-origin`, not `no-referrer`: with `no-referrer` browsers send `Origin: null` on same-site form posts and SvelteKit refuses every form.
 - The session cookie is always `Secure` outside local development. Never derive it from the request: a forwarded-protocol header must not be able to switch it off.

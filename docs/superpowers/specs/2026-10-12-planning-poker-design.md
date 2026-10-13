@@ -66,7 +66,9 @@ All responses carry `Referrer-Policy: same-origin`, so a room link is never sent
 - A dedicated Postgres database and role, with no rights on other databases.
 - A dedicated Valkey ACL user restricted to the `pokerji:` key prefix.
 - Configuration and secrets come from environment variables only.
-- The client address is read from Traefik's forwarded header, and only when the request comes from a configured trusted proxy address.
+- The client address is read from the last entry of Traefik's `X-Forwarded-For`. The container publishes no ports and sits only on Traefik's network and the data network, so Traefik is the only thing that can reach it; the app does not check the sender's address itself. The site's origin is fixed by `ORIGIN`, which the entry file states on every request, so forwarded host and protocol headers are never trusted.
+- The app's database role cannot change the schema; migrations are applied by a one-shot run of the same image under a separate owner role, and the app refuses to start if the schema is behind.
+- The image runs as a non-root user on a read-only filesystem with all capabilities dropped.
 - Deployment notes must state that Traefik access logging for this router should be disabled or have the request path redacted, because the room code is in the path.
 
 ### Scaling position
