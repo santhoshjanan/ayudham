@@ -8,7 +8,7 @@ set -f
 
 IMAGE=pokerji:check
 # Whichever network the development Postgres is on.
-NET="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' "$(docker compose -f compose.dev.yaml ps -q postgres)")"
+NET="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' "$(docker compose -f compose-dev.yaml ps -q postgres)")"
 DB="relcheck_$$"
 KVUSER="relcheck$$"
 PW="check-$(date +%s)-$$"
@@ -16,8 +16,8 @@ PORT=4393
 PGPW="${POSTGRES_PASSWORD:-pokerji_dev}"
 
 fail() { echo "IMAGE CHECK FAILED: $1"; exit 1; }
-psql_admin() { docker compose -f compose.dev.yaml exec -T -e PGPASSWORD="$PGPW" postgres psql -v ON_ERROR_STOP=1 -U pokerji "$@"; }
-kv_admin() { docker compose -f compose.dev.yaml exec -T valkey valkey-cli "$@"; }
+psql_admin() { docker compose -f compose-dev.yaml exec -T -e PGPASSWORD="$PGPW" postgres psql -v ON_ERROR_STOP=1 -U pokerji "$@"; }
+kv_admin() { docker compose -f compose-dev.yaml exec -T valkey valkey-cli "$@"; }
 
 cleanup() {
   docker rm -f pokerji-check >/dev/null 2>&1 || true
@@ -38,7 +38,7 @@ docker run --rm "$IMAGE" sh -c 'test ! -e /app/.env && test ! -d /app/e2e && tes
 docker run --rm "$IMAGE" sh -c 'test -f /app/migrations/001_init.sql' || fail "migrations missing"
 
 # The roles and the Valkey user, exactly as the deployment notes give them.
-docker compose -f compose.dev.yaml exec -T -e PGPASSWORD="$PGPW" postgres psql -v ON_ERROR_STOP=1 -U pokerji -d pokerji \
+docker compose -f compose-dev.yaml exec -T -e PGPASSWORD="$PGPW" postgres psql -v ON_ERROR_STOP=1 -U pokerji -d pokerji \
   -v db="$DB" -v owner="${DB}_owner" -v app="${DB}_app" \
   -v owner_password="$PW" -v app_password="$PW" < deploy/postgres-roles.sql >/dev/null \
   || fail "postgres-roles.sql"
@@ -69,7 +69,7 @@ fi
 
 # The step the notes give for after the first migrate: the app may read the record of
 # migrations, not change it.
-docker compose -f compose.dev.yaml exec -T -e PGPASSWORD="$PW" postgres psql -v ON_ERROR_STOP=1 -U "${DB}_owner" -d "$DB" \
+docker compose -f compose-dev.yaml exec -T -e PGPASSWORD="$PW" postgres psql -v ON_ERROR_STOP=1 -U "${DB}_owner" -d "$DB" \
   -v app="${DB}_app" < deploy/postgres-after-first-migrate.sql >/dev/null \
   || fail "postgres-after-first-migrate.sql"
 
@@ -104,11 +104,11 @@ OWNHEADERS=$(curl -s -o /dev/null -w '%{http_code}' -H "$FWD" -H 'Origin: https:
 [ "$OWNHEADERS" = "403" ] || fail "the entry file's own origin headers can be set by a client (got $OWNHEADERS)"
 
 # The app role cannot change the schema, and the Valkey user cannot leave its prefix.
-if docker compose -f compose.dev.yaml exec -T -e PGPASSWORD="$PW" postgres psql -U "${DB}_app" -d "$DB" \
+if docker compose -f compose-dev.yaml exec -T -e PGPASSWORD="$PW" postgres psql -U "${DB}_app" -d "$DB" \
   -c 'create table intruder (id int)' >/dev/null 2>&1; then
   fail "the app role created a table"
 fi
-if docker compose -f compose.dev.yaml exec -T -e PGPASSWORD="$PW" postgres psql -v ON_ERROR_STOP=1 -U "${DB}_app" -d "$DB" \
+if docker compose -f compose-dev.yaml exec -T -e PGPASSWORD="$PW" postgres psql -v ON_ERROR_STOP=1 -U "${DB}_app" -d "$DB" \
   -c "delete from schema_migrations" >/dev/null 2>&1; then
   fail "the app role changed the record of migrations"
 fi
