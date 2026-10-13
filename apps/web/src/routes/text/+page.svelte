@@ -1,5 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Chance from '#lib/text/Chance.svelte';
+  import Identifier from '#lib/text/Identifier.svelte';
+  import Numbers from '#lib/text/Numbers.svelte';
+  import Passphrase from '#lib/text/Passphrase.svelte';
+  import RandomString from '#lib/text/RandomString.svelte';
   import Password from '#lib/text/Password.svelte';
   import ToolRow from '#lib/text/ToolRow.svelte';
   import { toolFrom, type ToolId } from '#lib/text/tools.ts';
@@ -44,8 +49,21 @@
 
   {#if ready}
     <div data-ready>
-      <ToolRow current={tool} />
-      <Password />
+      <ToolRow bind:current={tool} />
+      {#if tool === 'passphrase'}
+        <Passphrase />
+      {:else if tool === 'random'}
+        <RandomString />
+      {:else if tool === 'number'}
+        <Numbers />
+      {:else if tool === 'id'}
+        <Identifier />
+      {:else if tool === 'chance'}
+        <Chance />
+      {:else}
+        <Password />
+      {/if}
+
     </div>
   {/if}
 

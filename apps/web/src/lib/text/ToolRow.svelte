@@ -1,7 +1,7 @@
 <script lang="ts">
   import { GROUPS, TOOLS, type ToolId } from './tools.ts';
 
-  let { current }: { current: ToolId } = $props();
+  let { current = $bindable() }: { current: ToolId } = $props();
 </script>
 
 <nav aria-label="Tools">
@@ -11,7 +11,7 @@
       <ul>
         {#each TOOLS.filter((tool) => tool.group === group) as tool (tool.id)}
           <li>
-            <a href="#{tool.id}" aria-current={tool.id === current ? 'true' : undefined}
+            <a href="#{tool.id}" onclick={() => (current = tool.id)} aria-current={tool.id === current ? 'true' : undefined}
               >{tool.label}</a
             >
           </li>
