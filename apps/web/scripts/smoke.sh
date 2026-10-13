@@ -9,6 +9,8 @@ export DATABASE_URL="${DATABASE_URL:-postgres://pokerji:pokerji_dev@127.0.0.1:54
 export VALKEY_URL="${VALKEY_URL:-redis://:pokerji_dev@127.0.0.1:6379}"
 export ADDRESS_HMAC_SECRET="${ADDRESS_HMAC_SECRET:-development-only-address-hmac-secret}"
 export KEY_PREFIX="smoke-$$:"
+METRICS=4396
+export METRICS_PORT=$METRICS METRICS_TOKEN=smoke-only-metrics-token-0123456789
 
 fail() { echo "SMOKE FAILED: $1"; exit 1; }
 
@@ -18,6 +20,15 @@ if HOST=0.0.0.0 node server.js >/dev/null 2>&1; then
 fi
 if (unset INSECURE_HTTP ADDRESS_HEADER; node server.js >/dev/null 2>&1); then
   fail "started without ADDRESS_HEADER"
+fi
+if METRICS_PORT=$PORT node server.js >/dev/null 2>&1; then
+  fail "started with the metrics on the public port"
+fi
+if METRICS_PORT=not-a-port node server.js >/dev/null 2>&1; then
+  fail "started with a metrics port that is not a port"
+fi
+if METRICS_TOKEN=short node server.js >/dev/null 2>&1; then
+  fail "started with a metrics token too short to be a secret"
 fi
 
 # The migrate-only run applies migrations and exits without serving.
@@ -64,5 +75,36 @@ if echo "$MISSING" | grep -qi "cache-control: public"; then fail "a missing audi
 CROSS=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' \
   -d 'name=Mo&deck=fibonacci' "http://127.0.0.1:$PORT/poker")
 [ "$CROSS" = "403" ] || fail "cross-origin form post was not refused (got $CROSS)"
+
+# Metrics: never on the public port, and on their own port only GET /metrics with the token.
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/metrics")" = "404" ] \
+  || fail "the public port answers /metrics"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $METRICS_TOKEN" "http://127.0.0.1:$PORT/metrics")" = "404" ] \
+  || fail "the public port answers /metrics with the token"
+M="http://127.0.0.1:$METRICS"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$M/metrics")" = "401" ] || fail "metrics without the token"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer wrong' "$M/metrics")" = "401" ] \
+  || fail "metrics with a wrong token"
+SCRAPE=$(curl -s -D - -H "Authorization: Bearer $METRICS_TOKEN" "$M/metrics")
+echo "$SCRAPE" | grep -qi "^HTTP/1.1 200" || fail "metrics with the token"
+echo "$SCRAPE" | grep -qi "^content-type: text/plain" || fail "metrics content type"
+echo "$SCRAPE" | grep -q '^pokerji_build_info{version="dev"} 1' || fail "build info in the scrape"
+echo "$SCRAPE" | grep -q '^pokerji_valkey_up 1' || fail "valkey_up in the scrape"
+echo "$SCRAPE" | grep -q '^pokerji_postgres_up 1' || fail "postgres_up in the scrape"
+echo "$SCRAPE" | grep -q '^pokerji_http_requests_total{route_class="healthz",status_class="2xx"}' \
+  || fail "requests are not counted"
+echo "$SCRAPE" | grep -q '^process_resident_memory_bytes' || fail "process metrics in the scrape"
+if echo "$SCRAPE" | grep -q "AAAAAAAAAAAA"; then fail "a room code reached the scrape"; fi
+for other in / /healthz /poker /metrics/ /metrics/x; do
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $METRICS_TOKEN" "$M$other")" = "404" ] \
+    || fail "the metrics port answers $other"
+done
+for method in POST PUT DELETE HEAD; do
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -X "$method" -H "Authorization: Bearer $METRICS_TOKEN" "$M/metrics")" = "404" ] \
+    || fail "the metrics port answers $method"
+done
+UPGRADE=$(curl -s -o /dev/null -m 3 -w '%{http_code}' -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "$M/metrics" || true)
+[ "$UPGRADE" != "101" ] || fail "the metrics port accepted a WebSocket upgrade"
 
 echo "SMOKE OK"

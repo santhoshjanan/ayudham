@@ -281,6 +281,8 @@ export const metrics = {
     }),
 
   contentType: registry.contentType,
+  /** Whether a request with this Authorization header may read the metrics. */
+  authorized: metricsAuthorized,
   /** The scrape body. Never throws: on failure it is empty. */
   render: async (): Promise<string> => {
     try {
