@@ -1,16 +1,14 @@
-# Production. Runs beside your existing reverse proxy, Postgres and Valkey.
-# This file configures no proxy: it puts the app on your proxy's network as `web`,
-# port 3000, and you route to it (docs/deploy.md, section 3).
-# From this folder, with a filled-in .env (see .env.example and docs/deploy.md):
-#   docker compose build                                   build the image from this checkout
-#   docker compose --profile migrate run --rm migrate     apply migrations
-#   docker compose up -d                                   start or update the app
+# Production. From this folder, with .env filled in (see .env.example):
+#   docker compose up -d --build
+# or run ./deploy.sh, which does the same after checking the settings.
+#
+# The app joins two Docker networks that already exist on your server: your reverse
+# proxy's, and the one Postgres and Valkey are on. It publishes no ports. Point your
+# proxy at  web:3000  (plain HTTP, WebSockets included). No proxy is configured here.
 name: pokerji
 
 x-app: &app
-  image: ${POKERJI_IMAGE:?set POKERJI_IMAGE}
-  # Only used by `docker compose build`. With an image loaded under this tag already
-  # (docs/deploy.md, section 7), nothing is built.
+  image: ${POKERJI_IMAGE:-pokerji:latest}
   build:
     context: ..
   pull_policy: never
@@ -21,7 +19,6 @@ x-app: &app
   security_opt: ['no-new-privileges:true']
   pids_limit: 256
   mem_limit: 512m
-  # So a busy app cannot starve the Postgres, Valkey and reverse proxy it shares the server with.
   cpus: ${POKERJI_CPUS:-2}
   logging:
     driver: json-file
@@ -30,19 +27,6 @@ x-app: &app
       max-file: '3'
 
 services:
-  # One-shot: applies migrations as the role that owns the schema, then exits.
-  migrate:
-    <<: *app
-    profiles: [migrate]
-    restart: 'no'
-    environment:
-      MIGRATE_ONLY: '1'
-      DATABASE_URL: ${MIGRATE_DATABASE_URL:?set MIGRATE_DATABASE_URL}
-      VALKEY_URL: ${VALKEY_URL:?set VALKEY_URL}
-      ADDRESS_HMAC_SECRET: ${ADDRESS_HMAC_SECRET:?set ADDRESS_HMAC_SECRET}
-      KEY_PREFIX: ${KEY_PREFIX:-pokerji:}
-    networks: [data]
-
   web:
     <<: *app
     restart: unless-stopped
@@ -51,19 +35,32 @@ services:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
       VALKEY_URL: ${VALKEY_URL:?set VALKEY_URL}
       ADDRESS_HMAC_SECRET: ${ADDRESS_HMAC_SECRET:?set ADDRESS_HMAC_SECRET}
-      KEY_PREFIX: ${KEY_PREFIX:-pokerji:}
-      # The app role cannot change the schema; it verifies it and refuses to start if behind.
-      MIGRATIONS: check
-      # The one origin the app answers to. Forwarded host and protocol headers are not consulted.
+      # The one origin the app answers to.
       ORIGIN: https://${POKERJI_HOST:?set POKERJI_HOST}
-      # With one proxy in front, the client is the last entry that proxy wrote.
+      # The visitor's address is the last entry your proxy wrote in this header.
       ADDRESS_HEADER: x-forwarded-for
       XFF_DEPTH: ${XFF_DEPTH:-1}
+      # "apply": the app brings its own tables up to date when it starts.
+      MIGRATIONS: ${MIGRATIONS:-apply}
+      KEY_PREFIX: ${KEY_PREFIX:-pokerji:}
       RETENTION_DAYS: ${RETENTION_DAYS:-30}
       BACKUP_ROTATION_DAYS: ${BACKUP_ROTATION_DAYS:-}
-    # Run exactly one. A second instance would not see the first one's live rooms.
-    # No ports: the container is reachable only from your proxy's network and the data network.
+    # Run exactly one: live rooms are held in its memory.
     networks: [proxy, data]
+
+  # Optional (docs/deploy.md, "Optional hardening"). Only used when you give the app a
+  # database user that cannot change tables: this one-shot run then applies migrations.
+  migrate:
+    <<: *app
+    profiles: [migrate]
+    restart: 'no'
+    environment:
+      MIGRATE_ONLY: '1'
+      DATABASE_URL: ${MIGRATE_DATABASE_URL:-}
+      VALKEY_URL: ${VALKEY_URL:-}
+      ADDRESS_HMAC_SECRET: ${ADDRESS_HMAC_SECRET:-}
+      KEY_PREFIX: ${KEY_PREFIX:-pokerji:}
+    networks: [data]
 
 networks:
   proxy:

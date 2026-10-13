@@ -28,6 +28,8 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+    networks:
+      - proxy
 
   valkey:
     image: valkey/valkey:9-alpine
@@ -49,6 +51,11 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+    networks:
+      - proxy
 
 volumes:
   postgres-data:
+
+networks:
+  proxy:
