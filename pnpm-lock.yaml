@@ -147,6 +147,12 @@ importers:
         specifier: ^24.0.0
         version: 24.19.2
 
+  packages/text-tools:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.2
+
 packages:
 
   '@axe-core/playwright@4.13.0':
