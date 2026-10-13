@@ -49,6 +49,17 @@ echo "$HEADERS" | grep -qi "cache-control: no-store" || fail "no-store on room p
 echo "$HEADERS" | grep -qi "x-robots-tag: noindex" || fail "noindex on room pages"
 echo "$HEADERS" | grep -qi "cross-origin-opener-policy: same-origin" || fail "opener policy"
 
+# Static files do not pass through the page hooks; they must carry the base headers too.
+AUDIO=$(curl -s -D - -o /dev/null "http://127.0.0.1:$PORT/audio/bach-goldberg-var1.mp3")
+echo "$AUDIO" | grep -qi "^HTTP/1.1 200" || fail "audio file not served"
+echo "$AUDIO" | grep -qi "x-content-type-options: nosniff" || fail "nosniff on static files"
+echo "$AUDIO" | grep -qi "cross-origin-resource-policy: same-origin" || fail "resource policy on static files"
+echo "$AUDIO" | grep -qi "cache-control: public, max-age=604800" || fail "cache lifetime on audio"
+RANGE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-99' "http://127.0.0.1:$PORT/audio/bach-goldberg-var1.mp3")
+[ "$RANGE" = "206" ] || fail "audio does not answer range requests (got $RANGE)"
+MISSING=$(curl -s -D - -o /dev/null "http://127.0.0.1:$PORT/audio/nothing.mp3")
+echo "$MISSING" | grep -qi "x-content-type-options: nosniff" || fail "nosniff on a missing file"
+
 CROSS=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' \
   -d 'name=Mo&deck=fibonacci' "http://127.0.0.1:$PORT/poker")
 [ "$CROSS" = "403" ] || fail "cross-origin form post was not refused (got $CROSS)"

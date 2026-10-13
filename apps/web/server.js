@@ -48,8 +48,20 @@ const mark = (req) => {
   if (insecure) req.headers['x-forwarded-proto'] = 'http';
 };
 
+// The base headers for every response. Pages set their own on top in hooks.server.ts;
+// files from the static folder never reach the hooks, so they get them here.
+const harden = (req, res) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // The recordings never change under one name, and are large: let browsers keep them a week.
+  if (req.url?.startsWith('/audio/')) res.setHeader('Cache-Control', 'public, max-age=604800');
+};
+
 const server = createServer((req, res) => {
   mark(req);
+  harden(req, res);
   handler(req, res, () => {
     res.statusCode = 404;
     res.end('Not found');
