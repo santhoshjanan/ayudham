@@ -39,6 +39,7 @@ beforeAll(async () => {
       keyPrefix: testPrefix(),
       backupRotationDays: null,
       version: '9.8.7',
+      metrics: true,
     },
     { schema: made.schema, report: () => undefined },
   );
@@ -164,7 +165,7 @@ describe('metrics, against real services', () => {
     // Unloading.
     await app.registry.close(room.id);
     text = await until('pokerji_rooms_active', 0);
-    expect(value(text, 'pokerji_room_unloads_total{reason="shutdown"}')).toBe(1);
+    expect(value(text, 'pokerji_room_unloads_total{reason="closed"}')).toBe(1);
 
     // The services answer, and the version is there.
     expect(value(text, 'pokerji_valkey_up')).toBe(1);

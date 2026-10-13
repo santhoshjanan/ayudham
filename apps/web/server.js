@@ -168,6 +168,8 @@ server.listen(publicPort, process.env.HOST ?? '0.0.0.0');
 // methods, no WebSockets. Publish its port on an internal network only.
 let metricsServer = null;
 if (metricsPort !== null && !migrateOnly) {
+  // Rendered at most once a second, however often it is asked for.
+  let scrape = { at: -Infinity, body: Promise.resolve('') };
   metricsServer = createServer((req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'no-store');
@@ -178,19 +180,39 @@ if (metricsPort !== null && !migrateOnly) {
       res.setHeader('WWW-Authenticate', 'Bearer');
       return res.end('Unauthorized');
     }
-    app.metrics.render().then(
-      (body) => {
+    if (Date.now() - scrape.at >= 1_000) scrape = { at: Date.now(), body: app.metrics.render() };
+    scrape.body
+      .then((body) => {
+        // An empty body means the metrics could not be written; say so, not "all is well".
+        if (body === '') {
+          res.statusCode = 503;
+          return res.end();
+        }
         res.setHeader('Content-Type', app.metrics.contentType);
         res.end(body);
-      },
-      () => {
-        res.statusCode = 500;
-        res.end();
-      },
-    );
+      })
+      .catch(() => res.destroy());
   });
+  // A monitoring server makes one short request at a time. Nothing else is expected here.
+  metricsServer.maxConnections = 8;
+  metricsServer.headersTimeout = 5_000;
+  metricsServer.requestTimeout = 10_000;
   metricsServer.on('upgrade', (_req, socket) => socket.destroy());
-  metricsServer.listen(metricsPort, process.env.METRICS_HOST ?? process.env.HOST ?? '0.0.0.0');
+  // Metrics are optional: a port that cannot be opened must not stop the app.
+  metricsServer.on('error', () => {
+    console.error('METRICS_PORT could not be opened. The app is running without metrics.');
+  });
+  metricsServer.listen(
+    metricsPort,
+    process.env.METRICS_HOST ?? process.env.HOST ?? '0.0.0.0',
+    () => {
+      console.log(
+        metricsToken === ''
+          ? 'Metrics are served on METRICS_PORT without a token. Keep that port on a private network.'
+          : 'Metrics are served on METRICS_PORT and require the bearer token.',
+      );
+    },
+  );
 }
 
 let stopping = false;

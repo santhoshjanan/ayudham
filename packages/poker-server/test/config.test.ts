@@ -18,7 +18,13 @@ describe('loadConfig', () => {
       backupRotationDays: null,
       migrations: 'apply',
       version: 'dev',
+      metrics: false,
     });
+  });
+
+  it('knows whether metrics were asked for', () => {
+    expect(loadConfig({ ...valid, METRICS_PORT: '9464' }).metrics).toBe(true);
+    expect(loadConfig({ ...valid, METRICS_PORT: '' }).metrics).toBe(false);
   });
 
   it('takes a version for the metrics, and refuses one that is not a plain version', () => {

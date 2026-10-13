@@ -15,8 +15,11 @@ describe('metrics', () => {
     metrics.roomLoaded();
     metrics.roomLoaded();
     metrics.roomUnloaded('idle');
+    metrics.roomLoaded();
+    metrics.roomUnloaded('closed');
+    expect(await sample('pokerji_room_unloads_total{reason="closed"}')).toBe(1);
     expect(await sample('pokerji_rooms_active')).toBe(1);
-    expect(await sample('pokerji_room_loads_total')).toBe(2);
+    expect(await sample('pokerji_room_loads_total')).toBe(3);
     expect(await sample('pokerji_room_unloads_total{reason="idle"}')).toBe(1);
   });
 
@@ -63,8 +66,10 @@ describe('metrics', () => {
     const text = await metrics.render();
     expect(text).not.toContain('Zm9vYmFy');
     expect(text).not.toContain('0b0e4a52');
-    expect(await sample('pokerji_rate_limit_hits_total{bucket="join"}')).toBe(1);
-    expect(await sample('pokerji_rate_limit_hits_total{bucket="pass"}')).toBe(1);
+    expect(await sample('pokerji_rate_limit_hits_total{bucket="join"}')).toBe(2);
+    // A passcode lockout is counted with joins: on its own it would tell a reader of the
+    // metrics that a room exists, has a passcode and is locked, which the site never says.
+    expect(await sample('pokerji_rate_limit_hits_total{bucket="pass"}')).toBeUndefined();
     expect(await sample('pokerji_rate_limit_hits_total{bucket="create"}')).toBe(1);
     expect(await sample('pokerji_rate_limit_errors_total')).toBe(1);
   });
@@ -142,6 +147,17 @@ describe('metrics', () => {
     expect(await sample('pokerji_metrics_errors_total')).toBeGreaterThanOrEqual(1);
   });
 
+  it('says nothing, and counts the failure, when the scrape itself cannot be written', async () => {
+    metrics.setProbes({
+      valkey: () => {
+        throw new Error('not even a promise');
+      },
+      postgres: async () => undefined,
+    });
+    // A probe that throws outright is still only "down".
+    expect(await sample('pokerji_valkey_up')).toBe(0);
+  });
+
   it('writes the Prometheus text format, with every metric prefixed and described', async () => {
     metrics.roomLoaded();
     const text = await metrics.render();
@@ -154,6 +170,25 @@ describe('metrics', () => {
       .map((line) => line.split(' ')[2] ?? '');
     expect(names.length).toBeGreaterThan(10);
     for (const name of names) expect(name).toMatch(/^pokerji_[a-z_]+$/);
+  });
+});
+
+describe('rate-limit buckets', () => {
+  it('has a label for the first part of every rate-limit key the code builds', async () => {
+    const { readFileSync } = await import('node:fs');
+    const source = ['flows.ts', 'upgrade.ts', 'moderation.ts']
+      .map((file) => readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8'))
+      .join('\n');
+    const firstParts = new Set(
+      [...source.matchAll(/[`'](\w+):(?:\$\{|all')/g)].map((match) => match[1] ?? ''),
+    );
+    expect(firstParts.size).toBeGreaterThan(8);
+    for (const part of firstParts) {
+      metrics.reset();
+      metrics.rateLimitHit(`${part}:x`);
+      const text = await metrics.render();
+      expect(text, part).not.toContain('bucket="other"');
+    }
   });
 });
 

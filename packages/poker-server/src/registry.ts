@@ -78,7 +78,7 @@ export class RoomRegistry {
     const entry = this.live.get(roomId);
     if (!entry) return;
     this.live.delete(roomId);
-    metrics.roomUnloaded('shutdown');
+    metrics.roomUnloaded('closed');
     await entry.host.shutdown();
     await entry.lock.release().catch(() => undefined);
   }

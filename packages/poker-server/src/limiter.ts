@@ -59,9 +59,7 @@ export async function overLimit(
 ): Promise<boolean> {
   try {
     const count = Number((await kv.get(`${prefix}rl:${key}`)) ?? 0);
-    const over = !(count < limit.max);
-    if (over) metrics.rateLimitHit(key);
-    return over;
+    return !(count < limit.max);
   } catch {
     metrics.rateLimitError();
     return true;

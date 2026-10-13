@@ -51,7 +51,14 @@ test('a round played in a browser is counted, and nothing about it is in the scr
   await expect(page.getByTestId('participants')).toContainText(`${NAME} voted`);
   const cookies = await context.cookies();
 
-  const text = await (await request.get(`${METRICS}/metrics`)).text();
+  // The listener writes a fresh scrape at most once a second, so ask until this round shows.
+  let text = '';
+  await expect
+    .poll(async () => {
+      text = await (await request.get(`${METRICS}/metrics`)).text();
+      return /^pokerji_websocket_messages_total\{type="vote"\} [1-9]/m.test(text);
+    })
+    .toBe(true);
   const value = (line: string) => {
     const found = text.split('\n').find((entry) => entry.startsWith(`${line} `));
     return found === undefined ? 0 : Number(found.slice(line.length + 1));

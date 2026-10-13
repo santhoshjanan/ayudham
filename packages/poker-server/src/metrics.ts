@@ -39,7 +39,8 @@ const CLOSE_REASONS = [
   'closed_by_server',
   'other',
 ] as const;
-const UNLOAD_REASONS = ['idle', 'lock_lost', 'shutdown', 'other'] as const;
+/** "closed": the room was deleted, or the server is stopping. */
+const UNLOAD_REASONS = ['idle', 'lock_lost', 'closed', 'other'] as const;
 const REFUSAL_REASONS = [
   'bad_request',
   'auth',
@@ -54,7 +55,6 @@ const BUCKETS = [
   'create48',
   'join',
   'join48',
-  'pass',
   'ws',
   'settings',
   'passcode',
@@ -168,7 +168,8 @@ async function answers(probe: Probe): Promise<number> {
   let timer: NodeJS.Timeout | undefined;
   try {
     await Promise.race([
-      probe(),
+      // Called inside the race, so a probe that throws outright is caught here too.
+      Promise.resolve().then(probe),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('no answer')), PROBE_TIMEOUT_MS);
       }),
@@ -244,7 +245,9 @@ export const metrics = {
   rateLimitHit: (key: unknown) =>
     safe(() => {
       const first = typeof key === 'string' ? key.split(':')[0] : undefined;
-      rateLimitHits.inc({ bucket: pick(BUCKETS, first, 'other') });
+      // Passcode limits are counted with joins. A series of their own would tell a reader
+      // of the metrics who also tried to join that a room exists and is locked out.
+      rateLimitHits.inc({ bucket: pick(BUCKETS, first === 'pass' ? 'join' : first, 'other') });
     }),
   rateLimitError: () => safe(() => rateLimitErrors.inc()),
   lockWaited: (seconds: number) => safe(() => lockWait.observe(seconds)),
@@ -289,7 +292,7 @@ export const metrics = {
       await probe();
       return await registry.metrics();
     } catch {
-      safe(() => undefined);
+      safe(() => errors.inc());
       return '';
     }
   },

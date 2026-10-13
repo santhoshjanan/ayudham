@@ -35,13 +35,16 @@ Off by default. Set `METRICS_PORT` on `web` and the app starts a second listener
 ```yaml
     environment:
       METRICS_PORT: 9464
-      METRICS_TOKEN: ${METRICS_TOKEN}   # optional
+      # METRICS_TOKEN: ${METRICS_TOKEN:?set METRICS_TOKEN}
 ```
 
-- **Keep the port on an internal network.** Do not publish it with `ports:` and do not route it through the reverse proxy. Prometheus should reach `web:9464` over a Docker network the two share.
-- **`METRICS_TOKEN`** (optional, 16 or more characters) makes the listener require `Authorization: Bearer <token>`. It is a second line of defence, not a reason to expose the port.
+- **Keep the port on an internal network.** Do not publish it with `ports:` and do not route it through the reverse proxy. Prometheus should reach `web:9464` over a Docker network the two share. The listener answers on every network the container is attached to, so anything on those networks can read it unless you set a token.
+- **`METRICS_TOKEN`** (optional, 16 or more characters) makes the listener require `Authorization: Bearer <token>`. It is a second line of defence, not a reason to expose the port. An empty value means no token: the app says at start whether a token is required, so check that line.
+- **Who can read it matters.** The numbers identify no room and no person, but on a quiet service they show that someone is using it, roughly how many people, and when. Treat the port as private. If you send the metrics to a monitoring service run by someone else, the privacy page should say so.
 - **`POKERJI_VERSION`** (optional) is shown as the `version` label of `pokerji_build_info`. Default `dev`.
 - **`METRICS_HOST`** (optional) is the address the listener binds to. Default: the same as the app.
+- The path is exactly `/metrics`, with no query string. If the port cannot be opened the app logs one line and runs without metrics.
+- With `METRICS_PORT` unset nothing listens and no process metrics are collected. The app's own counters are a few numbers in memory and are always kept.
 
 A Prometheus scrape job:
 
@@ -60,14 +63,14 @@ Every series is a total for the whole service. No series, label or value carries
 |---|---|---|
 | `pokerji_rooms_active` | gauge | |
 | `pokerji_room_loads_total` | counter | |
-| `pokerji_room_unloads_total` | counter | `reason`: idle, lock_lost, shutdown |
+| `pokerji_room_unloads_total` | counter | `reason`: idle, lock_lost, closed (the room was deleted, or the server is stopping) |
 | `pokerji_websocket_connections` | gauge | |
 | `pokerji_websocket_connections_total` | counter | |
 | `pokerji_websocket_closes_total` | counter | `reason`: normal, abnormal, oversize, rate_limited, bad_message, too_many_connections, closed_by_server |
 | `pokerji_websocket_upgrades_refused_total` | counter | `reason`: bad_request, auth, rate_limited, unavailable, error |
 | `pokerji_websocket_messages_total` | counter | `type`: vote, clearVote, reveal, newRound, setTitle, startTimer, stopTimer, setRole, promote, removeParticipant |
 | `pokerji_websocket_messages_rejected_total` | counter | `reason`: rate_limited, oversize, invalid |
-| `pokerji_rate_limit_hits_total` | counter | `bucket`: create, create48, join, join48, pass, ws, settings, passcode, recovery, recover, history, anonymise |
+| `pokerji_rate_limit_hits_total` | counter | `bucket`: create, create48, join (passcode lockouts are counted here too), join48, ws, settings, passcode, recovery, recover, history, anonymise |
 | `pokerji_rate_limit_errors_total` | counter | |
 | `pokerji_room_lock_wait_seconds` | histogram | |
 | `pokerji_room_lock_failures_total` | counter | |
@@ -77,7 +80,7 @@ Every series is a total for the whole service. No series, label or value carries
 | `pokerji_build_info` | gauge | `version` |
 | `pokerji_metrics_errors_total` | counter | |
 
-Any label can also read `other`, for a value the app did not expect. The standard Node process metrics (`process_*`, `nodejs_*`: CPU, memory, event-loop lag, garbage collection, open file handles) are included under their usual names, so ready-made Node dashboards work.
+Any label can also read `other`, for a value the app did not expect. The standard Node process metrics (`process_*`, `nodejs_*`: CPU, memory, event-loop lag, garbage collection, open file handles) are included under their usual names, so ready-made Node dashboards work. One of them, `nodejs_version_info`, carries the exact Node version.
 
 ## What the reverse proxy must do
 
