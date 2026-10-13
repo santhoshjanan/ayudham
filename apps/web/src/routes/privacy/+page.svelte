@@ -138,4 +138,31 @@
     <b>How:</b> the site instructs your browser to refuse anything not served by this site, so
     even a mistake on our side could not load a tracker.
   </p>
+  <h2>The schema markup builder</h2>
+  <p>
+    The builder at <a href="/schema">/schema</a> runs in your browser. What you type into it is
+    never sent to this site: there is no form, no upload and no account behind it.
+  </p>
+  <p>
+    Your draft is kept in your browser’s own storage, on your device, so that a reload does not
+    lose it. It stays there until you press Clear or clear your browser’s data. Anyone who uses
+    the same browser profile can see it.
+  </p>
+  <p>
+    The builder links to Google’s Rich Results Test and to the Schema.org validator. Nothing is
+    sent to either unless you go there and paste your markup yourself.
+  </p>
+  <p class="how">
+    <b>How:</b> the page makes no request that carries your text. The only thing it fetches after
+    it has loaded is the list of Schema.org types, a file served by this site. The draft is one
+    entry in your browser’s local storage, named <code class="inline">pj-schema-draft</code>.
+  </p>
 </main>
+
+<style>
+  /* A name in a sentence: the site's code style without its block layout. */
+  .inline {
+    display: inline;
+    padding: 0.05rem 0.3rem;
+  }
+</style>

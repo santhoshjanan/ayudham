@@ -10,7 +10,7 @@ const visitor = () => {
 
 test('every public page ends with links to the source and to its maker', async ({ browser }) => {
   const page = await (await browser.newContext(visitor())).newPage();
-  for (const path of ['/', '/poker', '/privacy']) {
+  for (const path of ['/', '/poker', '/schema', '/privacy']) {
     await page.goto(path);
     const footer = page.getByRole('contentinfo');
     await expect(footer).toContainText('Free and open source');
@@ -59,7 +59,7 @@ test('public pages describe themselves to search engines and link previews', asy
   const page = await (await browser.newContext(visitor())).newPage();
   const origin = new URL((await page.goto('/'))!.url()).origin;
   const seen = new Set<string>();
-  for (const path of ['/', '/poker', '/privacy']) {
+  for (const path of ['/', '/poker', '/schema', '/privacy']) {
     const response = await page.goto(path);
     expect(response?.headers()['x-robots-tag'], `${path} may be indexed`).toBeUndefined();
     const title = await page.title();
@@ -127,6 +127,7 @@ test('rooms are kept out of search engines, by header and by robots.txt', async 
   const text = await robots.text();
   expect(text).toContain('Disallow: /poker/r/');
   expect(text).not.toMatch(/^Disallow: \/$/m);
+  expect(text).not.toContain('Disallow: /schema');
   const origin = new URL(robots.url()).origin;
   expect(text).toContain(`Sitemap: ${origin}/sitemap.xml`);
 
@@ -134,7 +135,7 @@ test('rooms are kept out of search engines, by header and by robots.txt', async 
   expect(sitemap.status()).toBe(200);
   expect(sitemap.headers()['content-type']).toContain('xml');
   const xml = await sitemap.text();
-  for (const path of ['/', '/poker', '/privacy'])
+  for (const path of ['/', '/poker', '/schema', '/privacy'])
     expect(xml).toContain(`<loc>${origin}${path}</loc>`);
   expect(xml).not.toContain('/poker/r/');
 });
@@ -148,4 +149,40 @@ test('the site has an icon', async ({ browser }) => {
   const icon = await context.request.get(href as string);
   expect(icon.status()).toBe(200);
   expect(icon.headers()['content-type']).toContain('image/svg+xml');
+});
+
+test('the site offers both tools from the bar and from the home page', async ({ browser }) => {
+  const page = await (await browser.newContext(visitor())).newPage();
+  await page.goto('/');
+  const bar = page.getByRole('navigation', { name: 'Site' });
+  await expect(bar.getByRole('link', { name: 'Planning poker' })).toHaveAttribute('href', '/poker');
+  await expect(bar.getByRole('link', { name: 'Schema markup' })).toHaveAttribute('href', '/schema');
+  await expect(bar.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+
+  await expect(page.getByRole('heading', { level: 2, name: 'Planning poker' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Schema markup builder' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Build markup' }).click();
+  await expect(page).toHaveURL(/\/schema$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Schema markup builder');
+});
+
+test('on a phone the bar keeps the wordmark, Privacy and the theme toggle', async ({ browser }) => {
+  const context = await browser.newContext({ ...visitor(), viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  await page.goto('/');
+  const bar = page.getByRole('navigation', { name: 'Site' });
+  await expect(bar.getByRole('link', { name: 'Privacy' })).toBeVisible();
+  await expect(bar.getByRole('link', { name: 'Planning poker' })).toBeHidden();
+  await expect(bar.getByRole('link', { name: 'Schema markup' })).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test('the privacy page says what the builder does with what is typed', async ({ browser }) => {
+  const page = await (await browser.newContext(visitor())).newPage();
+  await page.goto('/privacy');
+  await expect(page.getByRole('heading', { name: 'The schema markup builder' })).toBeVisible();
+  await expect(page.getByText('never sent to this site')).toBeVisible();
+  await expect(page.getByText('pj-schema-draft')).toBeVisible();
 });
