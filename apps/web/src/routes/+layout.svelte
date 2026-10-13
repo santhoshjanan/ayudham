@@ -70,14 +70,23 @@
   {#if !roomBar.room}
     <!-- Not in the live room: the hand is docked along the bottom edge there. -->
     <footer class="foot">
-      <p>pokerji is free and open source.</p>
-      <ul>
-        <li>
-          <a href="https://github.com/santhoshjanan/pokerji" rel="noopener">Source on GitHub</a>
-        </li>
-        <li>Made by <a href="https://santhoshj.com" rel="noopener">santhoshj.com</a></li>
-        <li><a href="https://phostrich.com" rel="noopener">phostrich.com</a></li>
-      </ul>
+      <p>
+        Free and open source.
+        <a href="https://github.com/santhoshjanan/pokerji" rel="noopener">Source on GitHub</a>
+      </p>
+      <p class="made">
+        Made in New Jersey with
+        <svg viewBox="0 0 24 24" width="16" height="16" role="img" aria-label="love">
+          <path
+            d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.6 4.5c2.1 0 3.8 1.1 5.4 3.1 1.6-2 3.3-3.1 5.4-3.1 3.6 0 5.7 3.8 4.2 7.2C19.5 16.4 12 21 12 21Z"
+            fill="currentColor"
+          />
+        </svg>
+      </p>
+      <p class="more">
+        Check out <a href="https://phostrich.com" rel="noopener">phostrich.com</a> and
+        <a href="https://santhoshj.com" rel="noopener">santhoshj.com</a>
+      </p>
     </footer>
   {/if}
 </div>
@@ -90,32 +99,40 @@
     display: flex;
     flex-direction: column;
   }
-  /* The foot of every page but the live room: quiet, on the tile, pushed to the bottom. */
+  /* The foot of every page but the live room: one quiet line on the tile, pushed to the
+     bottom. Source on the left, where it was made in the middle, the maker on the right. */
   .foot {
     margin-top: auto;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem 2rem;
+    display: grid;
+    gap: 0.4rem 2rem;
     padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
     border-top: 1px solid var(--line);
     font-size: 0.9rem;
     color: var(--ink-soft);
   }
-  .foot p,
-  .foot ul {
+  .foot p {
     margin: 0;
-  }
-  .foot ul {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 1.5rem;
   }
   .foot a {
     color: var(--ink);
+  }
+  .made {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  /* The one place the flag colour is used for feeling and not for a flag. */
+  .made svg {
+    color: var(--flag);
+  }
+  @media (min-width: 52rem) {
+    .foot {
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+    }
+    .more {
+      text-align: right;
+    }
   }
   .bar {
     display: flex;
