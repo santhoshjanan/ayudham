@@ -4,6 +4,7 @@ import {
   DEFINITIONS,
   definitionAt,
   fieldsFor,
+  needsVocabulary,
   parseVocabulary,
   propertyField,
   topDefinition,
@@ -137,5 +138,40 @@ describe('accepts', () => {
   it('keeps everything for a type nothing is known about', () => {
     expect(accepts('Gadget', undefined, undefined, 'whatever')).toBe(true);
     expect(accepts('Gadget', undefined, vocabulary, 'whatever')).toBe(true);
+  });
+});
+
+describe('needsVocabulary', () => {
+  it('is false for an empty draft and for guided items with guided fields', () => {
+    expect(needsVocabulary(draftOf())).toBe(false);
+    expect(
+      needsVocabulary(
+        draftOf(
+          make('Product', {
+            name: text('K'),
+            offers: nested(make('Offer', { price: text('1', 'number') })),
+          }),
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it('is true for a type outside the ten', () => {
+    expect(needsVocabulary(draftOf(make('Movie')))).toBe(true);
+  });
+
+  it('is true for a property the guided form does not have, at any depth', () => {
+    expect(needsVocabulary(draftOf(make('WebSite', { inLanguage: text('en') })))).toBe(true);
+    expect(
+      needsVocabulary(
+        draftOf(make('Product', { offers: nested(make('Offer', { seller: text('Acme') })) })),
+      ),
+    ).toBe(true);
+  });
+
+  it('is true for a nested item the guided form has no definition for', () => {
+    expect(needsVocabulary(draftOf(make('Product', { offers: nested(make('Demand')) })))).toBe(
+      true,
+    );
   });
 });

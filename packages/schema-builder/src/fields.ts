@@ -75,3 +75,21 @@ export const accepts = (
   if (!definition && !known) return true;
   return known && vocabulary !== undefined && hasProperty(vocabulary, type, property);
 };
+/**
+ * Whether showing this draft needs the vocabulary: some item, at any depth, has a type or a
+ * property that no guided form covers.
+ */
+export const needsVocabulary = (draft: Draft): boolean => {
+  const walk = (item: Item, definition: Definition | undefined): boolean => {
+    if (!definition) return true;
+    return item.properties.some((property) => {
+      const field = definition.fields.find((candidate) => candidate.property === property.name);
+      if (!field) return true;
+      return property.values.some(
+        (value) =>
+          value.kind === 'item' && walk(value.item, nestedDefinition(field, value.item.type)),
+      );
+    });
+  };
+  return draft.items.some((item) => walk(item, topDefinition(item.type)));
+};
