@@ -68,3 +68,18 @@ export function normaliseAddress(address: string): string {
   }
   return `${[g0, g1, g2, g3].map((group) => group.toString(16)).join(':')}::/64`;
 }
+
+/**
+ * The /48 an IPv6 address belongs to: the block a provider commonly routes to
+ * one customer, who can then use any of its 65,536 /64s. Null for anything
+ * that is not plain IPv6.
+ */
+export function widerNetwork(address: string): string | null {
+  const bare = address.split('%')[0] ?? '';
+  if (!isIPv6(bare)) return null;
+  const groups = expand(bare);
+  if (!groups) return null;
+  const [g0 = 0, g1 = 0, g2 = 0, g3 = 0, g4 = 0, g5 = 0] = groups;
+  if (g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0xffff) return null;
+  return `${[g0, g1, g2].map((group) => group.toString(16)).join(':')}::/48`;
+}

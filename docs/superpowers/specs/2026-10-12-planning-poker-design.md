@@ -146,6 +146,8 @@ Defaults, all configurable:
 | Limit | Value |
 |---|---|
 | Room creations per client | 10 per hour |
+| Room creations per IPv6 /48 | 50 per hour |
+| Room creations by the whole service | 1,000 per hour |
 | Join attempts per client | 30 per 10 minutes |
 | Passcode failures per client per room | 5 per 10 minutes |
 | Passcode failures per room, all clients | 50 per hour |
@@ -156,6 +158,9 @@ Defaults, all configurable:
 | Moderator-link attempts, per session | 30 per 10 minutes |
 | Remove-my-name requests, per session | 20 per 10 minutes |
 | History shown | The newest 200 rounds |
+| Passcode checks at once | 4 running and 64 waiting; any more are refused as a wrong passcode |
+
+The service-wide ceiling protects the database from a flood from many addresses. While it is reached, nobody can create a room until the hour's window ends; existing rooms are unaffected.
 | Sessions per room | 200; when full, the non-moderator seen longest ago is signed out to make room |
 | Participants per room | 50, not counting moderators, who can always enter |
 | WebSocket message size | 2 KB |

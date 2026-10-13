@@ -3,6 +3,7 @@ import {
   deckIdSchema,
   nameSchema,
   normaliseAddress,
+  widerNetwork,
   passcodeSchema,
   roomCodeSchema,
 } from '../src/index.ts';
@@ -94,5 +95,20 @@ describe('normaliseAddress', () => {
     for (const odd of ['', 'unknown', 'not an address', '999.1.1.1', '1.2.3']) {
       expect(normaliseAddress(odd)).toBe('unknown');
     }
+  });
+});
+
+describe('widerNetwork', () => {
+  it('gives the /48 an IPv6 address belongs to, however it is written', () => {
+    expect(widerNetwork('2001:db8:1:2:3:4:5:6')).toBe('2001:db8:1::/48');
+    expect(widerNetwork('2001:DB8:1:ffff::9')).toBe('2001:db8:1::/48');
+    expect(widerNetwork('2001:db8::1')).toBe('2001:db8:0::/48');
+  });
+
+  it('gives nothing for IPv4, IPv4-mapped and unrecognised addresses', () => {
+    expect(widerNetwork('203.0.113.7')).toBeNull();
+    expect(widerNetwork('::ffff:203.0.113.7')).toBeNull();
+    expect(widerNetwork('not an address')).toBeNull();
+    expect(widerNetwork('unknown')).toBeNull();
   });
 });

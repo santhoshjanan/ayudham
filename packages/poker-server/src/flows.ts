@@ -1,7 +1,7 @@
 import { BUILT_IN_DECKS, NAME_MAX, PASSCODE_MAX, roleSchema } from '@pokerji/protocol';
 import type { Db } from './db.ts';
 import { KEY_PREFIX, type Kv } from './kv.ts';
-import { LIMITS, overLimit, withinLimit } from './limiter.ts';
+import { LIMITS, overLimit, withinLimit, type Limit } from './limiter.ts';
 import { findRoomByCode, insertRoom, touchRoom, type RoomRow } from './rooms.ts';
 import {
   addressKey,
@@ -20,7 +20,13 @@ import {
   sessionNames,
   type SessionRow,
 } from './sessions.ts';
-import { deckIdSchema, nameSchema, normaliseAddress, roomCodeSchema } from './validate.ts';
+import {
+  deckIdSchema,
+  nameSchema,
+  normaliseAddress,
+  roomCodeSchema,
+  widerNetwork,
+} from './validate.ts';
 
 export interface FlowDeps {
   db: Db;
@@ -30,6 +36,8 @@ export interface FlowDeps {
   keyPrefix?: string;
   /** Sessions one room may hold. Bounds what a single link can make the database store. */
   maxSessionsPerRoom?: number;
+  /** Rooms the whole service creates in a window. Tests lower it. */
+  roomCreateCeiling?: Limit;
 }
 
 const DEFAULT_MAX_SESSIONS = 200;
@@ -76,6 +84,21 @@ export async function createRoomFlow(
   const prefix = deps.keyPrefix ?? KEY_PREFIX;
   const client = clientKey(deps, input.address);
   if (!(await withinLimit(deps.kv, `create:${client}`, LIMITS.roomCreate, prefix))) return REFUSED;
+  const wide = widerNetwork(input.address);
+  if (
+    wide !== null &&
+    !(await withinLimit(
+      deps.kv,
+      `create48:${addressKey(deps.addressSecret, wide)}`,
+      LIMITS.roomCreateWide,
+      prefix,
+    ))
+  ) {
+    return REFUSED;
+  }
+  // Last, so a request already refused above is not counted against everyone.
+  const ceiling = deps.roomCreateCeiling ?? LIMITS.roomCreateAll;
+  if (!(await withinLimit(deps.kv, 'create:all', ceiling, prefix))) return REFUSED;
 
   const recoveryToken = newToken();
   let room: RoomRow | undefined;

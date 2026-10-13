@@ -8,6 +8,10 @@ export interface Limit {
 /** Defaults from the spec. Keys are built by the caller from an addressKey and/or a room id. */
 export const LIMITS = {
   roomCreate: { max: 10, windowSeconds: 3_600 },
+  /** One IPv6 /48, across all of its /64s. */
+  roomCreateWide: { max: 50, windowSeconds: 3_600 },
+  /** Every client together: what the whole service will create in an hour. */
+  roomCreateAll: { max: 1_000, windowSeconds: 3_600 },
   join: { max: 30, windowSeconds: 600 },
   passcodeClient: { max: 5, windowSeconds: 600 },
   passcodeRoom: { max: 50, windowSeconds: 3_600 },

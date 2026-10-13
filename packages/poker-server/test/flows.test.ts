@@ -86,6 +86,34 @@ describe('createRoomFlow', () => {
     });
   });
 
+  it('refuses the fifty-first room from one IPv6 /48 in an hour, and not a neighbouring /48', async () => {
+    const flow = deps();
+    // Fifty different /64s inside one /48: each is a different client to the per-client limit.
+    for (let n = 0; n < 50; n += 1) {
+      expect((await create(flow, `2001:db8:7:${n.toString(16)}::1`)).ok).toBe(true);
+    }
+    expect(await create(flow, '2001:db8:7:ffff::1')).toEqual({ ok: false, reason: 'refused' });
+    expect((await create(flow, '2001:db8:8::1')).ok).toBe(true);
+  }, 30_000);
+
+  it('refuses every new room once the whole service has made its hourly ceiling', async () => {
+    const flow = deps({ roomCreateCeiling: { max: 2, windowSeconds: 3_600 } });
+    expect((await create(flow, '198.51.100.1')).ok).toBe(true);
+    expect((await create(flow, '198.51.100.2')).ok).toBe(true);
+    expect(await create(flow, '198.51.100.3')).toEqual({ ok: false, reason: 'refused' });
+  });
+
+  it('does not count a room refused for its own client against the whole service', async () => {
+    const flow = deps({ roomCreateCeiling: { max: 12, windowSeconds: 3_600 } });
+    for (let n = 0; n < 10; n += 1) expect((await create(flow, '198.51.100.9')).ok).toBe(true);
+    // Refused by the per-client limit, five times over.
+    for (let n = 0; n < 5; n += 1) expect((await create(flow, '198.51.100.9')).ok).toBe(false);
+    // The ceiling has counted ten, so two more clients still fit.
+    expect((await create(flow, '198.51.100.10')).ok).toBe(true);
+    expect((await create(flow, '198.51.100.11')).ok).toBe(true);
+    expect((await create(flow, '198.51.100.12')).ok).toBe(false);
+  });
+
   it('refuses the eleventh room from one client in an hour, and not another client', async () => {
     const flow = deps();
     for (let i = 0; i < 10; i += 1) expect((await create(flow)).ok).toBe(true);
