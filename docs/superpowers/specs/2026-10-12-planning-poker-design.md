@@ -261,6 +261,16 @@ Votes carry a copy of the voter's name so history survives the session being rem
 
 Rate-limit counters and room locks under the `pokerji:` prefix. No names, titles or votes.
 
+### Operational metrics
+
+Optional, and off unless `METRICS_PORT` is set. The app then serves Prometheus metrics on a second port, for a monitoring server on a private network. The public port never serves them.
+
+- Every series is a total for the whole service: rooms loaded, connections, messages by type, rate-limit refusals by limit, lock waits, requests by a coarse class, whether Postgres and Valkey answer, and the standard Node process metrics.
+- No series, label or value carries a room code, a name, a title, a vote, a token or a client address. There are no per-room and no per-person series. Label values come from fixed lists in `packages/poker-server/src/metrics.ts`; a value not on its list is recorded as `other`. Request paths are never recorded, because room codes are in them.
+- The metrics listener answers `GET /metrics` only, takes no WebSocket upgrades, and can require a bearer token (`METRICS_TOKEN`), compared in constant time.
+- A failure in a metric update is swallowed and counted. It can never affect a room.
+- The privacy page says that totals for the whole service may be counted.
+
 ### Never stored
 
 - Unrevealed votes and the title of a round in progress.
