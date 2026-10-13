@@ -17,14 +17,16 @@ setting() { grep -E "^$1=" .env | tail -n 1 | cut -d= -f2-; }
 [ -f .env ] || stop "deploy/.env does not exist. Copy deploy/.env.example to deploy/.env and fill it in."
 chmod 600 .env
 
-for name in POKERJI_HOST PROXY_NETWORK DATA_NETWORK DATABASE_URL VALKEY_URL; do
+for name in POKERJI_HOST PROXY_NETWORK DATABASE_URL VALKEY_URL; do
   [ -n "$(setting "$name")" ] || stop "$name is empty in deploy/.env"
 done
 for name in PROXY_NETWORK DATA_NETWORK; do
+  # DATA_NETWORK may be left out when Postgres and Valkey are on the proxy's network.
+  [ -n "$(setting "$name")" ] || continue
   if ! docker network inspect "$(setting "$name")" >/dev/null 2>&1; then
     echo "$name is set to \"$(setting "$name")\", and there is no Docker network with that name."
     echo "The networks on this server are:"
-    docker network ls --format '    {{.Name}}' | grep -v -E '^ +(bridge|host|none)$'
+    docker network ls --format '{{.Name}}' | grep -v -x -E 'bridge|host|none' | sed 's/^/    /'
     stop "put the right name after $name= in deploy/.env"
   fi
 done

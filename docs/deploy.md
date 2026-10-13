@@ -11,16 +11,16 @@ You need a server with Docker, a reverse proxy you already run, and Postgres and
    create database pokerji owner pokerji;
    ```
 
-2. **Settings.** Copy `deploy/.env.example` to `deploy/.env` and fill in six lines:
+2. **Settings.** Copy `deploy/.env.example` to `deploy/.env` and fill in four lines (the secret is made for you):
 
    | Setting | What to put |
    |---|---|
    | `POKERJI_HOST` | The site's host name, without `https://` |
-   | `PROXY_NETWORK` | The Docker network your reverse proxy is on (`docker network ls`) |
-   | `DATA_NETWORK` | The Docker network Postgres and Valkey are on |
+   | `PROXY_NETWORK` | The Docker network your reverse proxy is on. Use the exact name `docker network ls` shows; compose adds a prefix, such as `myproject_proxy` |
    | `DATABASE_URL` | `postgres://pokerji:THE-PASSWORD@<postgres host>:5432/pokerji` |
    | `VALKEY_URL` | `redis://:<password>@<valkey host>:6379` |
-   | `ADDRESS_HMAC_SECRET` | Leave empty; the script makes one |
+
+   If Postgres and Valkey are on a different Docker network from the proxy, also set `DATA_NETWORK` to that network's name.
 
 3. **Start it.** From a checkout of this repository on the server:
 
@@ -48,7 +48,7 @@ You set this up in your proxy. Each item is something the app or its privacy pag
 4. **Write `X-Forwarded-For` itself, and not pass on one a visitor sent.** The app limits abuse per visitor address and reads that address from the last entry of this header. If visitors can set it, they can escape the limits; if everyone arrives with the same address, everyone shares one person's limits. With a CDN or second proxy in front, set `XFF_DEPTH` to the number of proxies.
 5. **Do not log this site's request paths.** A room's code is in its URL and is what keeps the room private, and the privacy page says no log is kept of the pages a visitor opens. Check the access log, the HTTP-to-HTTPS redirect's log, and tracing if you use it. If you need those logs, change the privacy page first.
 
-The app never trusts `X-Forwarded-Host` or `X-Forwarded-Proto`; its origin is fixed by `POKERJI_HOST`. The container publishes no ports, so only containers on those two networks can reach it. Keep untrusted containers off both.
+The app never trusts `X-Forwarded-Host` or `X-Forwarded-Proto`; its origin is fixed by `POKERJI_HOST`. The container publishes no ports, so only containers on its networks can reach it. Keep untrusted containers off them.
 
 ## Things worth knowing
 
@@ -108,6 +108,8 @@ On a development machine with the development services running, `pnpm check:imag
 
 | Setting | Meaning |
 |---|---|
+| `DATA_NETWORK` | The Docker network Postgres and Valkey are on, when it is not the proxy's |
+| `ADDRESS_HMAC_SECRET` | 32 or more random characters. The script makes one if it is empty. Changing it only resets rate-limit counters |
 | `POKERJI_IMAGE` | The image tag to build and run. Default `pokerji:latest`. Use a new tag per release if you want to switch back without rebuilding |
 | `RETENTION_DAYS` | Days of inactivity after which a room is deleted, and after which an unused sign-in ends. Default 30. The pages show this number |
 | `BACKUP_ROTATION_DAYS` | How long your Postgres backups are kept. The privacy page shows it |

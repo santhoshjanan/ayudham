@@ -2,8 +2,8 @@
 #   docker compose up -d --build
 # or run ./deploy.sh, which does the same after checking the settings.
 #
-# The app joins two Docker networks that already exist on your server: your reverse
-# proxy's, and the one Postgres and Valkey are on. It publishes no ports. Point your
+# The app joins Docker networks that already exist on your server: your reverse proxy's,
+# and the one Postgres and Valkey are on if that is a different one. It publishes no ports. Point your
 # proxy at  web:3000  (plain HTTP, WebSockets included). No proxy is configured here.
 name: pokerji
 
@@ -68,4 +68,5 @@ networks:
     name: ${PROXY_NETWORK:?set PROXY_NETWORK}
   data:
     external: true
-    name: ${DATA_NETWORK:?set DATA_NETWORK}
+    # The same network as the proxy's unless DATA_NETWORK names another.
+    name: ${DATA_NETWORK:-${PROXY_NETWORK}}

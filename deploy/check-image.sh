@@ -7,7 +7,8 @@ set -eu
 set -f
 
 IMAGE=pokerji:check
-NET=pokerji-dev_default
+# Whichever network the development Postgres is on.
+NET="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' "$(docker compose -f compose.dev.yaml ps -q postgres)")"
 DB="relcheck_$$"
 KVUSER="relcheck$$"
 PW="check-$(date +%s)-$$"
