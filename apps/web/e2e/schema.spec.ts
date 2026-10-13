@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
 let visitors = 0;
@@ -405,3 +406,147 @@ test('changing a type asks before it drops properties', async ({ browser }) => {
     name: 'Kettle',
   });
 });
+
+const NARROW = { width: 390, height: 844 };
+// WCAG 2.2 AA, the standard the design direction names.
+const scan = (page: Page) =>
+  new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+const findings = (page: Page) => page.getByRole('region', { name: 'What to check' });
+
+test('findings say what is missing and take you to the field', async ({ browser }) => {
+  const page = await open(browser);
+  await expect(findings(page)).toContainText('Nothing to check yet');
+
+  await page.getByRole('button', { name: 'Product', exact: true }).click();
+  await expect(findings(page)).toContainText('2 required');
+  await expect(findings(page).getByRole('button', { name: /Name is required/ })).toBeVisible();
+  await expect(
+    findings(page).getByRole('button', {
+      name: /Add at least one of: Offer, Average rating, Review/,
+    }),
+  ).toBeVisible();
+
+  await findings(page)
+    .getByRole('button', { name: /Name is required/ })
+    .click();
+  await expect(page.getByLabel('Name', { exact: true })).toBeFocused();
+  await page.keyboard.type('Kettle');
+  await expect(findings(page).getByRole('button', { name: /Name is required/ })).toHaveCount(0);
+
+  await findings(page)
+    .getByRole('button', { name: /Add at least one of/ })
+    .click();
+  await expect(page.getByRole('button', { name: 'Add offer' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await page.getByLabel('Price', { exact: true }).fill('12,50');
+  await expect(
+    findings(page).getByRole('button', { name: /Price is not a plain number/ }),
+  ).toContainText('Product: Kettle › Offer');
+  await expect(findings(page).locator('.badge', { hasText: 'Check' })).toHaveCount(1);
+});
+
+test('a finding opens a closed item before it moves focus', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Website', exact: true }).click();
+  await page.getByTestId('item').locator('summary').click();
+  await expect(page.getByLabel('Site name', { exact: true })).toBeHidden();
+  await findings(page)
+    .getByRole('button', { name: /Site name is required/ })
+    .click();
+  await expect(page.getByLabel('Site name', { exact: true })).toBeFocused();
+});
+
+test('findings are never told apart by colour alone, and never red', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Website', exact: true }).click();
+  const rows = findings(page).getByRole('button');
+  await expect(rows.first()).toContainText('Required');
+  await expect(rows.last()).toContainText('Recommended');
+  // No finding, and nothing inside one, is drawn in the colour kept for flags and deletion.
+  const reds = await rows.evaluateAll((buttons) => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--danger-text)';
+    document.body.append(probe);
+    const danger = getComputedStyle(probe).color;
+    probe.remove();
+    return buttons
+      .flatMap((button) => [button, ...button.querySelectorAll('*')])
+      .filter((node) => getComputedStyle(node).color === danger).length;
+  });
+  expect(reds).toBe(0);
+});
+
+test('on a narrow screen Copy is docked and the markup opens as a sheet', async ({ browser }) => {
+  const page = await open(browser, NARROW);
+  await page.getByRole('button', { name: 'Website', exact: true }).click();
+  await page.getByLabel('Site name', { exact: true }).fill('Acme');
+
+  const copy = page.getByRole('button', { name: 'Copy markup' });
+  await expect(copy).toBeVisible();
+  await expect(copy).toBeInViewport();
+  await expect(markup(page)).toBeHidden();
+
+  await page.getByRole('button', { name: 'Markup', exact: true }).click();
+  await expect(markup(page)).toBeVisible();
+  await expect(markup(page)).toContainText('"Acme"');
+  await expect(findings(page)).toBeVisible();
+
+  // A finding closes the sheet, which would otherwise cover the field it leads to.
+  await findings(page)
+    .getByRole('button', { name: /Home page is required/ })
+    .click();
+  await expect(markup(page)).toBeHidden();
+  await expect(page.getByLabel('Home page', { exact: true })).toBeFocused();
+
+  await page.getByRole('button', { name: 'Markup', exact: true }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(markup(page)).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Markup', exact: true })).toBeFocused();
+
+  // The footer is still there, and can be scrolled clear of the dock.
+  const footer = page.getByRole('contentinfo');
+  await footer.scrollIntoViewIfNeeded();
+  const dockTop = (await page.locator('.output').boundingBox())!.y;
+  const footerBox = (await footer.boundingBox())!;
+  expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(dockTop + 1);
+  // The page itself never scrolls sideways.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test('on a wide screen there is no sheet button and the markup is always shown', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await expect(page.getByRole('button', { name: 'Markup', exact: true })).toBeHidden();
+  await page.getByRole('button', { name: 'Website', exact: true }).click();
+  await expect(markup(page)).toBeVisible();
+});
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  for (const [name, viewport] of [
+    ['wide', WIDE],
+    ['narrow', NARROW],
+  ] as const) {
+    test(`the builder has no accessibility violations (${colorScheme}, ${name})`, async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({ ...visitor(), viewport, colorScheme });
+      const page = await context.newPage();
+      await page.goto('/schema');
+      await page.locator('[data-ready]').waitFor();
+      expect((await scan(page)).violations).toEqual([]);
+
+      await page.getByRole('button', { name: 'Product', exact: true }).click();
+      await page.getByLabel('Name', { exact: true }).fill('Kettle');
+      await page.getByRole('button', { name: 'Add offer' }).click();
+      await page.getByLabel('Price', { exact: true }).fill('19.99');
+      await page.getByRole('button', { name: 'Another type' }).click();
+      await page.getByLabel('Search Schema.org types').waitFor();
+      if (name === 'narrow')
+        await page.getByRole('button', { name: 'Markup', exact: true }).click();
+      expect((await scan(page)).violations).toEqual([]);
+    });
+  }
+}

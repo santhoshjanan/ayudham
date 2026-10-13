@@ -2823,9 +2823,6 @@ test('findings are never told apart by colour alone, and never red', async ({ br
   });
   expect(reds).toBe(0);
 });
-  expect(red).not.toBe('');
-  for (const colour of colours) expect(colour).not.toBe('rgb(184, 28, 49)');
-});
 
 test('on a narrow screen Copy is docked and the markup opens as a sheet', async ({ browser }) => {
   const page = await open(browser, NARROW);

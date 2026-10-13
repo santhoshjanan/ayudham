@@ -7,11 +7,14 @@
     markupParts,
     REFUSAL_WORDS,
     searchTypes,
+    type Finding,
     RULES_CHECKED,
     typeLabel,
   } from '@pokerji/schema-builder';
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import { Builder } from './builder.svelte.ts';
+  import Findings from './Findings.svelte';
+  import { fieldId } from './ids.ts';
   import ItemPanel from './ItemPanel.svelte';
   import Picker from './Picker.svelte';
   import Vocab from './Vocab.svelte';
@@ -25,6 +28,24 @@
   const toggleTypes = () => {
     pickingType = !pickingType;
     if (pickingType) void builder.loadVocabulary();
+  };
+
+  let sheetOpen = $state(false);
+  let sheetToggle = $state<HTMLButtonElement>();
+
+  const closeSheet = async () => {
+    sheetOpen = false;
+    await tick();
+    sheetToggle?.focus();
+  };
+
+  /** Opens the item a finding is in and puts focus on the field it is about. */
+  const reveal = async (finding: Finding) => {
+    builder.closed[finding.item] = false;
+    sheetOpen = false;
+    await tick();
+    const at = { key: finding.item, steps: finding.steps };
+    document.getElementById(fieldId(at, finding.property, finding.index ?? 0))?.focus();
   };
 
   const items = $derived(builder.draft.items);
@@ -123,7 +144,7 @@
     </section>
   </div>
 
-  <aside class="output" aria-labelledby="markup-heading">
+  <aside class="output" class:open={sheetOpen} aria-labelledby="markup-heading">
     <div class="bar">
       <CopyButton
         text={builder.output}
@@ -132,6 +153,15 @@
         disabled={builder.output === ''}
         onfail={() => (copyRefused = true)}
       />
+      <button
+        bind:this={sheetToggle}
+        type="button"
+        class="sheet-toggle"
+        aria-expanded={sheetOpen}
+        aria-controls="markup-sheet"
+        onclick={() => (sheetOpen ? closeSheet() : (sheetOpen = true))}
+        >{sheetOpen ? 'Close' : 'Markup'}</button
+      >
     </div>
     <div class="sheet" id="markup-sheet">
       <h2 id="markup-heading">Markup</h2>
@@ -163,6 +193,7 @@
       {:else}
         <p class="empty">The markup appears here as you fill in the form.</p>
       {/if}
+      <Findings {builder} onreveal={reveal} />
       <p class="hint">
         Required and recommended fields follow Google’s published guidance, last checked
         {RULES_CHECKED}. Meeting them does not guarantee a search result. To test markup, paste it
@@ -268,12 +299,15 @@
     gap: 0.6rem;
   }
   /* The rail's first control is the next thing to do, set as the room's Reveal is. */
-  .bar :global(button) {
+  .bar :global(button.primary) {
     font-family: var(--font-display);
     font-weight: 800;
     font-size: 1.5rem;
     letter-spacing: 0.03em;
     min-height: 3.5rem;
+  }
+  .sheet-toggle {
+    display: none;
   }
   .sheet {
     display: grid;
@@ -336,6 +370,55 @@
   }
   .sheet .hint {
     margin: 0.4rem 0 0;
+  }
+
+  /* ---- Below 64rem the rail is a dock on the bottom edge, as the moderator's is ---- */
+  @media (max-width: 63.99rem) {
+    .floor {
+      /* The dock is fixed, so it takes no room in the grid. */
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .output {
+      position: fixed;
+      z-index: 5;
+      inset: auto 0 0 0;
+      display: flex;
+      /* The bar comes first in the page and sits at the bottom, under the thumb. */
+      flex-direction: column-reverse;
+      gap: 0;
+      padding: 0.6rem clamp(1rem, 6vw, 5rem) calc(0.6rem + env(safe-area-inset-bottom));
+      border: 0;
+      border-top: 1px solid var(--line);
+      border-radius: 0;
+      box-shadow: 0 -6px 18px rgb(17 20 23 / 0.1);
+    }
+    .bar {
+      grid-template-columns: 1fr auto;
+    }
+    .bar :global(button.primary) {
+      font-size: 1.35rem;
+      min-height: 3rem;
+    }
+    .sheet-toggle {
+      display: block;
+      min-height: 3rem;
+    }
+    .sheet {
+      display: none;
+    }
+    .output.open .sheet {
+      display: grid;
+      max-height: 60dvh;
+      overflow-y: auto;
+      padding-bottom: 0.75rem;
+    }
+    .code {
+      max-height: 40dvh;
+    }
+    /* Room beneath the page, so the footer can be scrolled clear of the dock. */
+    :global(.shell:has(.output)) {
+      padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
   }
 
   /* ---- Confirmation, as in the room ---- */
