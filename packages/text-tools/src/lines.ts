@@ -1,5 +1,5 @@
 import { guard, shuffled, type RandomSource } from './random.ts';
-import { refuse, type Result } from './result.ts';
+import { given, refuse, type Result } from './result.ts';
 import { checkText, listLines } from './text.ts';
 
 export const LINE_ORDERS = ['keep', 'az', 'za', 'reverse', 'shuffle'] as const;
@@ -53,7 +53,7 @@ function sorted(list: string[], ignoreCase: boolean): string[] {
 export function lines(text: unknown, options: LineOptions, random: RandomSource): Result<string> {
   const checked = checkText(text);
   if (!checked.ok) return checked;
-  if (!LINE_ORDERS.includes(options.order)) return refuse('out-of-range');
+  if (!given(options) || !LINE_ORDERS.includes(options.order)) return refuse('out-of-range');
   const ignoreCase = options.ignoreCase === true;
   return guard(() => {
     let list = listLines(checked.value);

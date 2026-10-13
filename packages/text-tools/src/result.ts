@@ -29,6 +29,10 @@ export function whole(value: unknown, min: number, max: number): value is number
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 }
 
+/** True for an options object. A missing one is refused like any other bad option. */
+export const given = (options: unknown): options is object =>
+  typeof options === 'object' && options !== null;
+
 const SENTENCES: Record<Problem, string> = {
   'too-long': `That is more than ${LIMITS.text.toLocaleString('en')} characters, the most this tool takes.`,
   'out-of-range': 'That value is outside what this tool allows.',

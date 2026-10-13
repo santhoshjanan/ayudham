@@ -2,7 +2,7 @@ import { DIGITS, LOWER, UPPER } from './alphabets.ts';
 import { toBase64, toHex } from './bytes.ts';
 import { LIMITS } from './limits.ts';
 import { bytes, guard, pickFrom, type RandomSource } from './random.ts';
-import { ok, refuse, whole, type Result } from './result.ts';
+import { given, ok, refuse, whole, type Result } from './result.ts';
 
 export const STRING_KINDS = [
   'hex',
@@ -54,7 +54,10 @@ export function checkAlphabet(text: unknown): Result<string[]> {
 
 type Plan = { bytes: true } | { bytes: false; alphabet: string[] };
 
+const LETTERS: Record<LetterCase, string> = { lower: LOWER, upper: UPPER, both: UPPER + LOWER };
+
 function plan(options: StringOptions): Result<Plan> {
+  if (!given(options)) return refuse('out-of-range');
   const kind = options.kind;
   if (kind === 'hex' || kind === 'base64' || kind === 'base64url') {
     return whole(options.size, 1, LIMITS.bytes) ? ok({ bytes: true }) : refuse('out-of-range');
@@ -63,8 +66,9 @@ function plan(options: StringOptions): Result<Plan> {
   if (kind === 'digits') return ok({ bytes: false, alphabet: [...DIGITS] });
   if (kind === 'alphanumeric') return ok({ bytes: false, alphabet: [...(UPPER + LOWER + DIGITS)] });
   if (kind === 'letters') {
-    const set = { lower: LOWER, upper: UPPER, both: UPPER + LOWER }[options.letters];
-    return set === undefined ? refuse('out-of-range') : ok({ bytes: false, alphabet: [...set] });
+    // Asked of the table itself: a name every object has, such as constructor, is no choice.
+    if (!Object.hasOwn(LETTERS, options.letters)) return refuse('out-of-range');
+    return ok({ bytes: false, alphabet: [...LETTERS[options.letters]] });
   }
   if (kind === 'own') {
     const chars = checkAlphabet(options.alphabet);

@@ -20,8 +20,10 @@ export type CaseForm = (typeof CASE_FORMS)[number];
 /**
  * One word: capitals that end before a capitalised word (HTTP in HTTPResponse), a word with or
  * without its capital, a run of capitals, a run of digits, or a run of letters that have no case.
+ * A letter keeps the combining marks written after it, as Hindi and Arabic vowel signs are.
  */
-const WORD = /\p{Lu}+(?=\p{Lu}\p{Ll})|\p{Lu}?\p{Ll}+|\p{Lu}+|\p{N}+|[\p{Lo}\p{Lt}\p{Lm}]+/gu;
+const WORD =
+  /(?:\p{Lu}\p{M}*)+(?=\p{Lu}\p{M}*\p{Ll})|(?:\p{Lu}\p{M}*)?(?:\p{Ll}\p{M}*)+|(?:\p{Lu}\p{M}*)+|\p{N}+|(?:[\p{Lo}\p{Lt}\p{Lm}]\p{M}*)+/gu;
 
 /** The words of a line, for the programming forms. Apostrophes are dropped, not split on. */
 export function words(line: string): string[] {
@@ -51,7 +53,7 @@ const JOIN: Record<Programming, (parts: string[]) => string> = {
 
 const SMALL = new Set('a an and as at but by for if in nor of on or per the to via vs'.split(' '));
 
-const solid = (char: string): boolean => /[\p{L}\p{N}]/u.test(char);
+const solid = (char: string): boolean => /[\p{L}\p{N}\p{M}]/u.test(char);
 
 /**
  * A written word as the punctuation before it, the word, and the punctuation after. Done with

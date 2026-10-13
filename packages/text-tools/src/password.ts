@@ -1,7 +1,7 @@
 import { DIGITS, LOOKALIKES, LOWER, SYMBOLS, UPPER } from './alphabets.ts';
 import { LIMITS } from './limits.ts';
 import { below, guard, RandomFailure, type RandomSource } from './random.ts';
-import { ok, refuse, whole, type Result } from './result.ts';
+import { given, ok, refuse, whole, type Result } from './result.ts';
 
 export type PasswordOptions = {
   length: number;
@@ -24,7 +24,9 @@ export const PASSWORD_DEFAULTS: PasswordOptions = {
 
 /** The classes that are on, each as its characters. */
 function classes(options: PasswordOptions): Result<string[][]> {
-  if (!whole(options.length, LIMITS.passwordMin, LIMITS.length)) return refuse('out-of-range');
+  if (!given(options) || !whole(options.length, LIMITS.passwordMin, LIMITS.length)) {
+    return refuse('out-of-range');
+  }
   const on = [
     options.lower === true ? LOWER : '',
     options.upper === true ? UPPER : '',

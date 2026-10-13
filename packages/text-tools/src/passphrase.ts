@@ -1,6 +1,6 @@
 import { LIMITS } from './limits.ts';
 import { below, guard, type RandomSource } from './random.ts';
-import { ok, refuse, whole, type Result } from './result.ts';
+import { given, ok, refuse, whole, type Result } from './result.ts';
 import { WORD_COUNT } from './wordlist.ts';
 
 export const SEPARATORS = ['-', ' ', '.', '_'] as const;
@@ -23,7 +23,9 @@ export const PASSPHRASE_DEFAULTS: PassphraseOptions = {
 };
 
 const allowed = (options: PassphraseOptions): boolean =>
-  whole(options.words, LIMITS.wordsMin, LIMITS.wordsMax) && SEPARATORS.includes(options.separator);
+  given(options) &&
+  whole(options.words, LIMITS.wordsMin, LIMITS.wordsMax) &&
+  SEPARATORS.includes(options.separator);
 
 /** The strength of the rule, in whole bits, rounded down. */
 export function passphraseBits(options: PassphraseOptions): Result<number> {

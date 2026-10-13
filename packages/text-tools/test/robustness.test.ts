@@ -20,6 +20,9 @@ import {
   passphrase,
   PASSPHRASE_DEFAULTS,
   password,
+  passwordBits,
+  passphraseBits,
+  stringBits,
   PASSWORD_DEFAULTS,
   pick,
   pin,
@@ -188,5 +191,30 @@ describe('a random source that misbehaves', () => {
     expect(password(PASSWORD_DEFAULTS, stuck)).toEqual(refuse('no-random'));
     expect(pin(6, stuck)).toEqual(refuse('no-random'));
     expect(numberBetween(1, 6, stuck)).toEqual(refuse('no-random'));
+  });
+});
+
+describe('options that are not what the types say', () => {
+  const out = refuse('out-of-range');
+
+  it('are refused when the options are missing altogether', () => {
+    for (const bad of [null, undefined, 5, 'options']) {
+      const label = String(bad);
+      expect(password(bad as never, seeded()), label).toEqual(out);
+      expect(passwordBits(bad as never), label).toEqual(out);
+      expect(passphrase(bad as never, LIST, seeded()), label).toEqual(out);
+      expect(passphraseBits(bad as never), label).toEqual(out);
+      expect(randomString(bad as never, seeded()), label).toEqual(out);
+      expect(stringBits(bad as never), label).toEqual(out);
+      expect(lines('a\nb', bad as never, seeded()), label).toEqual(out);
+    }
+  });
+
+  it('are refused when a choice names something every object has', () => {
+    for (const letters of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      const options = { kind: 'letters', size: 8, letters, alphabet: '' } as never;
+      expect(randomString(options, seeded()), letters).toEqual(out);
+      expect(stringBits(options), letters).toEqual(out);
+    }
   });
 });

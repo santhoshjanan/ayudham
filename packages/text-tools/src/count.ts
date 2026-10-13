@@ -13,7 +13,28 @@ export type Counts = {
   bytes: number;
 };
 
-const graphemes = new Intl.Segmenter('en', { granularity: 'grapheme' });
+type Splitter = { segment(text: string): Iterable<{ segment: string }> };
+
+let splitter: Splitter | null | undefined;
+
+/**
+ * The text as a reader's characters. Made on first use, never when the package loads: a browser
+ * without a grapheme splitter must still run every other tool. There, code points are counted.
+ */
+function pieces(text: string): Iterable<string> {
+  if (splitter === undefined) {
+    try {
+      splitter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+    } catch {
+      splitter = null;
+    }
+  }
+  if (splitter === null) return text;
+  const split = splitter;
+  return (function* () {
+    for (const { segment } of split.segment(text)) yield segment;
+  })();
+}
 
 export function count(text: unknown): Result<Counts> {
   const checked = checkText(text);
@@ -21,7 +42,7 @@ export function count(text: unknown): Result<Counts> {
   const value = checked.value;
   let characters = 0;
   let solid = 0;
-  for (const { segment } of graphemes.segment(value)) {
+  for (const segment of pieces(value)) {
     characters++;
     if (segment.trim() !== '') solid++;
   }

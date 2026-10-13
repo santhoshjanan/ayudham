@@ -166,3 +166,19 @@ describe('allCases', () => {
     expect(allCases('x'.repeat(100_001))).toEqual(refuse('too-long'));
   });
 });
+
+describe('letters written with combining marks', () => {
+  it('stay whole words', () => {
+    expect(words('हिन्दी भाषा')).toEqual(['हिन्दी', 'भाषा']);
+    expect(words('مَرْحَبًا بكم')).toEqual(['مَرْحَبًا', 'بكم']);
+    expect(words('q̃a b')).toEqual(['q̃a', 'b']);
+    // NFC joins A and its tilde into one letter; Q has no such form and keeps its mark.
+    expect(words('Q\u0303A\u0303Bc')).toEqual(['Q\u0303\u00C3', 'Bc']);
+  });
+
+  it('survive every form', () => {
+    expect(to('हिन्दी भाषा', 'snake')).toBe('हिन्दी_भाषा');
+    expect(to('हिन्दी भाषा', 'title')).toBe('हिन्दी भाषा');
+    expect(to('"q̃a"', 'title')).toBe('"Q̃a"');
+  });
+});

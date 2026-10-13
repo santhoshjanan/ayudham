@@ -63,7 +63,7 @@ The package never reaches for a random source or a clock.
 
 ### What the package may touch
 
-A test (`purity.test.ts`, like the builder's) reads the package source and fails on any Node import and on `window`, `document`, `localStorage`, `sessionStorage`, `navigator`, `fetch`, `crypto`, `Math.random`, `Date`, `atob` and `btoa`. The only platform objects the package uses are `TextEncoder` and `TextDecoder`, which do no I/O and behave the same in Node and in browsers.
+A test (`purity.test.ts`, like the builder's) reads the package source and fails on any Node import and on `window`, `document`, `localStorage`, `sessionStorage`, `navigator`, `fetch`, `crypto`, `Math.random`, `Date`, `atob` and `btoa`. It also fails on any import that is not one of the package's own files, and on `globalThis`, `self`, `process`, `Buffer`, `performance`, `Temporal`, `require`, `XMLHttpRequest`, `WebSocket` and `indexedDB`. The only platform objects the package uses are `TextEncoder`, `TextDecoder` and `Intl.Segmenter`, which do no I/O. `Intl.Segmenter` is made on first use, never when the package loads; in a browser without it, the count tool counts code points and every other tool is unaffected.
 
 ### Hashing is the page's
 
@@ -191,7 +191,7 @@ The eight programming forms split the text into words first:
 - before the last capital of a run of capitals that is followed by a lowercase letter (`HTTPResponse` is `HTTP`, `Response`);
 - where a letter meets a digit.
 
-Letters and digits are Unicode's, not only ASCII. camel and Pascal join a digit to the word before it. Each line of the input is converted on its own.
+Letters and digits are Unicode's, not only ASCII, and a letter keeps the combining marks written after it. camel and Pascal join a digit to the word before it. Each line of the input is converted on its own.
 
 The four writing forms keep the text's spacing and punctuation.
 
@@ -213,7 +213,7 @@ One direction switch. Text is turned into bytes as UTF-8.
 | Base64URL | URL-safe alphabet, no padding | the same |
 | Hex | lowercase, two digits a byte | white space and colons between bytes; either case |
 | URL | every character except `A–Z a–z 0–9 - _ . ! ~ * ' ( )` | `%XX` sequences; `+` is left as `+` |
-| HTML entities | `& < > " '` | decimal and hex numbers, and the named entities of HTML 4 with `&apos;` |
+| HTML entities | `& < > " '` | decimal and hex numbers, and the named entities of HTML 4 with `&apos;`; `&lang;` and `&rang;` give the characters browsers give (U+27E8, U+27E9) |
 
 Malformed input gives a finding that says what is wrong (a character outside the alphabet, an odd number of hex digits, a broken `%` sequence). Decoded bytes that are not valid UTF-8 are shown as hex, with a line saying that the result is not text. An entity that is unknown or names an impossible character is left as typed.
 
