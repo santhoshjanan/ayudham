@@ -334,6 +334,9 @@ The signature component.
 ### The hand
 A strip of smaller scorecards (3.4rem wide), always face up. Hover lifts a card 0.3rem; the played card sits 0.5rem up with the yellow ring. A card that cannot be played stays white with its numeral receded and its shadow removed.
 
+### Footer
+Every page but the live room ends with one quiet line on the tile, above a 1px rule: a sentence on the left, three plain links on the right (source, maker, maker's other site). Small type in soft ink, links in ink. It is absent in the live room, where the hand is docked along the bottom edge.
+
 ### Stage and band
 - **Stage:** full-bleed Pool Aqua with the 32px grid. Holds the timer in the top right corner, the story title, any notice, and the result. After the reveal the result reads as one line in the display face (Low 3, High 13), the average beside it, then who holds Low and High.
 - **The count:** takes the whole stage on a deep-water backdrop. One numeral a second, 3 then 2 then 1. Each number cuts in with no fade, settling from 1.22 scale to 1 over its second, while a 0.5rem yellow line sweeps the bottom edge from left to right, linearly, once per beat.

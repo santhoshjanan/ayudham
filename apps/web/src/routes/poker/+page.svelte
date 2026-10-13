@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Seo from '#lib/ui/Seo.svelte';
   import { BUILT_IN_DECKS } from '@pokerji/protocol';
   import { page } from '$app/state';
   import CopyButton from '#lib/ui/CopyButton.svelte';
@@ -8,9 +9,10 @@
   const decks = Object.entries(BUILT_IN_DECKS);
 </script>
 
-<svelte:head>
-  <title>Planning poker · pokerji</title>
-</svelte:head>
+<Seo
+  title="Start a planning poker room · pokerji"
+  description="Start a free planning poker room in seconds. Pick a deck, share the link, and vote in secret until every card turns at once. No sign-up."
+/>
 
 {#if form?.created}
   <header class="band">

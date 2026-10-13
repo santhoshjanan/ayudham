@@ -1,12 +1,14 @@
 <script lang="ts">
+  import Seo from '#lib/ui/Seo.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head>
-  <title>Privacy · pokerji</title>
-</svelte:head>
+<Seo
+  title="Privacy · pokerji planning poker"
+  description="Exactly what pokerji stores, for how long and who can see it. No accounts, no analytics, no third parties. Unused rooms are deleted after {data.retentionDays} days."
+/>
 
 <header class="band">
   <div class="band-inner">
