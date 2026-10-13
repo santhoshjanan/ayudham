@@ -82,4 +82,8 @@ More detail: [CLAUDE.md](CLAUDE.md) for the architecture and its rules, [DESIGN.
 - Music: Chopin recordings from [Musopen](https://archive.org/details/musopen-chopin) and Bach's Goldberg Variations played by Kimiko Ishizaka, from the [Open Goldberg Variations](https://archive.org/details/The_Open_Goldberg_Variations-11823). Both are released under CC0. Details in [apps/web/static/audio/LICENSES.md](apps/web/static/audio/LICENSES.md).
 - Typefaces: Big Shoulders and Atkinson Hyperlegible Next, self-hosted.
 
+## License
+
+[MIT](LICENSE). The bundled recordings and typefaces keep their own terms, listed under Credits.
+
 Made in New Jersey. See also [phostrich.com](https://phostrich.com) and [santhoshj.com](https://santhoshj.com).
