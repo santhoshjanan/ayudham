@@ -4,3 +4,6 @@ export * from './text.ts';
 export { many, type RandomSource } from './random.ts';
 export * from './alphabets.ts';
 export * from './password.ts';
+export * from './bytes.ts';
+export * from './strings.ts';
+export * from './numbers.ts';
