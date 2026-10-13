@@ -9,4 +9,3 @@ coverage/
 .impeccable/questions/
 .superpowers/
 apps/web/.impeccable/review/
-deploy/.env

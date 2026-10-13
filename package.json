@@ -11,7 +11,6 @@
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check:image": "sh deploy/check-image.sh",
     "services:up": "docker compose -f compose-dev.yaml up -d --wait postgres valkey",
     "services:down": "docker compose -f compose-dev.yaml down",
     "services:wipe": "docker compose -f compose-dev.yaml down -v"

@@ -37,7 +37,3 @@ The app and its privacy page depend on these, whichever proxy you use:
 3. Not log this site's request paths. A room's code is in its URL and is what keeps the room private, and the privacy page says no such log is kept.
 
 If you use your own Postgres or Valkey instead of the ones in the file, remove those services and set `DATABASE_URL` and `VALKEY_URL` on `web`.
-
-## Optional
-
-`deploy/` holds stricter set-ups from the security audit, none of them needed to run: a database user that cannot change tables (`postgres-roles.sql`, with `MIGRATIONS=check` and a one-shot `MIGRATE_ONLY=1` run of the image), a Valkey user confined to this app's keys (`valkey-acl.txt`), and `pnpm check:image`, which tests the image under both.
