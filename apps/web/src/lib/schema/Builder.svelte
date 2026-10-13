@@ -6,17 +6,26 @@
     LIMITS,
     markupParts,
     REFUSAL_WORDS,
+    searchTypes,
     RULES_CHECKED,
     typeLabel,
   } from '@pokerji/schema-builder';
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import { Builder } from './builder.svelte.ts';
   import ItemPanel from './ItemPanel.svelte';
+  import Picker from './Picker.svelte';
+  import Vocab from './Vocab.svelte';
 
   const builder = new Builder();
   let ready = $state(false);
   let dialog = $state<HTMLDialogElement>();
   let copyRefused = $state(false);
+  let pickingType = $state(false);
+
+  const toggleTypes = () => {
+    pickingType = !pickingType;
+    if (pickingType) void builder.loadVocabulary();
+  };
 
   const items = $derived(builder.draft.items);
   const full = $derived(items.length >= LIMITS.items);
@@ -85,7 +94,27 @@
             >{DEFINITIONS[id]?.label ?? id}</button
           >
         {/each}
+        <button type="button" disabled={full} aria-expanded={pickingType} onclick={toggleTypes}
+          >Another type</button
+        >
       </div>
+      {#if pickingType}
+        <div class="any">
+          <Vocab {builder}>
+            {#snippet children(vocabulary)}
+              <Picker
+                id="type-search"
+                label="Search Schema.org types"
+                search={(query) => searchTypes(vocabulary, query)}
+                onpick={(type) => {
+                  pickingType = false;
+                  void add(type);
+                }}
+              />
+            {/snippet}
+          </Vocab>
+        </div>
+      {/if}
       {#if items.length > 0}
         <p class="clear">
           <button type="button" class="danger" onclick={() => builder.clear()}>Clear</button>
@@ -206,6 +235,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
+  }
+  .any {
+    margin-top: 1.1rem;
   }
   .clear {
     margin: 2.75rem 0 0;

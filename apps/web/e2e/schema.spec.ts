@@ -76,7 +76,7 @@ test('nested items, repeated values and a choice all reach the markup', async ({
   await page.getByLabel('Price', { exact: true }).fill('19.99');
   await page.getByLabel('Currency', { exact: true }).fill('USD');
   await page.getByLabel('Availability', { exact: true }).selectOption({ label: 'In stock' });
-  await page.getByRole('button', { name: 'Add another' }).click();
+  await page.getByRole('button', { name: 'Add another', exact: true }).click();
   await page
     .getByRole('group', { name: 'Offer' })
     .nth(1)
@@ -273,4 +273,135 @@ test('without JavaScript the page says what it is and that it needs JavaScript',
   await expect(page.locator('noscript p')).toContainText('The builder needs JavaScript');
   await expect(page.getByRole('button', { name: 'Local business' })).toBeVisible();
   await expect(page.getByText('never sent to this site')).toBeVisible();
+});
+
+const result = (page: Page, name: string) =>
+  page.locator('.results button', { has: page.locator('b', { hasText: new RegExp(`^${name}$`) }) });
+
+test('the vocabulary is fetched only when the escape hatch is opened', async ({ browser }) => {
+  const page = await open(browser);
+  const asked: string[] = [];
+  page.on('request', (request) => asked.push(new URL(request.url()).pathname));
+
+  await page.getByRole('button', { name: 'Website', exact: true }).click();
+  await page.getByLabel('Site name', { exact: true }).fill('Acme');
+  expect(asked).not.toContain('/schema/vocabulary.json');
+
+  await page.getByRole('button', { name: 'Another type' }).click();
+  await page.getByLabel('Search Schema.org types').fill('movie');
+  await result(page, 'Movie').click();
+  expect(asked.filter((path) => path === '/schema/vocabulary.json')).toHaveLength(1);
+
+  const movie = page.getByTestId('item').nth(1);
+  await expect(movie).toContainText('There are no required or recommended rules for this type');
+  await movie.getByRole('button', { name: 'Add another property' }).click();
+  await movie.getByLabel('Search properties of Movie').fill('duration');
+  await result(page, 'duration').click();
+  await movie.getByLabel('duration', { exact: true }).fill('PT2H');
+
+  await movie.getByRole('button', { name: 'Add another property' }).click();
+  await movie.getByLabel('Search properties of Movie').fill('director');
+  await result(page, 'director').click();
+  // A nested item of a type with no guided form starts empty: its properties are added too.
+  const person = movie.getByRole('group', { name: 'Person' });
+  await person.getByRole('button', { name: 'Add another property' }).click();
+  await person.getByLabel('Search properties of Person').fill('name');
+  await result(page, 'name').click();
+  await person.getByLabel('name', { exact: true }).fill('Ada');
+
+  expect((await rawJson(page))['@graph'][1]).toEqual({
+    '@type': 'Movie',
+    duration: 'PT2H',
+    director: { '@type': 'Person', name: 'Ada' },
+  });
+  expect(asked.filter((path) => path === '/schema/vocabulary.json')).toHaveLength(1);
+});
+
+test('a guided item can take a property from the vocabulary', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Website', exact: true }).click();
+  await page.getByRole('button', { name: 'Add another property' }).click();
+  await page.getByLabel('Search properties of Website').fill('inLanguage');
+  await expect(result(page, 'inLanguage')).toContainText('The language of the content');
+  await result(page, 'inLanguage').click();
+  await page.getByLabel('inLanguage', { exact: true }).fill('en');
+  expect(await rawJson(page)).toMatchObject({ '@type': 'WebSite', inLanguage: 'en' });
+});
+
+test('when the vocabulary cannot be loaded the guided forms still work, and it can be retried', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await page.route('**/schema/vocabulary.json', (route) => route.abort());
+  await page.getByRole('button', { name: 'Another type' }).click();
+  await expect(page.getByText('The Schema.org vocabulary could not be loaded')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Website', exact: true }).click();
+  await page.getByLabel('Site name', { exact: true }).fill('Acme');
+  expect(await rawJson(page)).toMatchObject({ name: 'Acme' });
+
+  await page.unroute('**/schema/vocabulary.json');
+  await page.getByRole('button', { name: 'Try again' }).first().click();
+  await expect(page.getByLabel('Search Schema.org types')).toBeVisible();
+});
+
+test('a restored draft with a type outside the ten fetches the vocabulary at once', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Another type' }).click();
+  await page.getByLabel('Search Schema.org types').fill('movie');
+  await result(page, 'Movie').click();
+  const movie = page.getByTestId('item').first();
+  await movie.getByRole('button', { name: 'Add another property' }).click();
+  await movie.getByLabel('Search properties of Movie').fill('duration');
+  await result(page, 'duration').click();
+  await movie.getByLabel('duration', { exact: true }).fill('PT2H');
+  await expect.poll(() => stored(page)).toContain('PT2H');
+
+  const asked: string[] = [];
+  page.on('request', (request) => asked.push(new URL(request.url()).pathname));
+  await page.reload();
+  await page.locator('[data-ready]').waitFor();
+  await expect(page.getByLabel('duration', { exact: true })).toHaveValue('PT2H');
+  await expect.poll(() => asked).toContain('/schema/vocabulary.json');
+  // Once it has loaded, the field carries the vocabulary's description.
+  await expect(page.getByText('The duration of the item')).toBeVisible();
+});
+
+test('changing a type asks before it drops properties', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Product', exact: true }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Kettle');
+  await page.getByText('More fields').click();
+  await page.getByLabel('SKU', { exact: true }).fill('K-1');
+
+  const change = async (query: string, type: string) => {
+    await page.getByRole('button', { name: 'Change type' }).click();
+    await page.getByLabel('Search Schema.org types').fill(query);
+    await result(page, type).click();
+  };
+
+  // A person has a name but no SKU.
+  await change('person', 'Person');
+  await expect(page.getByRole('heading', { name: 'Change the type to Person?' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toContainText('sku');
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  expect(await rawJson(page)).toMatchObject({ '@type': 'Product', sku: 'K-1' });
+
+  await change('person', 'Person');
+  await page.getByRole('button', { name: 'Yes, change' }).click();
+  expect(await rawJson(page)).toEqual({
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: 'Kettle',
+  });
+
+  // An organization has a name too, so nothing is lost and nothing is asked.
+  await change('organization', 'Organization');
+  expect(await rawJson(page)).toEqual({
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Kettle',
+  });
 });

@@ -1,13 +1,23 @@
 <script lang="ts">
   import {
+    describeProperty,
+    expects,
     fieldsFor,
+    LIMITS,
+    searchProperties,
+    typeLabel,
     type Definition,
     type Field,
     type Item,
     type ItemPath,
+    type Vocabulary,
   } from '@pokerji/schema-builder';
   import type { Builder } from './builder.svelte.ts';
   import FieldRow from './FieldRow.svelte';
+  import { pathId } from './ids.ts';
+  import Picker from './Picker.svelte';
+  import { blankFor } from './values.ts';
+  import Vocab from './Vocab.svelte';
 
   let {
     builder,
@@ -37,6 +47,26 @@
   const moreHeld = $derived(
     more.some((field) => item.properties.some((property) => property.name === field.property)),
   );
+  let adding = $state(false);
+  const full = $derived(item.properties.length >= LIMITS.properties);
+
+  const toggle = () => {
+    adding = !adding;
+    if (adding) void builder.loadVocabulary();
+  };
+  /** Properties of this type that the item does not show yet. */
+  const search = (vocabulary: Vocabulary, query: string) =>
+    searchProperties(vocabulary, item.type, query, 40)
+      .filter((name) => !fields.some((field) => field.property === name))
+      .slice(0, 20);
+  /** Adds a property with one empty value of the simplest kind it takes. */
+  const pick = (vocabulary: Vocabulary, name: string) => {
+    const expected = expects(vocabulary, name);
+    const first = expected.kinds[0] ?? 'text';
+    const spec = first === 'item' ? `item:${expected.itemTypes[0] ?? 'Thing'}` : first;
+    builder.addValue(at, name, blankFor(spec));
+    adding = false;
+  };
 </script>
 
 {#each main as field (field.property)}
@@ -52,6 +82,28 @@
   </details>
 {/if}
 
+<div class="add">
+  <button type="button" class="compact" disabled={full} aria-expanded={adding} onclick={toggle}
+    >Add another property</button
+  >
+  {#if full}
+    <p class="hint">An item holds at most {LIMITS.properties} properties.</p>
+  {/if}
+  {#if adding}
+    <Vocab {builder}>
+      {#snippet children(vocabulary)}
+        <Picker
+          id="property-search-{pathId(at)}"
+          label="Search properties of {typeLabel(item.type)}"
+          search={(query) => search(vocabulary, query)}
+          describe={(name) => describeProperty(vocabulary, name)}
+          onpick={(name) => pick(vocabulary, name)}
+        />
+      {/snippet}
+    </Vocab>
+  {/if}
+</div>
+
 <style>
   .more {
     margin-bottom: 0.9rem;
@@ -62,5 +114,15 @@
     cursor: pointer;
     font-weight: 650;
     margin-bottom: 0.9rem;
+  }
+  .add {
+    display: grid;
+    gap: 0.6rem;
+    justify-items: start;
+    margin-bottom: 0.9rem;
+  }
+  .add :global(.picker),
+  .add :global([role='status']) {
+    justify-self: stretch;
   }
 </style>

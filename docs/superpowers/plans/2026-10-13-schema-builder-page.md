@@ -613,7 +613,7 @@ test('nested items, repeated values and a choice all reach the markup', async ({
   await page.getByLabel('Price', { exact: true }).fill('19.99');
   await page.getByLabel('Currency', { exact: true }).fill('USD');
   await page.getByLabel('Availability', { exact: true }).selectOption({ label: 'In stock' });
-  await page.getByRole('button', { name: 'Add another' }).click();
+  await page.getByRole('button', { name: 'Add another', exact: true }).click();
   await page.getByRole('group', { name: 'Offer' }).nth(1).getByLabel('Price', { exact: true }).fill('24.5');
 
   expect(await rawJson(page)).toEqual({

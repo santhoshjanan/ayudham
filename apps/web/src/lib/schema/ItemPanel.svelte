@@ -1,8 +1,16 @@
 <script lang="ts">
-  import { topDefinition, typeLabel, valuesOf, type Item } from '@pokerji/schema-builder';
+  import {
+    searchTypes,
+    topDefinition,
+    typeLabel,
+    valuesOf,
+    type Item,
+  } from '@pokerji/schema-builder';
   import type { Builder } from './builder.svelte.ts';
   import { pathId } from './ids.ts';
   import ItemFields from './ItemFields.svelte';
+  import Picker from './Picker.svelte';
+  import Vocab from './Vocab.svelte';
 
   let {
     builder,
@@ -23,6 +31,11 @@
     return '';
   });
   const typeId = $derived(`type-${pathId(at)}`);
+  let retyping = $state(false);
+  const toggleRetype = () => {
+    retyping = !retyping;
+    if (retyping) void builder.loadVocabulary();
+  };
 </script>
 
 <details
@@ -79,6 +92,9 @@
           onclick={() => builder.moveItem(item.key, 1)}>Down</button
         >
       {/if}
+      <button type="button" class="compact" aria-expanded={retyping} onclick={toggleRetype}
+        >Change type</button
+      >
       <button
         type="button"
         class="compact danger"
@@ -86,6 +102,21 @@
         onclick={() => builder.removeItem(item.key)}>Remove item</button
       >
     </div>
+    {#if retyping}
+      <Vocab {builder}>
+        {#snippet children(vocabulary)}
+          <Picker
+            id="retype-search-{pathId(at)}"
+            label="Search Schema.org types"
+            search={(query) => searchTypes(vocabulary, query)}
+            onpick={(type) => {
+              retyping = false;
+              builder.retype(at, type);
+            }}
+          />
+        {/snippet}
+      </Vocab>
+    {/if}
 
     <ItemFields {builder} {at} {item} {definition} depth={1} />
   </div>
