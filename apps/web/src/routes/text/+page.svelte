@@ -5,6 +5,12 @@
   import Numbers from '#lib/text/Numbers.svelte';
   import Passphrase from '#lib/text/Passphrase.svelte';
   import RandomString from '#lib/text/RandomString.svelte';
+  import Case from '#lib/text/Case.svelte';
+  import Count from '#lib/text/Count.svelte';
+  import Encode from '#lib/text/Encode.svelte';
+  import Hash from '#lib/text/Hash.svelte';
+  import Lines from '#lib/text/Lines.svelte';
+  import Slug from '#lib/text/Slug.svelte';
   import Password from '#lib/text/Password.svelte';
   import ToolRow from '#lib/text/ToolRow.svelte';
   import { toolFrom, type ToolId } from '#lib/text/tools.ts';
@@ -60,6 +66,18 @@
         <Identifier />
       {:else if tool === 'chance'}
         <Chance />
+      {:else if tool === 'case'}
+        <Case />
+      {:else if tool === 'slug'}
+        <Slug />
+      {:else if tool === 'encode'}
+        <Encode />
+      {:else if tool === 'hash'}
+        <Hash />
+      {:else if tool === 'lines'}
+        <Lines />
+      {:else if tool === 'count'}
+        <Count />
       {:else}
         <Password />
       {/if}

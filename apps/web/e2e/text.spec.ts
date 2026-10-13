@@ -262,3 +262,171 @@ test('PINs, numbers, identifiers and chance all give results', async ({ browser 
   expect(new Set(picked).size).toBe(2);
   expect(picked.every((name) => ['Ann', 'Bo', 'Cy'].includes(name))).toBe(true);
 });
+
+const text = (page: Page) => page.getByLabel('Text', { exact: true });
+const named = (page: Page, name: string) =>
+  results(page)
+    .filter({ has: page.locator('.name', { hasText: new RegExp(`^${name}$`) }) })
+    .locator('.value');
+
+test('a link straight to a tool opens it, and Back returns to the tool before', async ({
+  browser,
+}) => {
+  const page = await open(browser, '#hash');
+  await expect(page.getByRole('heading', { level: 2, name: 'Hash', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Hash' })).toHaveAttribute('aria-current', 'true');
+
+  await page.getByRole('link', { name: 'Slug' }).click();
+  await expect(page).toHaveURL(/\/text#slug$/);
+  await expect(page.getByRole('heading', { level: 2, name: 'Slug', exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('heading', { level: 2, name: 'Hash', exact: true })).toBeVisible();
+
+  const stranger = await open(browser, '#<img src=x onerror=alert(1)>');
+  await expect(
+    stranger.getByRole('heading', { level: 2, name: 'Password', exact: true }),
+  ).toBeVisible();
+});
+
+test('case shows every form at once, each with its own copy', async ({ browser }) => {
+  const page = await open(browser, '#case');
+  await expect(rail(page)).toContainText('appear here');
+  await expect(rail(page).getByRole('button', { name: 'Copy', exact: true })).toBeDisabled();
+
+  await text(page).fill('parseHTTPResponse2 now');
+  await expect(results(page)).toHaveCount(12);
+  await expect(named(page, 'camelCase')).toHaveText('parseHttpResponse2Now');
+  await expect(named(page, 'PascalCase')).toHaveText('ParseHttpResponse2Now');
+  await expect(named(page, 'snake_case')).toHaveText('parse_http_response_2_now');
+  await expect(named(page, 'CONSTANT_CASE')).toHaveText('PARSE_HTTP_RESPONSE_2_NOW');
+  await expect(named(page, 'kebab-case')).toHaveText('parse-http-response-2-now');
+  await expect(named(page, 'Train-Case')).toHaveText('Parse-Http-Response-2-Now');
+  await expect(named(page, 'dot.case')).toHaveText('parse.http.response.2.now');
+  await expect(named(page, 'path/case')).toHaveText('parse/http/response/2/now');
+
+  await text(page).fill("the return of the iPhone: a buyer's guide");
+  await expect(named(page, 'Title Case')).toHaveText("The Return of the iPhone: A Buyer's Guide");
+  await expect(named(page, 'Sentence case')).toHaveText(
+    "The return of the iPhone: a buyer's guide",
+  );
+  await expect(named(page, 'UPPER CASE')).toHaveText("THE RETURN OF THE IPHONE: A BUYER'S GUIDE");
+  await expect(named(page, 'lower case')).toHaveText("the return of the iphone: a buyer's guide");
+
+  await page.getByRole('button', { name: 'Copy Title Case' }).click();
+  expect(await clipboard(page)).toBe("The Return of the iPhone: A Buyer's Guide");
+  await page.getByRole('button', { name: 'Copy all' }).click();
+  expect(await clipboard(page)).toContain("Title Case: The Return of the iPhone: A Buyer's Guide");
+});
+
+test('slug makes an address-safe name, line by line', async ({ browser }) => {
+  const page = await open(browser, '#slug');
+  await text(page).fill('Crème Brûlée, the Recipe!\nStraße 2');
+  await expect(results(page)).toHaveCount(1);
+  expect(await values(page)).toEqual(['creme-brulee-the-recipe\nstrasse-2']);
+  await page.getByRole('button', { name: 'Copy', exact: true }).first().click();
+  expect(await clipboard(page)).toBe('creme-brulee-the-recipe\nstrasse-2');
+
+  await text(page).fill('日本語');
+  await expect(rail(page)).toContainText('come out empty');
+});
+
+test('encoding and decoding go both ways and say what is wrong', async ({ browser }) => {
+  const page = await open(browser, '#encode');
+  const form = page.getByLabel('Form', { exact: true });
+  await text(page).fill('a b&c/é');
+  await expect.poll(() => values(page)).toEqual(['YSBiJmMvw6k=']);
+  await form.selectOption({ label: 'Base64URL' });
+  await expect.poll(() => values(page)).toEqual(['YSBiJmMvw6k']);
+  await form.selectOption({ label: 'Hex' });
+  await expect.poll(() => values(page)).toEqual(['61206226632fc3a9']);
+  await form.selectOption({ label: 'URL' });
+  await expect.poll(() => values(page)).toEqual(['a%20b%26c%2F%C3%A9']);
+  await form.selectOption({ label: 'HTML entities' });
+  await text(page).fill('<b>Tom & Jerry</b>');
+  await expect.poll(() => values(page)).toEqual(['&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;']);
+
+  await page.getByRole('button', { name: 'Decode', exact: true }).click();
+  await text(page).fill('&lt;b&gt;Tom &amp; Jerry&lt;/b&gt; &copy;');
+  await expect.poll(() => values(page)).toEqual(['<b>Tom & Jerry</b> ©']);
+  // What was decoded is shown as text, never as markup.
+  await expect(rail(page).locator('b', { hasText: 'Tom' })).toHaveCount(0);
+
+  await form.selectOption({ label: 'Base64' });
+  await text(page).fill('YSBiJmMvw6k=');
+  await expect.poll(() => values(page)).toEqual(['a b&c/é']);
+  await text(page).fill('not base64!');
+  await expect(status(page)).toContainText('That is not Base64');
+  await expect(results(page)).toHaveCount(0);
+
+  await text(page).fill('/w==');
+  await expect.poll(() => values(page)).toEqual(['ff']);
+  await expect(rail(page)).toContainText('not text');
+
+  await form.selectOption({ label: 'Hex' });
+  await text(page).fill('6');
+  await expect(status(page)).toContainText('odd number of digits');
+  await form.selectOption({ label: 'URL' });
+  await text(page).fill('100%');
+  await expect(status(page)).toContainText('not followed by two hex digits');
+});
+
+test('hash gives the three SHA-2 sums of the text exactly as typed', async ({ browser }) => {
+  const page = await open(browser, '#hash');
+  await expect(rail(page)).toContainText('appear here');
+  await text(page).fill('abc');
+  await expect(results(page)).toHaveCount(3);
+  await expect(named(page, 'SHA-256')).toHaveText(
+    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+  );
+  await expect(named(page, 'SHA-384')).toHaveText(
+    'cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7',
+  );
+  await expect(named(page, 'SHA-512')).toHaveText(
+    'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f',
+  );
+  await text(page).fill('abc\n');
+  await expect(named(page, 'SHA-256')).toHaveText(
+    'edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb',
+  );
+  await expect(rail(page)).toContainText('not a way to store passwords');
+  await text(page).fill('');
+  await expect(results(page)).toHaveCount(0);
+});
+
+test('lines are tidied in a fixed order, and counts are stated', async ({ browser }) => {
+  const page = await open(browser, '#lines');
+  await text(page).fill('pear\napple\n\npear\nApple\n');
+  await expect.poll(() => values(page)).toEqual(['pear\napple\n\npear\nApple']);
+  await page.getByRole('button', { name: 'Remove blank lines' }).click();
+  await page.getByRole('button', { name: 'Remove repeats' }).click();
+  await expect.poll(() => values(page)).toEqual(['pear\napple\nApple']);
+  await page.getByRole('button', { name: 'Ignore case' }).click();
+  await expect.poll(() => values(page)).toEqual(['pear\napple']);
+  await page.getByLabel('Order', { exact: true }).selectOption({ label: 'A to Z' });
+  await page.getByRole('button', { name: 'Number the lines' }).click();
+  await expect.poll(() => values(page)).toEqual(['1. apple\n2. pear']);
+  await page.getByRole('button', { name: 'Copy', exact: true }).first().click();
+  expect(await clipboard(page)).toBe('1. apple\n2. pear');
+
+  await page.getByLabel('Order', { exact: true }).selectOption({ label: 'Shuffled' });
+  await expect(page.getByRole('button', { name: 'Shuffle again' })).toBeVisible();
+  const [shuffled = ''] = await values(page);
+  expect(
+    shuffled
+      .split('\n')
+      .map((line) => line.replace(/^\d+\. /, ''))
+      .sort(),
+  ).toEqual(['apple', 'pear']);
+
+  await page.getByRole('link', { name: 'Count' }).click();
+  await text(page).fill('Hello, wide world\n👨‍👩‍👧');
+  await expect(named(page, 'Characters')).toHaveText('19');
+  await expect(named(page, 'Without white space')).toHaveText('16');
+  await expect(named(page, 'Words')).toHaveText('4');
+  await expect(named(page, 'Lines')).toHaveText('2');
+  await expect(named(page, 'Bytes')).toHaveText('36');
+  // A count is not something to copy alone; Copy all takes them together.
+  await expect(results(page).getByRole('button')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Copy all' }).click();
+  expect(await clipboard(page)).toContain('Words: 4');
+});
