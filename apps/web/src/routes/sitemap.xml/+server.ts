@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 
 // The public pages, and nothing else. Rooms are never listed.
-const PAGES = ['/', '/poker', '/privacy'];
+const PAGES = ['/', '/poker', '/schema', '/privacy'];
 
 export const GET: RequestHandler = ({ url }) => {
   const entries = PAGES.map((path) => `  <url><loc>${url.origin}${path}</loc></url>`).join('\n');

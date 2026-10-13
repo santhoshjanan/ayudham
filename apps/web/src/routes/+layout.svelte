@@ -60,6 +60,7 @@
     {:else}
       <nav aria-label="Site">
         <a href="/poker">Planning poker</a>
+        <a href="/schema">Schema markup</a>
         <a href="/privacy">Privacy</a>
       </nav>
     {/if}
@@ -212,7 +213,8 @@
     nav {
       gap: 0.75rem;
     }
-    nav[aria-label='Site'] a:first-child,
+    /* The tools are a tap away on the home page, which the wordmark opens. */
+    nav[aria-label='Site'] a:not(:last-child),
     .copy span {
       display: none;
     }

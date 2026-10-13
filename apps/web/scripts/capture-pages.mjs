@@ -24,6 +24,27 @@ async function pages(name, viewport, colorScheme) {
   await shot(mo, 'home');
   await mo.goto(`${base}/privacy`);
   await shot(mo, 'privacy');
+  await mo.goto(`${base}/schema`);
+  await mo.locator('[data-ready]').waitFor();
+  await shot(mo, 'schema-empty');
+  await mo.getByRole('button', { name: 'Product', exact: true }).click();
+  await mo.getByLabel('Name', { exact: true }).fill('Sourdough loaf');
+  await mo.getByRole('button', { name: 'Add offer' }).click();
+  await mo.getByLabel('Price', { exact: true }).fill('6.50');
+  await mo.getByLabel('Currency', { exact: true }).fill('USD');
+  await mo.getByRole('button', { name: 'Organization', exact: true }).click();
+  await mo.getByTestId('item').nth(1).getByLabel('Name', { exact: true }).fill('Acme Bakery');
+  await shot(mo, 'schema-filled');
+  await mo.getByRole('button', { name: 'Another type' }).click();
+  await mo.getByLabel('Search Schema.org types').fill('rest');
+  await shot(mo, 'schema-picker');
+  if (viewport.width < 1024) {
+    await mo.getByRole('button', { name: 'Markup', exact: true }).click();
+    await mo.screenshot({ path: `${out}/${name}-schema-sheet.png` });
+  }
+  await mo.getByRole('button', { name: 'Clear', exact: true }).click();
+  await mo.screenshot({ path: `${out}/${name}-schema-confirm.png` });
+  await mo.getByRole('button', { name: 'Yes, clear' }).click();
   await mo.goto(`${base}/poker`);
   await mo.getByLabel('Your name').fill('Mo');
   await mo.getByRole('button', { name: 'Create room' }).click();
@@ -71,6 +92,8 @@ async function pages(name, viewport, colorScheme) {
 }
 
 await pages('pages-desktop-light', { width: 1440, height: 900 }, 'light');
+await pages('pages-desktop-dark', { width: 1440, height: 900 }, 'dark');
+await pages('pages-mobile-light', { width: 390, height: 844 }, 'light');
 await pages('pages-mobile-dark', { width: 390, height: 844 }, 'dark');
 await browser.close();
 console.log('captured');

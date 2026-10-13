@@ -7,17 +7,17 @@
 </script>
 
 <Seo
-  title="pokerji: free planning poker online, no sign-up"
-  description="Free online planning poker for agile teams. Create a room, share the link and estimate stories together in real time. No account, no trackers."
+  title="pokerji: free planning poker and schema markup builder, no sign-up"
+  description="Free tools without the sign-up: real-time planning poker for agile teams and a Schema.org JSON-LD markup builder. No account, no trackers."
 />
 
 <header class="band wide">
   <div class="band-inner split">
     <div>
-      <h1>Planning poker without the sign-up.</h1>
+      <h1>Planning poker and schema markup, without the sign-up.</h1>
       <p>
-        Free, real-time estimation for agile teams. No accounts, no trackers: open a room, share
-        the link, get on with the meeting.
+        Free small tools for teams. No accounts, no trackers: open one, use it, get on with the
+        work.
       </p>
     </div>
     <DemoRow />
@@ -35,6 +35,16 @@
         </p>
       </div>
       <a class="button" href="/poker">Start a room</a>
+    </li>
+    <li>
+      <div>
+        <h2>Schema markup builder</h2>
+        <p>
+          Build Schema.org JSON-LD for articles, products, events, local businesses and more.
+          Fill in a form and copy the markup; nothing you type leaves your browser.
+        </p>
+      </div>
+      <a class="button" href="/schema">Build markup</a>
     </li>
   </ul>
 

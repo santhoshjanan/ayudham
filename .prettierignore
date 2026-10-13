@@ -5,3 +5,4 @@ apps/web/build/
 apps/web/.svelte-kit/
 apps/web/test-results/
 apps/web/playwright-report/
+apps/web/static/schema/*.json

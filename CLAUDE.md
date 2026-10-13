@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. It is packaged for release: `Dockerfile`, `compose-dev.yaml`, `docker-compose.yaml` and `docs/deploy.md`. Deployment is the owner's action. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
+Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). The second tool, the Schema.org markup builder at `/schema`, is built too; it runs entirely in the browser. Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. It is packaged for release: `Dockerfile`, `compose-dev.yaml`, `docker-compose.yaml` and `docs/deploy.md`. Deployment is the owner's action. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
 
 ## Commands
 
@@ -15,6 +15,7 @@ Package manager is pnpm (Node 24+).
 - One package: `pnpm --filter @pokerji/poker-engine test`
 - One file: `pnpm --filter @pokerji/poker-engine exec vitest run test/rounds.test.ts`
 - One test by name: add `-t "part of the test name"` to the line above
+- The markup builder's package: `pnpm --filter @pokerji/schema-builder test`
 - Typecheck: `pnpm typecheck`
 - Format: `pnpm format` (check only: `pnpm format:check`)
 - The whole app in Docker, for development: `docker compose -f compose-dev.yaml up --build`, then http://localhost:5173/poker. Only Postgres and Valkey, for the test suites: `pnpm services:up` (stop: `pnpm services:down`; wipe data: `pnpm services:wipe`).
@@ -31,6 +32,12 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 
 - `packages/protocol`: limits, decks, and WebSocket message schemas shared by server and browser.
 - `packages/poker-engine`: the room rules as a pure reducer, `apply(state, command, now)` returning `{ state, effects }`. No I/O, no clock, no framework. A host (the server) feeds it commands and carries out its effects.
+- `packages/schema-builder`: the markup builder's rules as pure functions over an immutable draft. `serialize` writes JSON-LD, `check` reports what is missing or malformed, `unpack` reads a stored draft without trusting it. No I/O, no DOM; a test (`purity.test.ts`) enforces that.
+- The builder's page (`apps/web/src/routes/schema`, components in `apps/web/src/lib/schema`) has no server code: no form action, no endpoint, no cookie. Nothing typed into it may be sent anywhere; a browser test checks that no request carries typed text. Keep it that way.
+- The script-tag form of the markup writes every `<` as `\u003c` (`toScriptTag`), so nothing typed can end the script element on the site it is pasted into. Typed values are rendered as text only, never as HTML.
+- The builder's draft lives in local storage under `pj-schema-draft` and is read only through `unpack`, which enforces every limit in `LIMITS` and accepts only plain names (letters and digits) and no repeated property. A tab writes it only after changing the draft itself (`Builder.flush`), so an idle tab cannot remove another tab's draft. The builder's fields set `spellcheck="false"`; keep it, or typed text can reach a browser's spelling service.
+- The Schema.org vocabulary is vendored as `apps/web/static/schema/vocabulary.json`, made by `packages/schema-builder/scripts/compact-vocabulary.ts` from a pinned release and recorded with its checksum in `apps/web/static/schema/LICENSES.md` (a test compares them). It is fetched from this site only when the escape hatch is opened. Nothing is fetched from schema.org at build or run time. To move to a new release, follow `LICENSES.md`.
+- A guided type's required and recommended levels come from `packages/schema-builder/RULES.md`. Change a level, that file and `RULES_CHECKED` together.
 - Vote secrecy is enforced in one place, `snapshotFor` in the engine. Anything that sends room state to a browser must go through it.
 - `packages/poker-server`: everything that touches Postgres, Valkey, the clock or a socket, with no web framework. `RoomHost` is one live room: it owns the engine state, sends each connection its own snapshot, and carries out engine effects. `RoomRegistry` loads hosts under a Valkey lock and unloads idle ones. `attachSocket` puts one untrusted socket behind size, rate and parse checks.
 - A participant's id is their session id. Saved rounds get their own generated id so a retried save cannot store a round twice.
@@ -60,7 +67,7 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - The app pings Valkey at start and refuses to start without it.
 - Every moderator and member action is rate limited in its flow (`CHANGE_LIMITS` in `moderation.ts`). Add a limit with any new action: anyone can create a room and so become a moderator.
 - Names are unique within a room, ignoring case, by a database index; a join retries with the next number on a clash.
-- Public pages (home, `/poker`, `/privacy`) use `Seo.svelte` for their title, description, canonical address and link-preview tags, and are listed in `/sitemap.xml`. Everything below `/poker/` is a room: it carries `X-Robots-Tag: noindex` and is disallowed in `/robots.txt`. Never make a room page indexable or list one anywhere.
+- Public pages (home, `/poker`, `/schema`, `/privacy`) use `Seo.svelte` for their title, description, canonical address and link-preview tags, and are listed in `/sitemap.xml`. Everything below `/poker/` is a room: it carries `X-Robots-Tag: noindex` and is disallowed in `/robots.txt`. Never make a room page indexable or list one anywhere.
 - The footer's outbound links are plain links. Nothing is loaded from other sites, and `Referrer-Policy: same-origin` means they receive no referrer.
 - The retention period shown on pages comes from the root layout's data (`retentionDays`), never a hardcoded number.
 - A room has exactly one owner (a database index enforces it): its creator, or whoever last used the moderator link. Only the owner can delete the room, replace the moderator link, or demote a moderator; `deleteRoomNow` and `regenerateRecovery` check `actor.session.owner`, and demotion is the `demoteModerator` flow on the settings page (there is no room message for it, so it works on moderators who are not connected). The moderator link is replaced each time it is used. In the live room, a joiner whose session says `owner` clears that flag from everyone else, and `transferOwnership` clears it even when the new owner is absent: the stored owner is the truth. Every other moderator power is shared.
