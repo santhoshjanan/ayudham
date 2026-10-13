@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. It is packaged for release: `Dockerfile`, `deploy/` and `docs/deploy.md`. Deployment is the owner's action. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
+Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. It is packaged for release: `Dockerfile`, `compose-dev.yaml`, `docker-compose.yaml` and `docs/deploy.md`. Deployment is the owner's action. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
 
 ## Commands
 
@@ -17,13 +17,13 @@ Package manager is pnpm (Node 24+).
 - One test by name: add `-t "part of the test name"` to the line above
 - Typecheck: `pnpm typecheck`
 - Format: `pnpm format` (check only: `pnpm format:check`)
-- Dev Postgres and Valkey: `pnpm services:up` (stop: `pnpm services:down`; wipe data: `pnpm services:wipe`). They are defined in `compose.dev.yaml`; a bare `docker compose` in the repository root finds no file, on purpose, so it cannot be confused with the production file in `deploy/`. Development only; production uses existing shared services.
+- The whole app in Docker, for development: `docker compose -f compose-dev.yaml up --build`, then http://localhost:5173/poker. Only Postgres and Valkey, for the test suites: `pnpm services:up` (stop: `pnpm services:down`; wipe data: `pnpm services:wipe`).
 - `packages/poker-server` tests need those services running. Each test file uses its own throwaway Postgres schema and Valkey key prefix, so they never touch development data.
 - Run the app: copy `.env.example` to `.env`, then `pnpm --filter @pokerji/web dev` and open http://localhost:5173/poker
 - Web typecheck: `pnpm --filter @pokerji/web typecheck`
 - End-to-end tests: `pnpm --filter @pokerji/web e2e` (builds the app and drives Chromium; first run needs `pnpm --filter @pokerji/web exec playwright install chromium`)
 - Check the image as production runs it: `pnpm check:image` (needs the development services; builds the image and runs it under the database roles and Valkey user from `deploy/`)
-- Deploy or update on the server: `sh deploy/deploy.sh` (see `docs/deploy.md`). Never run it from a development machine against real settings.
+- Production: `docker compose up -d --build` with `docker-compose.yaml` in the root, which needs `ORIGIN`, `POSTGRES_PASSWORD` and `ADDRESS_HMAC_SECRET` (see `docs/deploy.md`).
 - Smoke check of a build: `pnpm --filter @pokerji/web build && pnpm --filter @pokerji/web smoke`
 
 Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.
@@ -40,9 +40,9 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - `apps/web` is a thin SvelteKit 3 shell. Rules live in the packages; a route only parses a form, calls a flow, sets a cookie and renders.
 - SvelteKit 3 differences that matter here: configuration is in `vite.config.ts` (no `svelte.config.js`); hook types come from `@sveltejs/kit/hooks`; the library alias is `#lib` and imports through it carry the file extension.
 - One runtime object per process lives on `globalThis` under `Symbol.for('pokerji.runtime')` (`apps/web/src/lib/server/pokerji.ts`). `apps/web/server.js`, the production entry, uses it to hand WebSocket upgrades to `createUpgradeHandler`; a Vite plugin does the same in dev.
-- The owner runs and configures the reverse proxy themselves. This repository ships no proxy configuration of any kind (no Traefik labels, no nginx or Caddy files); `deploy/compose.yaml` only joins the proxy's network, and `docs/deploy.md` section 3 says what any proxy must do. Do not add proxy configuration unless asked.
-- Production sets `ORIGIN` (the site's one origin), `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`; see `deploy/compose.yaml`. Without `ORIGIN` the app works out its origin from `PROTOCOL_HEADER` and `HOST_HEADER`, and without those every form post is refused. `INSECURE_HTTP=1` is for local testing only; `server.js` refuses to start with it unless `HOST` is a loopback address, and refuses to start without `ADDRESS_HEADER` otherwise.
-- In production the app's database role cannot change the schema: `MIGRATIONS=check` makes it verify and refuse to start if behind, and migrations are applied by a one-shot run of the same image with `MIGRATE_ONLY=1` under the owner role. A new migration therefore needs the migrate job run before the new image starts.
+- The owner runs and configures the reverse proxy themselves. This repository ships no proxy configuration of any kind. Do not add any unless asked.
+- Production sets `ORIGIN` (the site's one origin), `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`; see `docker-compose.yaml`. Without `ORIGIN` the app works out its origin from `PROTOCOL_HEADER` and `HOST_HEADER`, and without those every form post is refused. `INSECURE_HTTP=1` is for local testing only; `server.js` refuses to start with it unless `HOST` is a loopback address, and refuses to start without `ADDRESS_HEADER` otherwise.
+- Deployment is two compose files in the repository root, at the owner's insistence: `compose-dev.yaml` and `docker-compose.yaml`, each bringing up the whole app (web, Postgres, Valkey) with one command. Keep them bare. Do not add deployment scripts, extra required settings, external networks or anything specific to the owner's server; they adapt the production file themselves. The stricter set-up in `deploy/` (separate database roles with `MIGRATIONS=check` and a `MIGRATE_ONLY=1` run, a Valkey user) is optional and must stay optional.
 - `apps/web/server.js` sets the base security headers on every response, because static files never reach `hooks.server.ts`. When `ORIGIN` is set it also states the site's origin on every request, in two headers of its own that it overwrites; this version of the Node adapter takes a fixed origin only at build time. The WebSocket upgrade reads `ORIGIN` directly.
 - `deploy/postgres-roles.sql` and `deploy/valkey-acl.txt` are what `docs/deploy.md` tells the owner to run and what `pnpm check:image` tests. A new Valkey command or database need must be added there, or production will refuse it.
 - The Content Security Policy applies to builds, not to `vite dev`. It forbids inline styles: no `style` attributes and no Svelte `transition:` or `animate:` directives in `apps/web`. The single exception, allowed by hash in `vite.config.ts`, is SvelteKit's own route announcer.

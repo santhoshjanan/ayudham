@@ -1,220 +1,43 @@
-# Deploying pokerji
+# Running pokerji
 
-These notes take a server that already runs a reverse proxy, Postgres and Valkey to a running pokerji. Follow them in order once; "Updating" covers every later release.
+Two compose files in the repository root. Each brings up the whole app: the web app, Postgres and Valkey.
 
-This project configures no reverse proxy. The compose file puts the app on your proxy's Docker network and stops there; routing, certificates and the proxy's own settings are yours. Section 3 lists what the proxy must do, whichever one it is.
+## Development
 
-## 1. What you are deploying
+```bash
+docker compose -f compose-dev.yaml up --build
+```
 
-- One container, named `web`, listening on port 3000 over plain HTTP. It publishes no ports and is reached only through your reverse proxy.
-- One Postgres database with two roles: an owner that applies schema migrations, and an app role that reads and writes rows and cannot change the schema.
-- One Valkey user that can touch only keys under this app's prefix.
+Open http://localhost:5173/poker. Nothing to configure. Edits to the source show up without a rebuild; rebuild after changing dependencies.
 
-Everything is configured through environment variables in `deploy/.env`. Nothing is stored in the image or on the container's disk.
+## Production
 
-## 2. Before you start
+`docker-compose.yaml` is a bare minimum to adapt to your server. Set three values in a `.env` file beside it (see `.env.example`):
 
-| You need | How to check |
+| Setting | What to put |
 |---|---|
-| Docker Engine 25 or later | `docker version` |
-| Postgres 13 or later | `select version();` |
-| The name of the Docker network your reverse proxy can reach | `docker network ls` |
-| The name of the network shared with Postgres and Valkey | `docker network ls` |
-| A DNS name pointing at the server | `dig +short <name>` |
-
-## 3. What your reverse proxy must do
-
-You set this up in your proxy; nothing here does it for you. Each item is something the app or its privacy page depends on.
-
-1. **Route the site's host name to `web`, port 3000,** on the network named by `PROXY_NETWORK`, over plain HTTP, and terminate TLS itself.
-2. **Pass WebSocket upgrades through.** The live room uses one at `/poker/r/<code>/ws`.
-3. **Redirect HTTP to HTTPS.**
-4. **Write `X-Forwarded-For` itself, and not pass on one a visitor sent.** The app limits abuse per client address and takes that address from the last entry of this header. If the proxy forwards a visitor's own header untouched, a visitor can choose their address and escape the limits. If it sends no header, or one address for everybody, all visitors share one person's limits.
-5. **Keep idle connections to the app open for less than 95 seconds,** which is how long the app keeps them. Most proxies default to 60 or 90.
-6. **Optionally, limit requests per address** as protection against floods. The app has its own limit for every action, so this is a coarse outer guard. Size it so a whole team behind one office address can load the page at once: around 100 requests a second with bursts of 400.
-
-The app does not consult `X-Forwarded-Host` or `X-Forwarded-Proto`; its origin is fixed by `POKERJI_HOST`.
-
-Nothing untrusted may reach the container directly. The compose file publishes no ports; do not add a `ports:` entry. Any other container on the proxy's network or the data network can reach the app and claim any client address, so keep untrusted containers off both.
-
-If a CDN or a second proxy sits in front, raise `XFF_DEPTH` in `deploy/.env` by one for each, and make sure each proxy trusts only the one before it.
-
-Check that the proxy sees real client addresses over IPv6 as well as IPv4. If Docker's IPv6 is not set up, every IPv6 visitor can arrive as one internal address, and they all share one person's limits.
-
-## 4. Access logs
-
-A room's code is in its URL path, and the code is what keeps a room private. The privacy page tells visitors that no log is kept of the pages they open. That is true only if your proxy does not record this site's request paths. Three places to check:
-
-- **The proxy's access log for this site.** Turn it off for this host, or drop the request path from what it records.
-- **The HTTP listener.** A request for `http://` is often answered by the proxy's own redirect, separately from the site's HTTPS route, and logged separately. Check it too.
-- **Tracing,** if your proxy sends traces anywhere: spans usually carry the path.
-
-After the first start, request `https://<host>/poker/r/AAAAAAAAAAAA` and `http://<host>/poker/r/AAAAAAAAAAAA`, then confirm that path appears in no log.
-
-This step is not optional. If you need request logs for this site, change the privacy page first.
-
-## 5. Postgres
-
-As a Postgres superuser, run `deploy/postgres-roles.sql`, choosing two different passwords of letters and digits only (`openssl rand -hex 24`); other characters break a connection string. Put a space before the command, or clear it from your shell history afterwards, because it carries both passwords:
+| `ORIGIN` | The address people use, for example `https://poker.example.org` |
+| `POSTGRES_PASSWORD` | Any password, letters and digits only |
+| `ADDRESS_HMAC_SECRET` | 32 or more random characters: `openssl rand -hex 24` |
 
 ```bash
-psql -v ON_ERROR_STOP=1 -v db=pokerji -v owner=pokerji_owner -v app=pokerji_app -v owner_password='FIRST-PASSWORD' -v app_password='SECOND-PASSWORD' -f deploy/postgres-roles.sql
+docker compose up -d --build
 ```
 
-`pokerji_owner` owns the database and is used only by the one-shot migrate run. `pokerji_app` is what the running app uses: it can select, insert, update and delete rows, and nothing else. `pnpm check:image` proves, on a development machine, that the app role cannot create a table and that the app refuses to start when the schema is behind.
+The app listens on port 3000 (change with `PORT`) over plain HTTP and creates its own tables. Put your HTTPS reverse proxy in front of it.
 
-Three settings of the shared Postgres matter to what the privacy page promises:
+To update: pull the new code and run the same command again. Back up the Postgres volume first.
 
-- **Statement logging.** With `log_statement` set to anything but `none`, or `log_min_duration_statement` set, Postgres writes names, titles and votes to its log. Even without them, a clash of two identical names in one room logs the name once as an error detail. Check both settings (`show log_statement; show log_min_duration_statement;`), and treat the Postgres log as holding personal data if either is on.
-- **Reach.** In `pg_hba.conf`, allow the two roles to connect to the `pokerji` database only.
-- **Connections.** `alter role pokerji_app connection limit 20;` keeps a fault in this app from using every connection the shared server has.
+## What the reverse proxy must do
 
-## 6. Valkey
+The app and its privacy page depend on these, whichever proxy you use:
 
-`deploy/valkey-acl.txt` holds one line. Replace `PREFIX` with `pokerji` and `PASSWORD` with a long random value, and run it in `valkey-cli` as an administrator. Then make it permanent: `ACL SAVE` if Valkey is configured with an ACL file, otherwise add the same line (without `ACL SETUSER`, as a `user` line) to its configuration.
+1. Terminate TLS and forward to the app over plain HTTP, WebSockets included (the live room uses one).
+2. Set `X-Forwarded-For` itself and not pass on one a visitor sent. The app limits abuse per visitor address and reads it from the last entry of that header.
+3. Not log this site's request paths. A room's code is in its URL and is what keeps the room private, and the privacy page says no such log is kept.
 
-What Valkey holds for this app:
+If you use your own Postgres or Valkey instead of the ones in the file, remove those services and set `DATABASE_URL` and `VALKEY_URL` on `web`.
 
-- Rate-limit counters. Their keys contain a keyed hash of the client's address, never the address, and each expires within an hour.
-- A lock for each live room, held for seconds.
+## Optional
 
-Nothing there needs to survive a restart. If your shared Valkey writes its data to disk, those counters are written with it and can remain in a snapshot until the next one replaces it. That is consistent with the privacy page, which describes them as short-lived and keyed by a hash; if your snapshots are kept or backed up for long, shorten that or exclude this prefix.
-
-## 7. Build the image
-
-On a development machine, at the commit you are releasing, with the development services running:
-
-```bash
-pnpm check:image
-```
-
-It must end with `IMAGE CHECK OK`. The check leaves the image it tested as `pokerji:check`. Ship that image, so what runs is what was checked:
-
-```bash
-docker tag pokerji:check pokerji:1 && docker save pokerji:1 | ssh <server> docker load
-```
-
-If your development machine and server have different processor types (an Apple laptop and an x86 server, for example), build on the server instead, from a checkout of the same commit, and accept that it is a rebuild. From the `deploy` folder, with `POKERJI_IMAGE=pokerji:1` in `.env`: `docker compose build`
-
-Use a new tag for each release, so you can go back. The base image is pinned by digest in the `Dockerfile`, and pnpm by checksum in `package.json`; the `Dockerfile` says how to move to a newer base image.
-
-## 8. Configure
-
-```bash
-cp deploy/.env.example deploy/.env && chmod 600 deploy/.env
-```
-
-| Variable | Meaning | Secret |
-|---|---|---|
-| `POKERJI_IMAGE` | The image tag to run, such as `pokerji:1` | No |
-| `POKERJI_HOST` | The site's DNS name, without `https://` | No |
-| `PROXY_NETWORK` | The Docker network your reverse proxy can reach | No |
-| `DATA_NETWORK` | The network shared with Postgres and Valkey | No |
-| `DATABASE_URL` | Connection string for the app role | Yes |
-| `MIGRATE_DATABASE_URL` | Connection string for the owner role; used only by the migrate run | Yes |
-| `VALKEY_URL` | Connection string for the Valkey user. No database number at the end: this user may not select one | Yes |
-| `KEY_PREFIX` | Prefix of this app's Valkey keys; must match the ACL, and end with a colon | No |
-| `ADDRESS_HMAC_SECRET` | 32 or more random characters: `openssl rand -base64 48`. Changing it only resets rate-limit counters | Yes |
-| `XFF_DEPTH` | 1 when one proxy sits in front of the app; see section 3 | No |
-| `POKERJI_CPUS` | CPUs the app may use, so it cannot starve the services it shares the server with | No |
-| `RETENTION_DAYS` | Days of inactivity after which a room is deleted. The pages show this number | No |
-| `BACKUP_ROTATION_DAYS` | How long your Postgres backups are kept. The privacy page shows this number. Empty if there are no backups | No |
-
-## 9. First start
-
-The short way, from the repository root on the server:
-
-```bash
-sh deploy/deploy.sh
-```
-
-It checks `deploy/.env` (present, private, complete, no example values left), checks the two networks and the image, applies migrations, starts the app, waits until it is healthy and then asks the site for a page from outside. It stops with a reason at the first thing that is wrong, and prints no setting's value. Add `--build` to build the image from the checkout first. It does the same as the steps below, which you can also run by hand.
-
-From the `deploy` folder:
-
-```bash
-docker compose --profile migrate run --rm migrate
-```
-
-It prints `Migrations applied.` and exits. Once only, take away the app role's right to alter the record of migrations:
-
-```bash
-psql -v ON_ERROR_STOP=1 -v app=pokerji_app -f postgres-after-first-migrate.sql "<the MIGRATE_DATABASE_URL value>"
-```
-
-Then:
-
-```bash
-docker compose up -d
-```
-
-Run exactly one `web` container. Live rooms are held in its memory; a second instance would not see them.
-
-Check:
-
-1. `docker compose ps` shows `web` as `healthy` within a minute.
-2. `curl -sI https://$POKERJI_HOST/` shows `content-security-policy` and `strict-transport-security` headers.
-3. `curl -sI http://$POKERJI_HOST/` redirects to HTTPS.
-4. In a browser, create a room. Open its link in a second browser, vote in both, and reveal. The cards should turn in both at once: that proves the WebSocket path through your proxy.
-5. No room address appears in your proxy's logs (section 4).
-
-If `web` restarts repeatedly, `docker compose logs web` says why in fixed words: a setting that is missing or malformed (it names the setting, never its value), Valkey unreachable, or "could not start", which means a wrong database connection string, an unreachable database, or migrations not applied.
-
-## 10. Updating
-
-The short way: back up the database, ship or build the new image, set `POKERJI_IMAGE`, and run `sh deploy/deploy.sh`. On an update it asks whether the database is backed up (or takes `--backed-up`), and if the new version does not become healthy it tells you the image that was running before. By hand:
-
-1. Run `pnpm check:image` on a development machine at the new commit.
-2. Back up the `pokerji` database.
-3. Ship the image under a new tag (section 7) and set `POKERJI_IMAGE` to it.
-4. `docker compose --profile migrate run --rm migrate`
-5. `docker compose up -d`
-
-Always run the migrate step, even when you believe nothing changed: it does nothing when there is nothing to do, and the app refuses to start if a migration is missing.
-
-A restart closes live rooms for a few seconds. Browsers reconnect by themselves. A round whose cards were already revealed is saved; votes in a round that had not yet been revealed are lost, and the team votes again.
-
-## 11. Rolling back
-
-Set `POKERJI_IMAGE` to the previous tag and run `docker compose up -d`. Migrations only go forward. An older image runs against a newer schema when the migration only added things; if it does not start, restore the database from the backup taken before the update.
-
-## 12. Backups
-
-Back up the `pokerji` database with the rest of Postgres. Set `BACKUP_ROTATION_DAYS` to how long backups are really kept: a deleted room remains in backups for that long, and the privacy page says so using this number.
-
-## 13. Limits you should know
-
-| Limit | Value |
-|---|---|
-| Rooms created per client | 10 per hour |
-| Rooms created per IPv6 /48 | 50 per hour |
-| Rooms created by the whole service | 1,000 per hour |
-| Join attempts per client | 30 per 10 minutes |
-| Join attempts per IPv6 /48 | 150 per 10 minutes |
-| People in a room | 50, or 60 counting moderators who enter a full room |
-| Rounds kept per room | The newest 1,000 |
-
-- A room holds 50 people, but more than 30 behind one address (one office) cannot all join within ten minutes. If that happens to you, raise `LIMITS.join` in `packages/poker-server/src/limiter.ts`.
-- While the service-wide ceiling is reached, nobody can create a room until the hour's window ends. Existing rooms are unaffected. The app logs `room creation ceiling reached` at most once every ten minutes while it lasts. Someone with a few hundred addresses can reach it on purpose; if that happens, raise `LIMITS.roomCreateAll`, at the cost of more rows an attacker can make you store.
-- If the shared Valkey evicts keys under memory pressure (an `allkeys-*` policy), counters and lockouts can disappear early. Use `noeviction` or a `volatile-*` policy with enough memory.
-- All limits are refused, not skipped, when Valkey is unreachable: no rooms can be created or joined until it returns. Live rooms carry on. The app logs `valkey unreachable` at most once a minute while it lasts.
-
-## 14. Sibling subdomains
-
-A site on another subdomain of the same parent domain can set a cookie that browsers also send to this site. Host pokerji under a parent domain where every subdomain is yours, and do not give untrusted applications a sibling subdomain.
-
-## 15. What is logged
-
-The app writes one JSON line to its standard error for each unexpected problem, with a fixed description and nothing else: no room code, name, vote, address or error text. It writes no request log.
-
-## Before the first deployment
-
-From the security audit of 2026-10-13. Each is something only you can check on the server.
-
-1. Your reverse proxy does everything in section 3, and after the first start neither an `https://` nor an `http://` room address appears in any of its logs or traces (section 4).
-2. The proxy passes on real client addresses for IPv4 and IPv6 (section 3).
-3. Postgres statement logging is off or accounted for, the two roles are confined to this database, and `BACKUP_ROTATION_DAYS` is the real figure, counting archived write-ahead logs (sections 5 and 12).
-4. The Valkey user is permanent, snapshots are not kept long, and the eviction policy does not drop keys with a time to live early (sections 6 and 13).
-5. No untrusted container shares the proxy's network or the data network, and no untrusted site has a sibling subdomain (sections 3 and 14).
-6. `postgres-after-first-migrate.sql` has been run (section 9).
-7. You have listened to the sound on a phone and a laptop.
+`deploy/` holds stricter set-ups from the security audit, none of them needed to run: a database user that cannot change tables (`postgres-roles.sql`, with `MIGRATIONS=check` and a one-shot `MIGRATE_ONLY=1` run of the image), a Valkey user confined to this app's keys (`valkey-acl.txt`), and `pnpm check:image`, which tests the image under both.

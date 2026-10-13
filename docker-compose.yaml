@@ -1,0 +1,61 @@
+# Production: the whole app. Bare minimum; adapt it to your server.
+#
+#   docker compose up -d --build
+#
+# Set three values first, in a .env file beside this one or in the environment:
+#   ORIGIN               the address people use, for example https://poker.example.org
+#   POSTGRES_PASSWORD    any password, letters and digits only
+#   ADDRESS_HMAC_SECRET  32 or more random characters (openssl rand -hex 24)
+#
+# The app listens on port 3000 over plain HTTP. Put your HTTPS reverse proxy in front
+# of it; the proxy must pass WebSockets and set X-Forwarded-For.
+name: pokerji
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    init: true
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      ORIGIN: ${ORIGIN:?set ORIGIN}
+      DATABASE_URL: postgres://pokerji:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/pokerji
+      VALKEY_URL: redis://valkey:6379
+      ADDRESS_HMAC_SECRET: ${ADDRESS_HMAC_SECRET:?set ADDRESS_HMAC_SECRET}
+      ADDRESS_HEADER: x-forwarded-for
+      XFF_DEPTH: 1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pokerji
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: pokerji
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pokerji -d pokerji']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  valkey:
+    image: valkey/valkey:9-alpine
+    restart: unless-stopped
+    # Nothing here needs to survive a restart: only rate-limit counters and room locks.
+    command: ['valkey-server', '--save', '', '--appendonly', 'no']
+    healthcheck:
+      test: ['CMD-SHELL', 'valkey-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
