@@ -644,3 +644,27 @@ textarea:hover {
   padding: 0.2rem 0.7rem;
   font-size: 0.95rem;
 }
+
+/* ---- Added for the text tools: how a tool's options are set out ---- */
+
+/* One labelled control and its hint. */
+.field {
+  margin: 0 0 1.1rem;
+}
+.field .hint {
+  display: block;
+  margin-top: 0.3rem;
+}
+/* A number or a choice does not need the column's whole width. */
+.field input[type='number'],
+.field select {
+  max-width: 16rem;
+}
+
+/* A set of on-or-off buttons, wrapping as the builder's types do. */
+.switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1.1rem;
+}

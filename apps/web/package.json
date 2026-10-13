@@ -33,6 +33,7 @@
     "@pokerji/poker-server": "workspace:*",
     "@pokerji/protocol": "workspace:*",
     "@pokerji/schema-builder": "workspace:*",
+    "@pokerji/text-tools": "workspace:*",
     "@sveltejs/adapter-node": "^6.0.0",
     "@sveltejs/kit": "^3.0.0",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
