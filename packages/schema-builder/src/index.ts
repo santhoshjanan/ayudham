@@ -1,4 +1,5 @@
 export * from './changes.ts';
+export * from './checks.ts';
 export * from './definitions.ts';
 export * from './limits.ts';
 export * from './model.ts';
