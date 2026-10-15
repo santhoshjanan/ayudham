@@ -1,6 +1,7 @@
 # The base image is pinned by digest, so a rebuild cannot silently pick up a different one.
 # To move to a newer Node 24 image: docker buildx imagetools inspect node:24-bookworm-slim,
-# put the new digest in both FROM lines, and run pnpm check:image.
+# put the new digest in both FROM lines, then check that the image builds and serves:
+# with a .env from .env.example, docker compose up -d --build --wait. CI also builds it on every pull request.
 # Build: the whole workspace, to bundle the app.
 FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS build
 ENV PNPM_HOME=/pnpm
