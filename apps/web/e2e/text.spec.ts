@@ -499,7 +499,7 @@ const useEveryTool = async (page: Page, secret: string): Promise<string[]> => {
   return seen;
 };
 
-test('nothing typed or made is sent anywhere, and the only fetch is the word list', async ({
+test('nothing typed or made is sent anywhere, and the only fetches are two files of this site', async ({
   browser,
 }) => {
   const page = await open(browser);
@@ -522,9 +522,19 @@ test('nothing typed or made is sent anywhere, and the only fetch is the word lis
     expect(line).not.toContain(encodeURIComponent(secret));
     for (const value of telling) expect(line, value).not.toContain(value);
   }
-  expect(sent.map((line) => new URL(line.split(' ')[1] ?? '').pathname)).toEqual([
-    '/text/eff_large_wordlist.txt',
-  ]);
+  // The word list, and the converters' worker script: each fetched once, by a plain GET.
+  const fetched = sent.map((line) => {
+    const [method = '', address = ''] = line.split(' ');
+    const url = new URL(address);
+    return `${method} ${url.pathname}${url.search}`;
+  });
+  expect(fetched).toHaveLength(2);
+  expect(fetched).toContain('GET /text/eff_large_wordlist.txt');
+  expect(
+    fetched.some((line) =>
+      /^GET \/_app\/immutable\/workers\/convert\.worker-[\w-]+\.js$/.test(line),
+    ),
+  ).toBe(true);
 });
 
 test('nothing is kept: no storage entry, no cookie, nothing in the address but the tool', async ({
@@ -756,4 +766,192 @@ test('Generate again is announced each time, even when the count is the same', a
   expect(
     await page.evaluate(() => (window as unknown as { changes: number }).changes),
   ).toBeGreaterThan(0);
+});
+
+// ---- Never hesitates: the converters' work is done off the page's main thread ----
+
+/** Fifty thousand short lines: the heaviest text the converters meet at the limit. */
+const MANY_LINES = Array.from({ length: 50_000 }, (_, index) => `n${index}`)
+  .join('\n')
+  .slice(0, 99_990);
+
+/** Puts text in a box at once, as a paste does, without typing it key by key. */
+const put = (box: ReturnType<Page['getByLabel']>, value: string) =>
+  box.evaluate((element: HTMLTextAreaElement, typed) => {
+    element.value = typed;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  }, value);
+
+/** The longest a key press took to be handled and painted, over a few presses. */
+const worstKeystroke = async (page: Page, box: ReturnType<Page['getByLabel']>) => {
+  await box.focus();
+  await page.keyboard.press('End');
+  await page.evaluate(() => {
+    const seen = window as unknown as { worst: number };
+    seen.worst = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) seen.worst = Math.max(seen.worst, entry.duration);
+    }).observe({ type: 'event', durationThreshold: 16 } as PerformanceObserverInit);
+  });
+  for (let press = 0; press < 6; press++) {
+    await page.keyboard.type('x');
+    await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(500);
+  return page.evaluate(() => (window as unknown as { worst: number }).worst);
+};
+
+test('typing at the limit never holds up a key press', async ({ browser }) => {
+  const page = await open(browser, '#case');
+  await put(text(page), MANY_LINES);
+  await expect(named(page, 'snake_case')).toContainText('n_49');
+  expect(await worstKeystroke(page, text(page))).toBeLessThan(120);
+});
+
+test('the converters work in a worker served by this site', async ({ browser }) => {
+  const page = await open(browser, '#slug');
+  const origin = new URL(page.url()).origin;
+  await text(page).fill('Crème Brûlée');
+  await expect.poll(() => values(page)).toEqual(['creme-brulee']);
+  expect(page.workers().map((worker) => new URL(worker.url()).origin)).toEqual([origin]);
+});
+
+test('Copy pressed before the worker answers copies the answer for what is typed now', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    ...visitor(),
+    viewport: WIDE,
+    permissions: ['clipboard-read', 'clipboard-write'],
+  });
+  const page = await context.newPage();
+  // The worker's script is held back, so the first answer cannot come from it in time.
+  await page.route('**/_app/**/*worker*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+    await route.continue();
+  });
+  await page.goto('/text#slug');
+  await page.locator('[data-ready]').waitFor();
+  await text(page).fill('Hello World');
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  expect(await clipboard(page)).toBe('hello-world');
+  await expect.poll(() => values(page)).toEqual(['hello-world']);
+});
+
+test('without workers, or when the worker cannot load, every converter still works', async ({
+  browser,
+}) => {
+  const noWorkers = await browser.newContext({ ...visitor(), viewport: WIDE });
+  const plain = await noWorkers.newPage();
+  await plain.addInitScript(() => {
+    delete (window as unknown as { Worker?: unknown }).Worker;
+  });
+  await plain.goto('/text#case');
+  await plain.locator('[data-ready]').waitFor();
+  await text(plain).fill('hello world');
+  await expect(named(plain, 'kebab-case')).toHaveText('hello-world');
+
+  const blocked = await open(browser);
+  await blocked.route('**/_app/**/*worker*', (route) => route.abort());
+  await blocked.goto('/text#count');
+  await text(blocked).fill('one two three');
+  await expect(named(blocked, 'Words')).toHaveText('3');
+  await blocked.goto('/text#encode');
+  await text(blocked).fill('hello');
+  await expect.poll(() => values(blocked)).toEqual(['aGVsbG8=']);
+});
+
+test('results stay in place while the next ones are worked out', async ({ browser }) => {
+  for (const id of ['hash', 'case']) {
+    const page = await open(browser, `#${id}`);
+    await text(page).fill('abc');
+    await expect(results(page).first()).toBeVisible();
+    await rail(page).evaluate((element) => {
+      const seen = window as unknown as { emptied: number };
+      seen.emptied = 0;
+      new MutationObserver((changes) => {
+        for (const change of changes) {
+          for (const node of change.addedNodes) {
+            if (node instanceof HTMLElement && node.classList.contains('empty')) seen.emptied++;
+          }
+        }
+      }).observe(element, { childList: true, subtree: true });
+    });
+    await text(page).press('End');
+    await page.keyboard.type('defgh', { delay: 60 });
+    await expect(results(page).first()).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { emptied: number }).emptied), id).toBe(
+      0,
+    );
+  }
+});
+
+/** Slows every reply from the converters' worker, so a Copy can be pressed while one is due. */
+const slowWorker = () => {
+  const post = Worker.prototype.postMessage;
+  Worker.prototype.postMessage = function (this: Worker, ...args: [unknown]) {
+    setTimeout(() => post.apply(this, args), 1_500);
+  } as typeof post;
+};
+
+const openWith = async (browser: Browser, hash: string, script: () => void) => {
+  const context = await browser.newContext({
+    ...visitor(),
+    viewport: WIDE,
+    permissions: ['clipboard-read', 'clipboard-write'],
+  });
+  const page = await context.newPage();
+  await page.addInitScript(script);
+  await page.goto(`/text${hash}`);
+  await page.locator('[data-ready]').waitFor();
+  return page;
+};
+
+test('a Copy pressed while a refusal is on its way copies nothing, and keeps the clipboard', async ({
+  browser,
+}) => {
+  const page = await openWith(browser, '#encode', slowWorker);
+  await page.getByRole('button', { name: 'Decode', exact: true }).click();
+  await text(page).fill('aGVsbG8=');
+  await expect.poll(() => values(page), { timeout: 5_000 }).toEqual(['hello']);
+  await page.evaluate(() => navigator.clipboard.writeText('USER-CLIPBOARD'));
+
+  await text(page).press('End');
+  await page.keyboard.type('!!');
+  await page.getByRole('button', { name: 'Copy result 1' }).click();
+  expect(await clipboard(page)).toBe('USER-CLIPBOARD');
+  await expect(status(page)).toContainText('That is not Base64');
+
+  await text(page).fill('aGVsbG8=');
+  await expect.poll(() => values(page), { timeout: 5_000 }).toEqual(['hello']);
+  await page.keyboard.type('!!');
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  expect(await clipboard(page)).toBe('USER-CLIPBOARD');
+});
+
+test('hash sums for older text are never offered for copying', async ({ browser }) => {
+  const page = await openWith(browser, '#hash', () => {
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    crypto.subtle.digest = (algorithm, data) =>
+      new Promise((resolve) => setTimeout(() => resolve(digest(algorithm, data)), 1_500));
+  });
+  await text(page).fill('abc');
+  await expect(named(page, 'SHA-256')).toHaveText(/^ba7816bf/, { timeout: 5_000 });
+  await text(page).press('End');
+  await page.keyboard.type('d');
+  await expect(rail(page).getByRole('button', { name: /^Copy/ }).first()).toBeDisabled();
+  await expect(named(page, 'SHA-256')).toHaveText(/^88d4266f/, { timeout: 5_000 });
+  await expect(rail(page).getByRole('button', { name: /^Copy/ }).first()).toBeEnabled();
+});
+
+test('a job the worker cannot be handed is answered on the page instead', async ({ browser }) => {
+  const page = await openWith(browser, '#case', () => {
+    Worker.prototype.postMessage = () => {
+      throw new DOMException('could not be cloned', 'DataCloneError');
+    };
+  });
+  await text(page).fill('hello world');
+  await expect(named(page, 'kebab-case')).toHaveText('hello-world');
+  await text(page).fill('second text');
+  await expect(named(page, 'kebab-case')).toHaveText('second-text');
 });

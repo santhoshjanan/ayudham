@@ -2,7 +2,19 @@
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { Row } from './tools.ts';
 
-  let { row, about, onfail }: { row: Row; about: string; onfail: () => void } = $props();
+  let {
+    row,
+    copy,
+    disabled = false,
+    about,
+    onfail,
+  }: {
+    row: Row;
+    copy?: string | (() => string);
+    disabled?: boolean;
+    about: string;
+    onfail: () => void;
+  } = $props();
 </script>
 
 <li data-testid="result">
@@ -11,7 +23,7 @@
     <span class="value">{row.value}</span>
   </div>
   {#if !row.plain}
-    <CopyButton text={row.value} label="Copy" {about} compact {onfail} />
+    <CopyButton text={copy ?? row.value} label="Copy" {about} compact {disabled} {onfail} />
   {/if}
 </li>
 
@@ -24,6 +36,10 @@
     justify-content: space-between;
     padding: 0.6rem 0;
     border-bottom: 1px solid var(--line);
+    /* A row out of view is not laid out until it scrolls in: twelve rows of 100,000 characters
+       would otherwise be set in type on every keystroke. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 3rem;
   }
   .what {
     display: grid;

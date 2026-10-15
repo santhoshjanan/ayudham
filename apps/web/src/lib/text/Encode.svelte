@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { decode, encode, explain, type Encoding } from '@pokerji/text-tools';
+  import type { Encoding } from '@pokerji/text-tools';
+  import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
   import TextBox from './TextBox.svelte';
 
@@ -15,28 +16,17 @@
   let form = $state<Encoding>('base64');
   let text = $state('');
 
-  type Made = { value: string; binary: boolean } | { problem: string } | undefined;
-
-  const made = $derived.by((): Made => {
-    if (text === '') return undefined;
-    if (decoding) {
-      const read = decode(text, form);
-      return read.ok
-        ? { value: read.value.text, binary: read.value.binary }
-        : { problem: explain(read.problem) };
-    }
-    const written = encode(text, form);
-    return written.ok
-      ? { value: written.value, binary: false }
-      : { problem: explain(written.problem) };
-  });
+  const work = new Background();
+  $effect(() => work.ask(text === '' ? undefined : { tool: 'encode', text, form, decoding }));
 </script>
 
 <Frame
   title="Encode and decode"
   blurb="Text to and from Base64, hex, URL encoding and HTML entities, as UTF-8."
-  rows={made && 'value' in made && made.value !== '' ? [{ value: made.value }] : []}
-  problem={made && 'problem' in made ? made.problem : undefined}
+  rows={work.current?.rows ?? []}
+  problem={work.current?.problem}
+  exact={() => work.exact()?.rows ?? []}
+  busy={work.busy}
   waiting="The result appears here as you type."
 >
   <div class="switches" role="group" aria-label="Direction">
@@ -60,7 +50,7 @@
   </p>
   <TextBox id="t-text" label="Text" bind:value={text} />
   {#snippet note()}
-    {#if made && 'value' in made && made.binary}
+    {#if work.current?.binary}
       <p class="hint">These bytes are not text, so they are shown as hex.</p>
     {/if}
   {/snippet}
