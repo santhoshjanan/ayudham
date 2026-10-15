@@ -676,3 +676,15 @@ test('a stored draft the editor could never have made gives an empty page', asyn
   }
   expect(errors).toEqual([]);
 });
+
+test('a choice field keeps the column’s full width, as before the text tools', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Event', exact: true }).click();
+  const status = page.getByLabel('Status', { exact: true });
+  const name = page.getByLabel('Name', { exact: true });
+  await expect(status).toBeVisible();
+  const [statusBox, nameBox] = [await status.boundingBox(), await name.boundingBox()];
+  expect(statusBox?.width).toBeCloseTo(nameBox?.width ?? 0, 0);
+});

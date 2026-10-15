@@ -61,6 +61,7 @@
       <nav aria-label="Site">
         <a href="/poker">Planning poker</a>
         <a href="/schema">Schema markup</a>
+        <a href="/text">Text tools</a>
         <a href="/privacy">Privacy</a>
       </nav>
     {/if}

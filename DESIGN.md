@@ -380,6 +380,21 @@ The builder at `/schema` is a sibling of the live room: a band in place of the s
 
 **The Row's Own Step Rule.** On the suite home, each row of the programme carries its own yellow link, because each row is its own next step. Everywhere else the Moving Yellow Rule holds: one yellow button to a screen.
 
+## The text tools
+
+The tools at `/text` are a sibling of the markup builder: a band, two rows of tools, then a floor (what you set or type) and a rail (what you take away). They add no colour, typeface, radius or shadow, and no checkbox.
+
+- **Layout:** from 64rem, two columns with the builder's measurements: the options up to 40rem wide and the rail between 22rem and 36rem, which stays in view. Long result lists scroll inside the rail, with its first control pinned in view. Below 64rem the rail follows the options in one column. There is no dock: it would cover the text being typed.
+- **The next step:** the rail's first control is the page's one yellow button, set as the room's Reveal is. It reads Generate again on a generator, Copy on a converter with one result and Copy all on a converter with several. No red appears in the tool controls or results.
+- **Tool row:** a `nav` of links drawn as compact buttons, in two rows that wrap, headed Generate and Convert in the display face (800, 1.25rem). The open tool's link carries `aria-current` and the inverted fill. They are links because each names a place, the tool's fragment.
+- **Result row:** one result to a ruled line: an optional name in soft ink at 0.95rem, the value in the system monospace at 0.875rem, and a compact Copy at the right. The value wraps anywhere; nothing is cut short and nothing scrolls sideways. A count has no button of its own.
+- **On or off:** a compact button with `aria-pressed`; on is the inverted fill. Used for every yes-or-no option.
+- **Strength:** a sentence ("Strength: 128 bits"), never a meter, a bar or a colour.
+- **Not there yet:** the dashed outline, as in the builder.
+- **A refusal:** the status box with a sentence that names the limit. A generator keeps its last good results beneath an invalid-option refusal; a failed random source clears them.
+
+**The First Control Rule.** In a rail, the yellow button comes first and is the next step. It changes its word with the tool, never its place.
+
 ## Do's and Don'ts
 
 ### Do:
