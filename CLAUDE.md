@@ -25,7 +25,7 @@ Package manager is pnpm (Node 24+).
 - Web typecheck: `pnpm --filter @pokerji/web typecheck`
 - End-to-end tests: `pnpm --filter @pokerji/web e2e` (builds the app and drives Chromium; first run needs `pnpm --filter @pokerji/web exec playwright install chromium`)
 - Production: `docker compose up -d --build` with `docker-compose.yaml` in the root, which needs `ORIGIN`, `POSTGRES_PASSWORD` and `ADDRESS_HMAC_SECRET` (see `docs/deploy.md`).
-- CI (`.github/workflows/ci.yml`) runs on every pull request: format check, typecheck, all tests against the development services, build and smoke, the browser tests, and an image build. `release.yml` runs CI on each push to `main` and each `v*` tag, then publishes the image to `ghcr.io/<owner>/<repo>`. It never deploys. Third-party actions are pinned by commit SHA; keep them pinned.
+- CI (`.github/workflows/ci.yml`) runs on every pull request: format check, typecheck, all tests against the development services, build and smoke, the browser tests, and an image build. `release.yml` runs CI on each push to `main` and each `v*` tag, then publishes the image to `ghcr.io/<owner>/<repo>`; for a tag it also creates the GitHub release, with that version's section of `CHANGELOG.md` as its notes (a tag needs a `## vX.Y.Z` section there first). It never deploys. Third-party actions are pinned by commit SHA; keep them pinned.
 - Smoke check of a build: `pnpm --filter @pokerji/web build && pnpm --filter @pokerji/web smoke`
 
 Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.
