@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/santhoshjanan/pokerji/actions/workflows/release.yml?query=branch%3Amain"><img src="https://github.com/santhoshjanan/pokerji/actions/workflows/release.yml/badge.svg?branch=main" alt="CI status on main"></a>
+</p>
+
+<p align="center">
   <a href="#run-it">Run it</a> ·
   <a href="#what-it-does">Features</a> ·
   <a href="#privacy">Privacy</a> ·
