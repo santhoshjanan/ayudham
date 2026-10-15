@@ -28,8 +28,15 @@ function connect(): Worker | null {
 function giveUp(): void {
   worker?.terminate();
   worker = null;
-  for (const { job, resolve } of waiting.values()) resolve(answer(job));
+  const held = [...waiting.values()];
   waiting.clear();
+  for (const { job, resolve } of held) {
+    try {
+      resolve(answer(job));
+    } catch {
+      resolve({ rows: [] });
+    }
+  }
 }
 
 function work(job: Job): Promise<Answer> {
@@ -37,8 +44,15 @@ function work(job: Job): Promise<Answer> {
   if (!to) return Promise.resolve(answer(job));
   return new Promise((resolve) => {
     sent += 1;
-    waiting.set(sent, { job, resolve });
-    to.postMessage({ id: sent, job });
+    const id = sent;
+    waiting.set(id, { job, resolve });
+    try {
+      to.postMessage({ id, job });
+    } catch {
+      // A job the worker cannot be handed (it could not be copied across) is answered here.
+      waiting.delete(id);
+      resolve(answer(job));
+    }
   });
 }
 
@@ -71,16 +85,20 @@ export class Background {
 
   async #run(): Promise<void> {
     this.#running = true;
-    while (this.#answered < this.#asked && this.#latest) {
-      const asked = this.#asked;
-      const reply = await work(this.#latest);
-      if (asked === this.#asked && this.#answered < asked) {
-        this.current = reply;
-        this.#answered = asked;
-        this.busy = false;
+    try {
+      while (this.#answered < this.#asked && this.#latest) {
+        const asked = this.#asked;
+        const reply = await work(this.#latest);
+        if (asked === this.#asked && this.#answered < asked) {
+          this.current = reply;
+          this.#answered = asked;
+          this.busy = false;
+        }
       }
+    } finally {
+      // Whatever happened, the next keystroke starts the work again.
+      this.#running = false;
     }
-    this.#running = false;
   }
 
   /**

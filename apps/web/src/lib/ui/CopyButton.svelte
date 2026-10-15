@@ -31,7 +31,11 @@
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(typeof text === 'function' ? text() : text);
+      const value = typeof text === 'function' ? text() : text;
+      // Nothing to copy (the answer for what is typed now is empty or a refusal): leave the
+      // clipboard as it was rather than empty it or fill it with an older answer.
+      if (value === '') return;
+      await navigator.clipboard.writeText(value);
       copied = true;
       setTimeout(() => (copied = false), 2_000);
     } catch {

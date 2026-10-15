@@ -5,9 +5,16 @@
   let {
     row,
     copy,
+    disabled = false,
     about,
     onfail,
-  }: { row: Row; copy?: string | (() => string); about: string; onfail: () => void } = $props();
+  }: {
+    row: Row;
+    copy?: string | (() => string);
+    disabled?: boolean;
+    about: string;
+    onfail: () => void;
+  } = $props();
 </script>
 
 <li data-testid="result">
@@ -16,7 +23,7 @@
     <span class="value">{row.value}</span>
   </div>
   {#if !row.plain}
-    <CopyButton text={copy ?? row.value} label="Copy" {about} compact {onfail} />
+    <CopyButton text={copy ?? row.value} label="Copy" {about} compact {disabled} {onfail} />
   {/if}
 </li>
 

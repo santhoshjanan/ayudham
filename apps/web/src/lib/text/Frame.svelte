@@ -79,8 +79,10 @@
   const about = (row: Row, index: number): string => row.name ?? `result ${index + 1}`;
   // Copy takes the answer for what is typed now, never a row still showing the last answer.
   const all = $derived(exact ? () => joined(exact()) : joined(shown));
+  // Without `exact`, rows shown while a newer answer is on its way belong to older text.
+  const stale = $derived(busy && !exact);
   const one = (row: Row, index: number): string | (() => string) =>
-    exact ? () => exact()[index]?.value ?? row.value : row.value;
+    exact ? () => exact()[index]?.value ?? '' : row.value;
 </script>
 
 <div class="floor">
@@ -100,7 +102,7 @@
           text={all}
           label={shown.length > 1 ? 'Copy all' : 'Copy'}
           primary
-          disabled={shown.length === 0}
+          disabled={shown.length === 0 || stale}
           onfail={refused}
         />
       {/if}
@@ -120,11 +122,13 @@
     {#if shown.length > 0}
       <ul>
         {#each shown as row, index (index)}
-          <ResultRow {row} copy={one(row, index)} about={about(row, index)} onfail={refused} />
+          <ResultRow {row} copy={one(row, index)} disabled={stale} about={about(row, index)} onfail={refused} />
         {/each}
       </ul>
       {#if again && shown.length > 1}
-        <p class="all"><CopyButton text={all} label="Copy all" onfail={refused} /></p>
+        <p class="all">
+          <CopyButton text={all} label="Copy all" disabled={stale} onfail={refused} />
+        </p>
       {/if}
     {:else if !problem}
       <p class="empty">{waiting}</p>

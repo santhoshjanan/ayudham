@@ -885,3 +885,73 @@ test('results stay in place while the next ones are worked out', async ({ browse
     );
   }
 });
+
+/** Slows every reply from the converters' worker, so a Copy can be pressed while one is due. */
+const slowWorker = () => {
+  const post = Worker.prototype.postMessage;
+  Worker.prototype.postMessage = function (this: Worker, ...args: [unknown]) {
+    setTimeout(() => post.apply(this, args), 1_500);
+  } as typeof post;
+};
+
+const openWith = async (browser: Browser, hash: string, script: () => void) => {
+  const context = await browser.newContext({
+    ...visitor(),
+    viewport: WIDE,
+    permissions: ['clipboard-read', 'clipboard-write'],
+  });
+  const page = await context.newPage();
+  await page.addInitScript(script);
+  await page.goto(`/text${hash}`);
+  await page.locator('[data-ready]').waitFor();
+  return page;
+};
+
+test('a Copy pressed while a refusal is on its way copies nothing, and keeps the clipboard', async ({
+  browser,
+}) => {
+  const page = await openWith(browser, '#encode', slowWorker);
+  await page.getByRole('button', { name: 'Decode', exact: true }).click();
+  await text(page).fill('aGVsbG8=');
+  await expect.poll(() => values(page), { timeout: 5_000 }).toEqual(['hello']);
+  await page.evaluate(() => navigator.clipboard.writeText('USER-CLIPBOARD'));
+
+  await text(page).press('End');
+  await page.keyboard.type('!!');
+  await page.getByRole('button', { name: 'Copy result 1' }).click();
+  expect(await clipboard(page)).toBe('USER-CLIPBOARD');
+  await expect(status(page)).toContainText('That is not Base64');
+
+  await text(page).fill('aGVsbG8=');
+  await expect.poll(() => values(page), { timeout: 5_000 }).toEqual(['hello']);
+  await page.keyboard.type('!!');
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  expect(await clipboard(page)).toBe('USER-CLIPBOARD');
+});
+
+test('hash sums for older text are never offered for copying', async ({ browser }) => {
+  const page = await openWith(browser, '#hash', () => {
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    crypto.subtle.digest = (algorithm, data) =>
+      new Promise((resolve) => setTimeout(() => resolve(digest(algorithm, data)), 1_500));
+  });
+  await text(page).fill('abc');
+  await expect(named(page, 'SHA-256')).toHaveText(/^ba7816bf/, { timeout: 5_000 });
+  await text(page).press('End');
+  await page.keyboard.type('d');
+  await expect(rail(page).getByRole('button', { name: /^Copy/ }).first()).toBeDisabled();
+  await expect(named(page, 'SHA-256')).toHaveText(/^88d4266f/, { timeout: 5_000 });
+  await expect(rail(page).getByRole('button', { name: /^Copy/ }).first()).toBeEnabled();
+});
+
+test('a job the worker cannot be handed is answered on the page instead', async ({ browser }) => {
+  const page = await openWith(browser, '#case', () => {
+    Worker.prototype.postMessage = () => {
+      throw new DOMException('could not be cloned', 'DataCloneError');
+    };
+  });
+  await text(page).fill('hello world');
+  await expect(named(page, 'kebab-case')).toHaveText('hello-world');
+  await text(page).fill('second text');
+  await expect(named(page, 'kebab-case')).toHaveText('second-text');
+});
