@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). The second tool, the Schema.org markup builder at `/schema`, is built too; it runs entirely in the browser. The third tool, the text generators and converters at `/text`, is built too; it also runs entirely in the browser. Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. It is packaged for release: `Dockerfile`, `compose-dev.yaml`, `docker-compose.yaml` and `docs/deploy.md`. Deployment is the owner's action. The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
+Every behaviour in the spec works in a browser, in the designed interface ("Judges' Row", light and dark). The second tool, the Schema.org markup builder at `/schema`, is built too; it runs entirely in the browser. The third tool, the text generators and converters at `/text`, is built too; it also runs entirely in the browser. Sound is built too: opt-in music during the countdown, a beep at its end and ticks on the reveal count. It is packaged for release: `Dockerfile`, `compose-dev.yaml`, `docker-compose.yaml` and `docs/deploy.md`. Deployment is the owner's action. CI and image publishing run on GitHub Actions (`.github/workflows/`). The behaviour spec and design direction are in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, product facts in `PRODUCT.md`, the design system in `DESIGN.md`.
 
 ## Commands
 
@@ -25,6 +25,7 @@ Package manager is pnpm (Node 24+).
 - Web typecheck: `pnpm --filter @pokerji/web typecheck`
 - End-to-end tests: `pnpm --filter @pokerji/web e2e` (builds the app and drives Chromium; first run needs `pnpm --filter @pokerji/web exec playwright install chromium`)
 - Production: `docker compose up -d --build` with `docker-compose.yaml` in the root, which needs `ORIGIN`, `POSTGRES_PASSWORD` and `ADDRESS_HMAC_SECRET` (see `docs/deploy.md`).
+- CI (`.github/workflows/ci.yml`) runs on every pull request: format check, typecheck, all tests against the development services, build and smoke, the browser tests, and an image build. `release.yml` runs CI on each push to `main` and each `v*` tag, then publishes the image to `ghcr.io/<owner>/<repo>`. It never deploys. Third-party actions are pinned by commit SHA; keep them pinned.
 - Smoke check of a build: `pnpm --filter @pokerji/web build && pnpm --filter @pokerji/web smoke`
 
 Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.

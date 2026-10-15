@@ -28,6 +28,10 @@ The app listens on port 3000 (change with `PORT`) over plain HTTP and creates it
 
 To update: pull the new code and run the same command again. Back up the Postgres volume first.
 
+### A prebuilt image (optional)
+
+Every push to `main` and every `v*` tag that passes CI publishes the same image to the GitHub Container Registry: `ghcr.io/<owner>/<repo>:main`, `:sha-<commit>`, and for a tag `v1.2.3` also `:1.2.3`, `:1.2` and `:latest`. To use it instead of building on the server, replace `build: .` under `web` in your copy of `docker-compose.yaml` with `image:` and that address, then `docker compose pull && docker compose up -d`. Prefer a version or `sha-` tag over `latest`, so an update happens only when you change the line. The package is private until you make it public in its GitHub settings; pulling a private one needs `docker login ghcr.io` first.
+
 ## Metrics (optional)
 
 Off by default. Set `METRICS_PORT` on `web` and the app starts a second listener on that port that answers `GET /metrics` in the Prometheus text format, and nothing else. The public port never serves metrics: `/metrics` on port 3000 is always 404.
