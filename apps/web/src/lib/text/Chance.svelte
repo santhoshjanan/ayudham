@@ -47,6 +47,7 @@
 </script>
 
 <Frame
+  mode={mode}
   title="Chance"
   blurb="Roll dice, flip a coin, or pick from a list of your own. No outcome is favoured."
   rows={'rows' in made ? made.rows : []}

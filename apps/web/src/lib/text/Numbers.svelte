@@ -28,6 +28,7 @@
 </script>
 
 <Frame
+  mode={mode}
   title="PIN and number"
   blurb="A PIN of random digits, or a whole number between two ends, both included."
   rows={made.ok ? made.value.map((value) => ({ value })) : []}

@@ -54,7 +54,7 @@
   </noscript>
 
   {#if ready}
-    <div data-ready>
+    <div class="text-tools" data-ready>
       <ToolRow bind:current={tool} />
       {#if tool === 'passphrase'}
         <Passphrase />
@@ -102,8 +102,8 @@
     <h2>Where your text goes</h2>
     <p>
       Nowhere. What you type and what is made are never sent to this site, and nothing is kept:
-      not in this browser, not anywhere. Close the tab and it is gone. A value you copy stays on
-      your clipboard until you copy something else.
+      not in this browser, not anywhere. Close the tab and it is gone. A value you copy is on
+      your device’s clipboard for as long as your device keeps it there.
       <a href="/privacy">Read exactly what is stored</a>
     </p>
     <p class="hint">

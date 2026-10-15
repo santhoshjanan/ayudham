@@ -25,6 +25,7 @@
 </script>
 
 <Frame
+  mode={kind}
   title="Identifier"
   blurb="A random identifier for a record, a file or a request."
   rows={made.ok ? made.value.map((value) => ({ value })) : []}

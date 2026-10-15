@@ -668,3 +668,92 @@ test('the next step stays visible while a long desktop results rail scrolls', as
     })
     .toBe(true);
 });
+
+test('results from another mode are never shown under this mode’s refusal', async ({ browser }) => {
+  const page = await open(browser, '#chance');
+  await page.getByLabel('Dice', { exact: true }).fill('3');
+  await expect(results(page)).toHaveCount(4);
+  await page.getByLabel('Use', { exact: true }).selectOption({ label: 'A list of your own' });
+  await expect(status(page)).toContainText('Type at least one line');
+  await expect(results(page)).toHaveCount(0);
+
+  await page.goto('/text#random');
+  await expect(results(page)).toHaveCount(1);
+  await page.getByLabel('Kind', { exact: true }).selectOption({ label: 'Your own characters' });
+  await expect(status(page)).toContainText('between 2 and 256 characters');
+  await expect(results(page)).toHaveCount(0);
+  // Within one kind, an option out of range still keeps the last good result.
+  await page.getByLabel('Characters to use').fill('xy');
+  await expect(results(page)).toHaveCount(1);
+  await page.getByLabel('Characters', { exact: true }).fill('0');
+  await expect(status(page)).toContainText('Characters must be 1 to 256');
+  await expect(results(page)).toHaveCount(1);
+});
+
+/** Pastes through the clipboard, as a person does, so the field's own length limit applies. */
+const paste = async (page: Page, field: ReturnType<Page['getByLabel']>, value: string) => {
+  await page.evaluate((copied) => navigator.clipboard.writeText(copied), value);
+  await field.focus();
+  await page.keyboard.press('ControlOrMeta+V');
+};
+
+test('text pasted past the limit is refused whole, never silently cut', async ({ browser }) => {
+  const page = await open(browser, '#hash');
+  await paste(page, text(page), 'x'.repeat(150_000));
+  await expect(status(page)).toContainText('100,000 characters');
+  await expect(results(page)).toHaveCount(0);
+
+  await page.goto('/text#chance');
+  await page.getByLabel('Use', { exact: true }).selectOption({ label: 'A list of your own' });
+  await paste(page, page.getByLabel('List', { exact: true }), 'person\n'.repeat(20_000));
+  await expect(status(page)).toContainText('100,000 characters');
+  await expect(results(page)).toHaveCount(0);
+});
+
+test('a row never says Copied for a value that was not copied', async ({ browser }) => {
+  const page = await open(browser);
+  await page.getByRole('button', { name: 'Copy result 1' }).click();
+  await expect(page.getByRole('button', { name: 'Copied result 1' })).toBeVisible();
+  await page.getByRole('button', { name: 'Generate again' }).click();
+  // Well inside the two seconds a real copy shows Copied for.
+  await expect(page.getByRole('button', { name: 'Copy result 1' })).toBeVisible({ timeout: 1_000 });
+});
+
+test('results and typed text are marked not to be sent to a translation service', async ({
+  browser,
+}) => {
+  const page = await open(browser, '#case');
+  await expect(rail(page)).toHaveAttribute('translate', 'no');
+  await expect(text(page)).toHaveAttribute('translate', 'no');
+});
+
+test('opening a tool in a new tab leaves this tab’s tool alone', async ({ browser }) => {
+  const page = await open(browser);
+  const opened = page.context().waitForEvent('page');
+  await page.getByRole('link', { name: 'Slug' }).click({ modifiers: ['ControlOrMeta'] });
+  await opened;
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Password', exact: true }),
+  ).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('');
+});
+
+test('Generate again is announced each time, even when the count is the same', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  const said = page.getByTestId('made');
+  await expect(said).toHaveText('1 made.');
+  await said.evaluate((element) => {
+    (window as unknown as { changes: number }).changes = 0;
+    new MutationObserver(() => (window as unknown as { changes: number }).changes++).observe(
+      element,
+      { childList: true, characterData: true, subtree: true },
+    );
+  });
+  await page.getByRole('button', { name: 'Generate again' }).click();
+  await expect(said).toHaveText('1 made.');
+  expect(
+    await page.evaluate(() => (window as unknown as { changes: number }).changes),
+  ).toBeGreaterThan(0);
+});

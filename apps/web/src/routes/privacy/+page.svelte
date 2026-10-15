@@ -164,8 +164,10 @@
     kept. There is no account, no draft and no saved setting. Close the tab and it is gone.
   </p>
   <p>
-    A value you copy is on your device’s clipboard, like anything else you copy, until you copy
-    something else. The address of the page says which tool is open and nothing more.
+    A value you copy is on your device’s clipboard, like anything else you copy, for as long as
+    your device keeps it. Clipboard history, clipboard managers and syncing between devices can
+    keep it longer or copy it elsewhere; that is your device’s doing, not this site’s. The
+    address of the page says which tool is open and nothing more.
   </p>
   <p>
     Passphrases are made from the EFF long word list, by the Electronic Frontier Foundation,

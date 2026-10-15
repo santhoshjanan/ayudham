@@ -21,6 +21,11 @@
     onfail?: () => void;
   } = $props();
   let copied = $state(false);
+  // A new value has not been copied yet, whatever the button said about the last one.
+  $effect.pre(() => {
+    void text;
+    copied = false;
+  });
   const shown = $derived(copied ? 'Copied' : label);
 
   const copy = async () => {

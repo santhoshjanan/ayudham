@@ -57,6 +57,7 @@
 </script>
 
 <Frame
+  mode={kind}
   title="Random string"
   blurb="Random bytes written as hex or Base64, or random characters from a set."
   rows={made.ok ? made.value.map((value) => ({ value })) : []}

@@ -2,6 +2,14 @@
   import { GROUPS, TOOLS, type ToolId } from './tools.ts';
 
   let { current = $bindable() }: { current: ToolId } = $props();
+
+  /** A plain click opens the tool here; a click meant for a new tab or window leaves this one alone. */
+  const choose = (event: MouseEvent, id: ToolId) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    current = id;
+  };
 </script>
 
 <nav aria-label="Tools">
@@ -11,7 +19,7 @@
       <ul>
         {#each TOOLS.filter((tool) => tool.group === group) as tool (tool.id)}
           <li>
-            <a href="#{tool.id}" onclick={() => (current = tool.id)} aria-current={tool.id === current ? 'true' : undefined}
+            <a href="#{tool.id}" onclick={(event) => choose(event, tool.id)} aria-current={tool.id === current ? 'true' : undefined}
               >{tool.label}</a
             >
           </li>

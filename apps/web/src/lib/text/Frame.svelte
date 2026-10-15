@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { tick, type Snippet } from 'svelte';
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import ResultRow from './ResultRow.svelte';
   import { joined, type Row } from './tools.ts';
@@ -9,6 +9,7 @@
     blurb,
     rows,
     keepLast = true,
+    mode,
     problem,
     strength,
     waiting,
@@ -23,6 +24,8 @@
     rows: Row[];
     /** Keep results only for an invalid option, never a failed random source. */
     keepLast?: boolean;
+    /** The tool's current kind or mode. Results made under another are never kept. */
+    mode?: string;
     /** Why there is no result, in a sentence. */
     problem?: string;
     /** Bits, where the tool has a strength to state. */
@@ -45,12 +48,28 @@
   const refused = () => (copyRefused = true);
 
   // A generator keeps its last good results while an option is outside its limits.
-  let last = $state.raw<Row[]>([]);
+  // They are kept only for the mode they were made in: dice rolls are never offered as picks.
+  let last = $state.raw<{ mode: string | undefined; rows: Row[] }>({ mode: undefined, rows: [] });
   $effect.pre(() => {
-    if (rows.length > 0) last = rows;
-    else if (!keepLast) last = [];
+    if (rows.length > 0) last = { mode, rows };
+    else if (!keepLast) last = { mode, rows: [] };
   });
-  const shown = $derived(rows.length > 0 || !again || !keepLast ? rows : last);
+  const shown = $derived(
+    rows.length > 0 || !again || !keepLast ? rows : last.mode === mode ? last.rows : [],
+  );
+
+  // What a screen reader hears. Emptied and set again on Generate again, so the same words
+  // ("1 made.") are announced each time, not only when the count changes.
+  let said = $state('');
+  $effect.pre(() => {
+    said = made ?? '';
+  });
+  const generate = async () => {
+    again?.();
+    said = '';
+    await tick();
+    said = made ?? '';
+  };
   const about = (row: Row, index: number): string => row.name ?? `result ${index + 1}`;
 </script>
 
@@ -61,10 +80,11 @@
     {@render children()}
   </section>
 
-  <aside class="rail" aria-label="Results">
+  <!-- Results are not offered to a browser's translator, which may send page text away. -->
+  <aside class="rail" aria-label="Results" translate="no">
     <div class="next">
       {#if again}
-        <button type="button" class="primary" onclick={again}>Generate again</button>
+        <button type="button" class="primary" onclick={generate}>Generate again</button>
       {:else}
         <CopyButton
           text={joined(shown)}
@@ -100,7 +120,7 @@
       <p class="empty">{waiting}</p>
     {/if}
     {@render note?.()}
-    <span class="sr-only" role="status">{made ?? ''}</span>
+    <span class="sr-only" role="status" data-testid="made">{said}</span>
   </aside>
 </div>
 
