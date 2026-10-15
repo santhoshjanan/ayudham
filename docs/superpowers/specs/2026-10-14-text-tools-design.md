@@ -65,6 +65,12 @@ The package never reaches for a random source or a clock.
 
 A test (`purity.test.ts`, like the builder's) reads the package source and fails on any Node import and on `window`, `document`, `localStorage`, `sessionStorage`, `navigator`, `fetch`, `crypto`, `Math.random`, `Date`, `atob` and `btoa`. It also fails on any import that is not one of the package's own files, and on `globalThis`, `self`, `process`, `Buffer`, `performance`, `Temporal`, `require`, `XMLHttpRequest`, `WebSocket` and `indexedDB`. The only platform objects the package uses are `TextEncoder`, `TextDecoder` and `Intl.Segmenter`, which do no I/O. `Intl.Segmenter` is made on first use, never when the package loads; in a browser without it, the count tool counts code points and every other tool is unaffected.
 
+### The converters' worker
+
+Case, Slug, Count, Encode and decode, and Lines in any order but Shuffled do their work in a Web Worker: a script served by this site (`apps/web/src/lib/text/convert.worker.ts`), started the first time a converter is used. Typed text goes to it inside the browser by `postMessage` and the answer comes back the same way; nothing crosses the network, and the worker makes no request and keeps nothing. While it works, the last answer stays on screen; keystrokes that arrive meanwhile replace the next job instead of queueing. Copy pressed before an answer arrives works the answer out on the page at once, so a copy never holds results for older text. A shuffle stays on the page, so the order copied is the order shown. Where workers are missing or the script fails to load, the same functions run on the page. The Content Security Policy needs no change: a worker is a script, and `script-src 'self'` allows this site's own.
+
+Added on 2026-10-15 (Impeccable overdrive, direction "never hesitates"): at the typed-text limit the slowest keystroke in Case was 272 to 312 ms; the browser test now requires under 120 ms.
+
 ### Hashing is the page's
 
 SHA hashing is one call to the browser's `crypto.subtle.digest`. The page makes that call; the package supplies the text-to-bytes and bytes-to-hex steps.
@@ -307,7 +313,7 @@ The page shows a line saying the tools need JavaScript because they run in the b
 | A copied value | the system clipboard | until the person copies something else | whatever that device allows |
 | Options, and which tool is open | the page's memory; the tool's name in the address fragment | until the tab closes | the person at the browser |
 
-The server receives the request for the page and, if the passphrase tool is opened, for the word list. Neither carries anything typed or generated. The tool sets no cookie, writes nothing to local or session storage, adds no metric, and logs nothing.
+The server receives the request for the page and, if the passphrase tool is opened, for the word list, and, once a converter is used, for the converters' worker script. None carries anything typed or generated. The tool sets no cookie, writes nothing to local or session storage, adds no metric, and logs nothing.
 
 No new dependency, third-party script, analytics or outside service is added. The one piece of outside material is the word list, vendored and credited.
 
@@ -361,7 +367,7 @@ No new dependency, third-party script, analytics or outside service is added. Th
 
 - Each of the twelve tools produces a result, and Copy puts it on the clipboard.
 - A sentinel string is typed into every text box and every generator is run; no request the page makes carries the sentinel or any generated value, in its address, headers or body.
-- The only request after the page has loaded is the word list, and only once the passphrase tool is opened.
+- The only requests after the page has loaded are the word list, once the passphrase tool is opened, and the converters' worker script, once a converter is first used.
 - Local storage, session storage and cookies hold nothing from this page.
 - A fragment naming a tool opens it; an unknown fragment opens Password.
 - A blocked word list shows the passphrase tool's failure and its retry.

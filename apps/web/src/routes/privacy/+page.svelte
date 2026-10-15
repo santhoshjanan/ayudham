@@ -175,9 +175,12 @@
     site; nothing is fetched from anyone else.
   </p>
   <p class="how">
-    <b>How:</b> the page makes no request that carries what you typed or made. The only thing it
-    fetches after it has loaded is the word list, and only when you open the passphrase tool; it
-    checks that file against a checksum built into the page before using a word. The tools are
+    <b>How:</b> the page makes no request that carries what you typed or made. After it has
+    loaded it fetches two files from this site and nothing else: the word list, only when you
+    open the passphrase tool, which it checks against a checksum built into the page before
+    using a word; and the script that converts long text beside the page, so typing never
+    waits, only when you first use a converter. Your text goes to that script inside your
+    browser and comes back; it is never sent over the network. The tools are
     not drawn on the server at all, so the server never makes a password. Every random choice
     comes from your browser’s cryptographic random source.
   </p>

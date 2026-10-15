@@ -8,7 +8,8 @@
     disabled = false,
     onfail,
   }: {
-    text: string;
+    /** What is copied, or a function that works it out at the moment of the press. */
+    text: string | (() => string);
     label: string;
     /** What this button copies, when the page has several: added to its name for screen readers. */
     about?: string;
@@ -30,7 +31,7 @@
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(typeof text === 'function' ? text() : text);
       copied = true;
       setTimeout(() => (copied = false), 2_000);
     } catch {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { explain, LINE_DEFAULTS, lines, type LineOrder } from '@pokerji/text-tools';
+  import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
   import { random } from './random.ts';
   import TextBox from './TextBox.svelte';
@@ -17,17 +18,32 @@
   let text = $state('');
   let turn = $state(0);
 
-  const made = $derived.by(() => {
+  // A shuffle draws random numbers, so it is worked out here, where the copy is the one shown.
+  // Every other order is the same each time, and goes to the worker.
+  const shuffling = $derived(options.order === 'shuffle');
+  const shuffled = $derived.by(() => {
     void turn;
-    return lines(text, options, random);
+    if (!shuffling) return undefined;
+    const made = lines(text, options, random);
+    return made.ok
+      ? { rows: made.value !== '' ? [{ value: made.value }] : [] }
+      : { rows: [], problem: explain(made.problem) };
   });
+  const work = new Background();
+  $effect(() => {
+    const job = { tool: 'lines' as const, text, options: $state.snapshot(options) };
+    work.ask(shuffling || text === '' ? undefined : job);
+  });
+  const shown = $derived(shuffled ?? work.current);
 </script>
 
 <Frame
   title="Lines"
   blurb="Tidy a list, one step after another, in the order the steps are shown."
-  rows={made.ok && made.value !== '' ? [{ value: made.value }] : []}
-  problem={made.ok ? undefined : explain(made.problem)}
+  rows={shown?.rows ?? []}
+  problem={shown?.problem}
+  exact={() => (shuffled ?? work.exact())?.rows ?? []}
+  busy={work.busy}
   waiting="The tidied list appears here as you type."
 >
   <TextBox id="t-text" label="Text" bind:value={text} />

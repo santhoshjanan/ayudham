@@ -16,9 +16,12 @@
 
   $effect(() => {
     const value = text;
-    rows = [];
-    failed = false;
-    if (!can || value === '' || !checked.ok) return;
+    // The last sums stay on screen until the new ones arrive; they go only when there is no text.
+    if (!can || value === '' || !checked.ok) {
+      rows = [];
+      failed = false;
+      return;
+    }
     // Hashing takes a moment; an answer to text that has since changed is thrown away.
     let stale = false;
     const data = utf8(value) as Uint8Array<ArrayBuffer>;
@@ -29,10 +32,14 @@
       })),
     ).then(
       (sums) => {
-        if (!stale) rows = sums;
+        if (stale) return;
+        rows = sums;
+        failed = false;
       },
       () => {
-        if (!stale) failed = true;
+        if (stale) return;
+        rows = [];
+        failed = true;
       },
     );
     return () => {
