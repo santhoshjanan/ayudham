@@ -395,7 +395,23 @@ The tools at `/text` are a sibling of the markup builder: a band, two rows of to
 
 **The First Control Rule.** In a rail, the yellow button comes first and is the next step. It changes its word with the tool, never its place.
 
-## Do's and Don'ts
+## The code maker
+
+The maker at `/codes` is a sibling of the text tools: a band, the kind picker, then a floor of ruled sections (Content, Options, Look, Logo, Size) and a rail holding the code. It adds no colour, typeface, radius or shadow, and no red: a refusal is words in the status box and a filled badge.
+
+- **Layout:** from 64rem, the text tools' two columns: the sections up to 40rem wide and the rail between 22rem and 36rem, sticky. Below 64rem one column with the rail first, so a phone shows the code before the fields that change it. There is no dock.
+- **Kind picker:** the nine QR kinds as the text tools' tool row, headed QR code, in a `nav` named "QR code kinds"; then one select, Other codes, with groups 2D, Product and Linear. Both change the fragment.
+- **Sections:** each headed in the title face, separated by a rule. The Content section is headed by the kind's own name (Link, Wi-Fi network, EAN-13).
+- **The next step:** Copy image is the rail's first control and the page's one yellow button, set as the room's Reveal is. It, and the downloads beneath it (PNG, JPG, SVG, PDF, All as ZIP, compact buttons), are drawn disabled, dashed, when a check stops export. A download says "Making…" while its file is made.
+- **Preview box (added).** A square panel of fixed size (surface, 1px line, the system radius, 1rem inside), the rail's full width up to 36rem. The code is an `img` whose source is its SVG as a `data:` address, contained and centred. Before there is a code it holds the dashed "not there yet" outline with "Your code appears here." A code that is no longer what the choices make (beneath a refusal) keeps its place with a 2px dashed outline round it and a line, "This is the last code that could be made."
+- **Transparency board (added).** When the background is transparent, the preview box shows a 1.5rem checkerboard in `--line` on `--surface`, so transparent is visibly not white. Only then.
+- **Colour field (added).** A label in the label weight, then a square swatch (the browser's own picker, 2.75rem, bordered as a field) beside a hex field in the system monospace, kept in step. The swatch is named by the label plus "picker", the hex field by the label alone. A hex that is not a colour shows the field's status sentence and leaves the colour as it was.
+- **Theme chip (added).** A compact toggle button with a 1.1rem square sample of the theme on its own paper, bordered in `--line`, and the theme's name in words. The sample's colours are set through `cssVar` (`--from`, `--to`): a diagonal split for a two-colour theme, a disc for a radial one, a blend for Rainbow. Surprise me is the last chip, its sample a dashed square; each press draws again.
+- **Shapes:** dots, corner rings and corner eyes are rows of compact toggle buttons in words, with `aria-pressed`. Bar and stacked codes show none of them, nor themes or fill, and a line says why.
+- **Logo:** Choose image is a real file input, visually hidden, whose label is drawn as a compact button and carries its focus ring. A line under it says the image stays on the device.
+- **Findings:** the builder's ledger under "What to check": a Check badge (dashed) for a warning, the filled badge reading "Stops export" for a refusal, and the count in a sentence above. The read-back line, in soft ink, sits between the downloads and the findings.
+
+
 
 ### Do:
 - **Do** give every screen one yellow button, and make it the next step. Move the yellow when the next step changes.

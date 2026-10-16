@@ -24,7 +24,7 @@
 
 ---
 
-pokerji is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site. The third is a set of [text generators and converters](#the-text-tools): make a password or an identifier, or turn text into another form.
+pokerji is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site. The third is a set of [text generators and converters](#the-text-tools): make a password or an identifier, or turn text into another form. The fourth is a [maker of barcodes and QR codes](#the-code-maker).
 
 Estimation is judging, so pokerji looks like the judges' row at a diving meet: the story on a field of pool aqua, a row of white scorecards face down, and then every card turned in the same instant. The highest and lowest are flagged, because they speak first.
 
@@ -57,6 +57,12 @@ It runs entirely in your browser. Nothing typed into it is sent to the server, a
 At `/text`. Generators: passwords (with an exact strength figure and an option to leave out look-alike characters), passphrases from the EFF long word list, random strings in hex, Base64 and other alphabets, PINs and numbers, UUID v4 and v7, ULID and short identifiers, dice, coins and picks from a list. Converters: twelve case forms, slugs, Base64, hex, URL and HTML entity encoding both ways, SHA-2 hashes, line tools and counts.
 
 They run entirely in your browser. Every random choice comes from the browser's cryptographic random source, without bias. Nothing typed or made is sent to the server, and nothing is stored anywhere.
+
+## The code maker
+
+At `/codes`. QR codes for a link, text, a business card (vCard or MECARD), an event, a Wi-Fi network, a place, an email, a text message or a phone number; and 2D codes (Micro QR, rectangular Micro QR, Data Matrix, Aztec, PDF417, MicroPDF417, MaxiCode, DotCode), product codes (EAN-13, EAN-8, UPC-A, UPC-E, ISBN, ISSN) and linear barcodes (Code 128, GS1-128, Code 39, Code 93, Interleaved 2 of 5, ITF-14, Codabar, GS1 DataBar). Matrix codes take themes, gradients, dot and corner shapes and a centre logo; every code takes colours and a quiet zone. Copy the image, or download PNG, JPG, SVG, PDF or all four in a ZIP.
+
+It runs entirely in your browser: nothing typed, chosen or added is sent to the server, and nothing is stored anywhere. A logo is read on your device. Every style the page offers is decoded by the test suite, and the page says before export when a code may not scan.
 
 ## Privacy
 
@@ -119,8 +125,9 @@ To run the app outside Docker, copy the development lines from `.env.example` in
 | [`packages/poker-engine`](packages/poker-engine) | The room's rules as a pure function: no I/O, no clock, no framework. Vote secrecy is enforced in one place here |
 | [`packages/schema-builder`](packages/schema-builder) | The markup builder's rules as pure functions: the draft, the JSON-LD it becomes, the ten guided types, the checks, and a reader for the bundled Schema.org vocabulary |
 | [`packages/text-tools`](packages/text-tools) | The text tools' rules as pure functions: unbiased sampling, the generators, the converters and a reader for the bundled word list |
+| [`packages/code-maker`](packages/code-maker) | The code maker's rules as pure functions: content builders, the symbology catalogue, styling geometry, themes, scannability checks, and the SVG, PDF and ZIP writers; bwip-js is handed in, never imported |
 | [`packages/poker-server`](packages/poker-server) | Everything that touches Postgres, Valkey, the clock or a socket |
-| [`apps/web`](apps/web) | A thin SvelteKit app: pages, forms, the live room, the markup builder's page and the text tools' page |
+| [`apps/web`](apps/web) | A thin SvelteKit app: pages, forms, the live room, and the pages of the markup builder, the text tools and the code maker |
 
 Postgres holds rooms, sessions and history. Valkey holds rate-limit counters and room locks. One server instance holds the live rooms in memory.
 
@@ -137,6 +144,7 @@ pokerji is the first tool in a planned suite of small tools for teams.
 
 - **Music.** Chopin recordings from [Musopen](https://archive.org/details/musopen-chopin), and Bach's Goldberg Variations played by Kimiko Ishizaka from the [Open Goldberg Variations](https://archive.org/details/The_Open_Goldberg_Variations-11823). Both are released under CC0; details are in [apps/web/static/audio/LICENSES.md](apps/web/static/audio/LICENSES.md).
 - **Typefaces.** Big Shoulders and Atkinson Hyperlegible Next, self-hosted.
+- **Codes.** Encoded by [bwip-js](https://github.com/metafloor/bwip-js), by Mark Warren, and packed by [fflate](https://github.com/101arrowz/fflate), by Arjun Barrett, both MIT, both served by the site itself.
 
 ## License
 
