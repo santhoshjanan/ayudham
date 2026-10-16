@@ -133,6 +133,17 @@ export function paintOf(design: Design): Paint {
 export const takesLogo = (id: string): boolean =>
   symbologyOf(id).family !== 'drawn' && !id.startsWith('aztec') && id !== 'rmqr';
 
+const NOTHING = new Uint8Array(0);
+
+/**
+ * The logo a job carries. The preview takes the small copy alone, so a key press never copies a
+ * full-size image to the worker; a file takes the full image.
+ */
+const logoFor = (logo: LogoImage | null, output: Output): LogoImage | null =>
+  logo && output === 'preview'
+    ? { width: logo.width, height: logo.height, rgba: NOTHING, png: logo.small, small: NOTHING }
+    : logo;
+
 /** How a logo sits on the code. */
 export type LogoShape = { size: number; padding: number; plate: 'square' | 'rounded' | 'circle' };
 
@@ -154,7 +165,10 @@ export function lookOf(
     quietZone: design.quietZones[id] ?? null,
     logo: logo
       ? {
-          ...logo,
+          width: logo.width,
+          height: logo.height,
+          rgba: logo.rgba,
+          png: logo.png,
           share: (Number(shape.size) || 0) / 100,
           padding: Number(shape.padding) || 0,
           plate: shape.plate,
@@ -285,7 +299,7 @@ export class Maker {
       },
       look: lookOf(
         $state.snapshot(this.design) as Design,
-        takesLogo(payload.value.id) ? this.logo : null,
+        takesLogo(payload.value.id) ? logoFor(this.logo, output) : null,
         $state.snapshot(this.logoShape) as LogoShape,
         payload.value.id,
       ),

@@ -1364,3 +1364,24 @@ test('one export the worker cannot make is refused in words, and the worker carr
   expect(seen.ended).toBe(0);
   expect(seen.sent).toBeGreaterThan(sentBefore);
 });
+
+test('with a photo as its logo, a key press stays quick on a processor four times slower', async ({
+  browser,
+}) => {
+  test.setTimeout(120_000);
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  const photo = await makeImage(
+    page,
+    { width: 4000, height: 3000, type: 'image/jpeg', noise: true },
+    0.5,
+  );
+  await chooseLogo(page, 'photo.jpg', 'image/jpeg', photo);
+  await page.getByRole('button', { name: 'Remove logo' }).waitFor();
+  await expect(preview(page)).not.toHaveAttribute('aria-busy', 'true');
+  // The runners that check pull requests are slower than a laptop: so is this.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  expect(await worstKeystroke(page, field(page, 'Address'))).toBeLessThan(50);
+});

@@ -39,11 +39,13 @@ export function fileName(
   at: { year: number; month: number; day: number; hour: number; minute: number; second: number },
   extension: 'png' | 'jpg' | 'svg' | 'pdf' | 'zip',
 ): string {
-  const label =
-    (kind || symbologyId)
-      .toLowerCase()
-      .replace(/[^a-z0-9-]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'code';
+  const dashed = (kind || symbologyId).toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+  // Dashes trimmed from both ends by position, not by a pattern that backtracks on long runs.
+  let start = 0;
+  let end = dashed.length;
+  while (start < end && dashed[start] === '-') start++;
+  while (end > start && dashed[end - 1] === '-') end--;
+  const label = dashed.slice(start, end) || 'code';
   const date = `${String(at.year).padStart(4, '0')}${two(at.month)}${two(at.day)}`;
   return `code-${label}-${date}-${two(at.hour)}${two(at.minute)}${two(at.second)}.${extension}`;
 }

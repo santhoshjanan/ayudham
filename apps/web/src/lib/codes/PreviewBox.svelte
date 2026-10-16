@@ -20,7 +20,7 @@
 
   // The code as an image whose source is its SVG: an SVG shown as an image runs no script and
   // loads nothing, and typed text never becomes part of the page.
-  const src = $derived(shown ? `data:image/svg+xml,${encodeURIComponent(shown.svg)}` : '');
+  const src = $derived(shown?.src ?? '');
   const alt = $derived.by(() => {
     if (!shown) return '';
     const held = shown.text.replace(/\s+/g, ' ').trim();

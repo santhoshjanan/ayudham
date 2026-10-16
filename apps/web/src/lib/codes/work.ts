@@ -65,7 +65,8 @@ export type Job = {
 
 export type Made = {
   ok: true;
-  svg: string;
+  /** The code as an image address: its SVG, escaped here in the worker, never on the page. */
+  src: string;
   /** The drawing's size in its own units (modules for a matrix code). */
   width: number;
   height: number;
@@ -147,7 +148,7 @@ export async function answer(job: Job, bwip: Bwip): Promise<Answer> {
   const findings = check(encoded.value, style, colours);
   const made: Made = {
     ok: true,
-    svg: toSvg(drawing, null),
+    src: `data:image/svg+xml,${encodeURIComponent(toSvg(drawing, null))}`,
     width: drawing.width,
     height: drawing.height,
     findings,

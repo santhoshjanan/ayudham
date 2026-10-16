@@ -313,12 +313,25 @@ export function place(where: Place): Result<string> {
 
 // ---- Email, SMS, phone ----
 
+/**
+ * One @ with something before it, and after it a domain with a dot that is not at either end; no
+ * white space anywhere. Checked by position, so a long hostile address costs only its length.
+ */
+function plausibleEmail(address: string): boolean {
+  if (/\s/.test(address)) return false;
+  const at = address.indexOf('@');
+  if (at < 1 || address.indexOf('@', at + 1) !== -1) return false;
+  const domain = address.slice(at + 1);
+  const dot = domain.indexOf('.', 1);
+  return dot > 0 && dot < domain.length - 1 && !domain.endsWith('.');
+}
+
 const crlf = (value: string): string => value.replace(/\r\n|\r|\n/g, '\r\n');
 
 export function email(to: string, subject?: string, body?: string): Result<string> {
   if (blank(to)) return refuse('empty');
   const address = str(to).trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return refuse('bad-email');
+  if (!plausibleEmail(address)) return refuse('bad-email');
   const query: string[] = [];
   if (!blank(subject)) query.push(`subject=${encode(crlf(str(subject)))}`);
   if (!blank(body)) query.push(`body=${encode(crlf(str(body)))}`);

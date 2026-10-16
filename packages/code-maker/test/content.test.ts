@@ -232,6 +232,17 @@ describe('places', () => {
 });
 
 describe('email, SMS and phone', () => {
+  it('reads any address in time that grows only with its length', () => {
+    const started = performance.now();
+    expect(email(`a@${'!.'.repeat(50_000)}@`)).toEqual(refuse('bad-email'));
+    expect(email(`a@${'!.'.repeat(50_000)}x`).ok).toBe(true);
+    expect(performance.now() - started).toBeLessThan(50);
+    for (const bad of ['a@b', '@b.c', 'a@.c', 'a@b.', 'a b@c.d', 'a@b@c.d', 'a@b .c'])
+      expect(email(bad), bad).toEqual(refuse('bad-email'));
+    for (const good of ['a@b.c', 'first.last@example.co.uk', 'x@y.z.w'])
+      expect(email(good).ok, good).toBe(true);
+  });
+
   it('writes mailto with encoded fields, and line breaks as CRLF', () => {
     expect(email('a@b.c', 'Hi & bye?')).toEqual({
       ok: true,

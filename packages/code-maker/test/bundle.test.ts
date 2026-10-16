@@ -44,6 +44,15 @@ describe('pixelsFor', () => {
 });
 
 describe('fileName', () => {
+  it('takes no longer for a kind made of thousands of dashes', () => {
+    const started = performance.now();
+    const name = fileName('qr', `${'-'.repeat(50_000)}x`, AT, 'png');
+    expect(performance.now() - started).toBeLessThan(50);
+    expect(name).toBe('code-x-20261016-143005.png');
+    expect(fileName('qr', '--a--b--', AT, 'png')).toBe('code-a--b-20261016-143005.png');
+    expect(fileName('qr', '-'.repeat(10), AT, 'png')).toBe('code-code-20261016-143005.png');
+  });
+
   it('names a file by the kind of code and the time, never by what was typed', () => {
     expect(fileName('qr', 'wifi', AT, 'png')).toBe('code-wifi-20261016-143005.png');
     expect(fileName('ean-13', '', AT, 'pdf')).toBe('code-ean-13-20261016-143005.pdf');

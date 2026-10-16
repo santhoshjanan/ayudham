@@ -1,7 +1,16 @@
 import { LIMITS } from '@pokerji/code-maker';
 
-/** A logo as the writers take it: RGBA pixels for the PDF, PNG bytes for SVG. */
-export type LogoImage = { width: number; height: number; rgba: Uint8Array; png: Uint8Array };
+/**
+ * A logo as the writers take it: RGBA pixels for the PDF, PNG bytes for SVG, and a small PNG for
+ * the preview, so a key press never moves a full-size image between the page and the worker.
+ */
+export type LogoImage = {
+  width: number;
+  height: number;
+  rgba: Uint8Array;
+  png: Uint8Array;
+  small: Uint8Array;
+};
 
 export type LogoRead =
   | { ok: true; value: LogoImage }
@@ -75,6 +84,8 @@ export function declaredSize(bytes: Uint8Array): { width: number; height: number
 const TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
 /** The longer side of a logo once read: plenty for a plate a fraction of the code's width. */
 export const LOGO_SIDE = 1024;
+/** The longer side of the preview's copy: the plate is at most 40% of a box 36rem wide. */
+export const PREVIEW_SIDE = 384;
 
 /** An SVG drawn as an image from a data address: it runs no script and loads nothing. */
 async function svgImage(text: string): Promise<HTMLImageElement> {
@@ -133,7 +144,19 @@ export async function readLogo(file: File): Promise<LogoRead> {
     const png = new Uint8Array(
       await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer(),
     );
-    return { ok: true, value: { width: w, height: h, rgba, png } };
+    const fit = Math.min(1, PREVIEW_SIDE / Math.max(w, h));
+    const preview = new OffscreenCanvas(
+      Math.max(1, Math.round(w * fit)),
+      Math.max(1, Math.round(h * fit)),
+    );
+    const drawn = preview.getContext('2d');
+    if (!drawn) return { ok: false, reason: 'not-image' };
+    drawn.imageSmoothingQuality = 'high';
+    drawn.drawImage(canvas, 0, 0, preview.width, preview.height);
+    const small = new Uint8Array(
+      await (await preview.convertToBlob({ type: 'image/png' })).arrayBuffer(),
+    );
+    return { ok: true, value: { width: w, height: h, rgba, png, small } };
   } catch {
     return { ok: false, reason: 'not-image' };
   }
