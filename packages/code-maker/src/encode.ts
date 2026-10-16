@@ -12,6 +12,8 @@ export type Bwip = Pick<typeof BwipJs, 'raw' | 'render' | 'FontLib'>;
 /** A module grid, row by row, 1 dark; and where its finder patterns sit. */
 export type Grid = {
   kind: 'grid';
+  /** The symbology's id: which cells are protected depends on it. */
+  symbology: string;
   columns: number;
   rows: number;
   cells: Uint8Array;
@@ -74,6 +76,7 @@ function gridOf(
       const { pixs, pixx, pixy } = made!;
       return {
         kind: 'grid',
+        symbology: found.id,
         columns: pixx,
         rows: pixy,
         cells: Uint8Array.from(pixs),
