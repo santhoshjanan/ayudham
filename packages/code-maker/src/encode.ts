@@ -21,6 +21,8 @@ export type Grid = {
 };
 
 export type Encoded = {
+  /** The options as checked, so later checks can read the error correction level. */
+  options: Record<string, string | number | boolean>;
   symbology: Symbology;
   grid: Grid | null;
   drawing: Drawing | null;
@@ -104,10 +106,22 @@ export function encode(bwip: Bwip, request: EncodeRequest): Result<Encoded> {
   try {
     if (found.family === 'drawn') {
       const drawing = record(bwip, found.bcid, prepared.value.text, all, request.colours);
-      return ok({ symbology: found, grid: null, drawing, warnings: prepared.value.warnings });
+      return ok({
+        options: options.value,
+        symbology: found,
+        grid: null,
+        drawing,
+        warnings: prepared.value.warnings,
+      });
     }
     const grid = gridOf(bwip, found, prepared.value.text, all);
-    return ok({ symbology: found, grid, drawing: null, warnings: prepared.value.warnings });
+    return ok({
+      options: options.value,
+      symbology: found,
+      grid,
+      drawing: null,
+      warnings: prepared.value.warnings,
+    });
   } catch (error) {
     return refuse(bwipProblem(error));
   }

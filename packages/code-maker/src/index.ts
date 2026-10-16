@@ -10,3 +10,4 @@ export * from './recorder.ts';
 export * from './colour.ts';
 export * from './themes.ts';
 export * from './style.ts';
+export * from './checks.ts';
