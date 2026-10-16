@@ -71,3 +71,32 @@ export const circle = (cx: number, cy: number, r: number): string =>
 
 export const diamond = (cx: number, cy: number, r: number): string =>
   `M ${num(cx)} ${num(cy - r)} L ${num(cx + r)} ${num(cy)} L ${num(cx)} ${num(cy + r)} L ${num(cx - r)} ${num(cy)} Z`;
+
+/**
+ * Where a linear gradient runs, in the drawing's units: through the centre, at its angle
+ * (0 left to right, 90 top to bottom), reaching the edges. Every writer uses this, so SVG, PDF
+ * and the page's canvas agree.
+ */
+export function gradientAxis(
+  paint: Extract<Paint, { type: 'linear' }>,
+  width: number,
+  height: number,
+) {
+  const radians = (paint.angle * Math.PI) / 180;
+  const dx = (Math.cos(radians) * width) / 2;
+  const dy = (Math.sin(radians) * height) / 2;
+  const round = (value: number): number => Number(num(value));
+  return {
+    x1: round(width / 2 - dx),
+    y1: round(height / 2 - dy),
+    x2: round(width / 2 + dx),
+    y2: round(height / 2 + dy),
+  };
+}
+
+/** A radial gradient's centre and reach: from the middle out to the corners. */
+export const gradientRadius = (width: number, height: number) => ({
+  cx: width / 2,
+  cy: height / 2,
+  r: Number(num(Math.hypot(width, height) / 2)),
+});
