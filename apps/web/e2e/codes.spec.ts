@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { calendarEvent, email, meCard, phone, place, sms, vCard, wifi } from '@pokerji/code-maker';
 import { readFileSync } from 'node:fs';
@@ -14,6 +15,7 @@ const visitor = () => {
 };
 
 const WIDE = { width: 1280, height: 900 };
+const NARROW = { width: 390, height: 844 };
 
 /** A page on the code maker, hydrated, with the clipboard allowed. */
 const open = async (browser: Browser, hash = '', viewport = WIDE): Promise<Page> => {
@@ -796,4 +798,297 @@ test('a 600 dpi export at the size limit is ready within 3 seconds and the page 
   const saved = await saving;
   expect(Date.now() - started).toBeLessThan(3_000);
   expect(readFileSync((await saved.path())!).readUInt32BE(16)).toBe(9992);
+});
+
+const SENTINEL = 'Zebra7Quokka';
+const SECOND = 'Okapi4Narwhal';
+const KINDS = [
+  'qr-link',
+  'qr-text',
+  'qr-card',
+  'qr-event',
+  'qr-wifi',
+  'qr-place',
+  'qr-email',
+  'qr-sms',
+  'qr-phone',
+  'code-128',
+];
+
+/** Every typing field in the Content section, filled with the sentinel. */
+const fillAll = async (page: Page, value: string) => {
+  const boxes = page
+    .locator('section[aria-labelledby="c-content"]')
+    .locator('input[type="text"], textarea');
+  for (const box of await boxes.all()) await box.fill(value);
+};
+
+test('nothing typed, chosen or uploaded is sent anywhere', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const page = await open(browser);
+  const seen: string[] = [];
+  page.on('request', async (request) => {
+    seen.push(
+      [
+        request.method(),
+        request.url(),
+        JSON.stringify(await request.allHeaders()),
+        request.postData() ?? '',
+      ].join(' '),
+    );
+  });
+  for (const kind of KINDS) {
+    await page.goto(`/codes#${kind}`);
+    await page.locator('[data-ready]').waitFor();
+    await fillAll(page, SENTINEL);
+  }
+  await page.goto('/codes#qr-link');
+  await field(page, 'Address').fill(`https://example.com/${SENTINEL}`);
+  await expectCode(page, `https://example.com/${SENTINEL}`);
+  // A logo whose file carries a second sentinel after its image data.
+  const png = await makeImage(page, { width: 64, height: 64, type: 'image/png' });
+  await chooseLogo(page, 'logo.png', 'image/png', Buffer.concat([png, Buffer.from(SECOND)]));
+  await expect(page.getByRole('button', { name: 'Remove logo' })).toBeVisible();
+  for (const name of ['PNG', 'JPG', 'SVG', 'PDF', 'All as ZIP']) await download(page, name);
+  await copyImage(page).click();
+  await expect(rail(page).getByText('Copied', { exact: true })).toBeAttached();
+
+  for (const line of seen) {
+    expect(line).not.toContain(SENTINEL);
+    expect(line).not.toContain(SECOND);
+    expect(line).not.toContain('example.com');
+  }
+  // After the page itself: only scripts of this site, fetched with GET.
+  const after = seen.filter((line) => !/ http:\/\/127\.0\.0\.1:\d+\/codes /.test(line));
+  for (const line of after)
+    expect(line).toMatch(/^GET http:\/\/127\.0\.0\.1:\d+\/(_app\/immutable\/|favicon)/);
+});
+
+test('nothing is kept', async ({ browser }) => {
+  const page = await open(browser);
+  const stored = () =>
+    page.evaluate(async () => ({
+      local: Object.keys(localStorage).sort(),
+      session: Object.keys(sessionStorage).sort(),
+      cookie: document.cookie,
+      databases: ((await indexedDB.databases?.()) ?? []).map((entry) => entry.name),
+    }));
+  const before = await stored();
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await press(page, 'Themes', 'Ocean');
+  await page.getByRole('link', { name: 'Wi-Fi' }).click();
+  await field(page, 'Network name').fill(SENTINEL);
+  await download(page, 'PNG');
+  expect(await stored()).toEqual(before);
+  expect(new URL(page.url()).hash).toBe('#qr-wifi');
+  expect(page.url()).not.toContain(SENTINEL);
+  await page.reload();
+  await page.locator('[data-ready]').waitFor();
+  await expect(field(page, 'Network name')).toHaveValue('');
+  await expect(preview(page).locator('.empty')).toBeVisible();
+});
+
+test('the content security policy is never broken', async ({ browser }) => {
+  const context = await browser.newContext({
+    ...visitor(),
+    viewport: WIDE,
+    permissions: ['clipboard-read', 'clipboard-write'],
+  });
+  await context.addInitScript(() => {
+    const seen = window as unknown as { violations: string[] };
+    seen.violations = [];
+    document.addEventListener('securitypolicyviolation', (event) =>
+      seen.violations.push(`${event.violatedDirective} ${event.blockedURI}`),
+    );
+  });
+  const page = await context.newPage();
+  const messages: string[] = [];
+  page.on('console', (message) => {
+    if (/Content Security Policy/i.test(message.text())) messages.push(message.text());
+  });
+  await page.goto('/codes');
+  await page.locator('[data-ready]').waitFor();
+  // Counted from here: at load every page of the site reports zod's own probe for `Function`,
+  // which the policy blocks as intended and which nothing on this page uses.
+  await page.evaluate(() => ((window as unknown as { violations: string[] }).violations = []));
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await press(page, 'Themes', 'Rainbow');
+  const png = await makeImage(page, { width: 64, height: 64, type: 'image/png' });
+  await chooseLogo(page, 'logo.png', 'image/png', png);
+  await page.getByRole('button', { name: 'Remove logo' }).waitFor();
+  for (const name of ['PNG', 'JPG', 'SVG', 'PDF', 'All as ZIP']) await download(page, name);
+  await copyImage(page).click();
+  await expect(rail(page).getByText('Copied', { exact: true })).toBeAttached();
+  await page.getByLabel('Other codes').selectOption('pdf417');
+  await field(page, 'Text').fill('Hello');
+  await expect(image(page)).toBeVisible();
+  expect(messages).toEqual([]);
+  expect(
+    await page.evaluate(() => (window as unknown as { violations: string[] }).violations),
+  ).toEqual([]);
+});
+
+test('every field keeps text away from spelling and translation services', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expect(rail(page)).toHaveAttribute('translate', 'no');
+  for (const kind of [...KINDS, 'pdf417']) {
+    await page.goto(`/codes#${kind}`);
+    await page.locator('[data-ready]').waitFor();
+    const boxes = page.locator('main input:not([type="file"]):not([type="color"]), main textarea');
+    expect(await boxes.count()).toBeGreaterThan(0);
+    for (const box of await boxes.all()) {
+      const id = (await box.getAttribute('id')) ?? 'unnamed';
+      expect(await box.getAttribute('spellcheck'), `${kind} ${id}`).toBe('false');
+      expect(await box.getAttribute('autocomplete'), `${kind} ${id}`).toBe('off');
+      expect(await box.getAttribute('autocapitalize'), `${kind} ${id}`).toBe('off');
+      expect(await box.getAttribute('autocorrect'), `${kind} ${id}`).toBe('off');
+      expect(await box.getAttribute('translate'), `${kind} ${id}`).toBe('no');
+    }
+  }
+});
+
+test('on a phone the code comes first and nothing scrolls sideways', async ({ browser }) => {
+  const page = await open(browser, '#qr-card', NARROW);
+  const top = async (locator: ReturnType<Page['locator']>) => (await locator.boundingBox())!.y;
+  expect(await top(preview(page))).toBeLessThan(
+    await top(page.locator('section[aria-labelledby="c-content"]')),
+  );
+  const wide = () => page.evaluate(() => document.documentElement.scrollWidth);
+  await field(page, 'Given name').fill('Maximiliana-Alexandrina');
+  await field(page, 'Family name').fill('Featherstonehaugh-Cholmondeley');
+  await field(page, 'Organisation').fill('The Exceptionally Long-Named Organisation of Things');
+  await field(page, 'Website').fill(`https://example.com/${'very-long-path-'.repeat(12)}`);
+  await field(page, 'Note').fill('word '.repeat(150));
+  await expect(image(page)).toBeVisible();
+  expect(await wide()).toBeLessThanOrEqual(NARROW.width);
+
+  await page.goto('/codes#pdf417');
+  await page.locator('[data-ready]').waitFor();
+  await field(page, 'Columns').fill('30');
+  await field(page, 'Text').fill('x'.repeat(800));
+  await expect(image(page)).toBeVisible();
+  expect(await wide()).toBeLessThanOrEqual(NARROW.width);
+});
+
+const scan = (page: Page) =>
+  new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+
+test('WCAG 2.2 AA in both themes', async ({ browser }) => {
+  test.setTimeout(120_000);
+  for (const colorScheme of ['light', 'dark'] as const) {
+    const context = await browser.newContext({ ...visitor(), viewport: WIDE, colorScheme });
+    const page = await context.newPage();
+    for (const [kind, typed] of [
+      ['qr-link', LINK],
+      ['qr-card', null],
+      ['qr-event', null],
+      ['data-matrix', 'Hello'],
+      ['pdf417', 'Hello'],
+      ['ean-13', '590123412345'],
+      ['code-128', 'ABC-123'],
+    ] as const) {
+      await page.goto(`/codes#${kind}`);
+      await page.locator('[data-ready]').waitFor();
+      if (kind === 'qr-link') await field(page, 'Address').fill(typed!);
+      else if (kind === 'qr-card') await field(page, 'Given name').fill('Ada');
+      else if (kind === 'qr-event') await field(page, 'Title').fill('Launch');
+      else await field(page, 'Text').fill(typed!);
+      if (kind === 'qr-link') {
+        await expect(image(page)).toBeVisible();
+        const png = await makeImage(page, { width: 64, height: 64, type: 'image/png' });
+        await chooseLogo(page, 'logo.png', 'image/png', png);
+        await page.getByRole('button', { name: 'Print size', exact: true }).click();
+        await page.getByRole('button', { name: 'Corner colour' }).click();
+      }
+      await expect(preview(page)).not.toHaveAttribute('aria-busy', 'true');
+      expect((await scan(page)).violations, `${kind} in ${colorScheme}`).toEqual([]);
+      await expect(page.locator('main .danger, main [role="alert"]')).toHaveCount(0);
+    }
+    await context.close();
+  }
+});
+
+/** Presses Tab until the focused element is the one wanted. */
+const tabTo = async (page: Page, wanted: ReturnType<Page['locator']>) => {
+  for (let step = 0; step < 150; step++) {
+    await page.keyboard.press('Tab');
+    if (await wanted.evaluate((element) => element === document.activeElement)) return;
+  }
+  throw new Error('never reached by Tab');
+};
+
+test('keyboard alone', async ({ browser }) => {
+  const page = await open(browser);
+  await tabTo(page, kindLink(page, 'Text'));
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { level: 2, name: 'Text', exact: true })).toBeVisible();
+  await page.locator('body').focus();
+  await tabTo(page, kindLink(page, 'Link'));
+  await page.keyboard.press('Enter');
+  await tabTo(page, field(page, 'Address'));
+  await page.keyboard.type(LINK);
+  await tabTo(page, group(page, 'Themes').getByRole('button', { name: 'Ocean' }));
+  await page.keyboard.press('Space');
+  await expect(group(page, 'Themes').getByRole('button', { name: 'Ocean' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expectCode(page, LINK);
+  await page.locator('body').focus();
+  await tabTo(page, copyImage(page));
+  await page.keyboard.press('Enter');
+  await expect(rail(page).getByText('Copied', { exact: true })).toBeAttached();
+});
+
+/** The longest a key press took to be handled and painted, over a few presses. */
+const worstKeystroke = async (page: Page, box: ReturnType<Page['locator']>) => {
+  await box.evaluate((element: HTMLInputElement | HTMLTextAreaElement) => {
+    element.focus();
+    element.setSelectionRange(element.value.length, element.value.length);
+  });
+  await page.evaluate(() => {
+    const seen = window as unknown as { worst: number };
+    seen.worst = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) seen.worst = Math.max(seen.worst, entry.duration);
+    }).observe({ type: 'event', durationThreshold: 16 } as PerformanceObserverInit);
+  });
+  for (let press = 0; press < 6; press++) {
+    await page.keyboard.type('x');
+    await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(500);
+  return page.evaluate(() => (window as unknown as { worst: number }).worst);
+};
+
+test('typing never waits', async ({ browser }) => {
+  test.setTimeout(60_000);
+  // The first code, within a second of opening.
+  const context = await browser.newContext({ ...visitor(), viewport: WIDE });
+  const first = await context.newPage();
+  const opened = Date.now();
+  await first.goto('/codes');
+  await first.locator('[data-ready]').waitFor();
+  await field(first, 'Address').fill(LINK);
+  await expect(image(first)).toBeVisible();
+  expect(Date.now() - opened).toBeLessThan(1_000);
+
+  const page = await open(browser);
+  await field(page, 'Error correction').selectOption('H');
+  await field(page, 'Size').fill('40');
+  await field(page, 'Address').fill(`https://example.com/${'a'.repeat(400)}`);
+  await expect(image(page)).toBeVisible();
+  expect(await worstKeystroke(page, field(page, 'Address'))).toBeLessThan(50);
+
+  await page.goto('/codes#qr-card');
+  await page.locator('[data-ready]').waitFor();
+  await field(page, 'Given name').fill('Ada');
+  await field(page, 'Note').fill('n'.repeat(994));
+  await expect(image(page)).toBeVisible();
+  expect(await worstKeystroke(page, field(page, 'Note'))).toBeLessThan(50);
 });

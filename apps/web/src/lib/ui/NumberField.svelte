@@ -30,6 +30,7 @@
     autocomplete="off"
     autocapitalize="off"
     autocorrect="off"
+    translate="no"
     aria-describedby="{id}-hint"
     bind:value
   />

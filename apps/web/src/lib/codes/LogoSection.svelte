@@ -100,7 +100,14 @@
     align-items: center;
     margin: 0 0 0.6rem;
   }
-  /* The file input stays a real, focusable input; its label is drawn as a compact button. */
+  /* The file input stays a real, focusable input, hidden from sight; the fields' own width and
+     height would otherwise outrank the hiding and widen the page. Its label is drawn as a
+     compact button. */
+  .choose input {
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+  }
   .button-like {
     display: inline-flex;
     align-items: center;
