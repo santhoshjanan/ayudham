@@ -2,7 +2,20 @@ import { ok, refuse, type Result } from './result.ts';
 
 // ---- Shared ----
 
-const blank = (value: string | undefined): boolean => value === undefined || value.trim() === '';
+/** A field as text: anything that is not a string (a missing field, a stray value) is empty. */
+const str = (value: unknown): string => (typeof value === 'string' ? value : '');
+/** A list field: anything that is not an array is empty. */
+const list = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+const blank = (value: unknown): boolean => str(value).trim() === '';
+
+/** encodeURIComponent, with a lone surrogate written as U+FFFD instead of throwing. */
+const encode = (value: string): string =>
+  encodeURIComponent(
+    value.replace(
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+      '\uFFFD',
+    ),
+  );
 
 /**
  * Folds a content line at 75 octets, as vCard and iCalendar specify: continuation lines start
@@ -43,16 +56,16 @@ const lines = (entries: string[]): string => entries.map(fold).join('\r\n');
 export function linkPayload(address: string): Result<string> {
   if (blank(address)) return refuse('empty');
   try {
-    new URL(address.trim());
+    new URL(str(address).trim());
   } catch {
     return refuse('bad-address');
   }
-  return ok(address.trim());
+  return ok(str(address).trim());
 }
 
 /** "https://" plus the address, when it has no scheme and looks like a host name. */
 export function suggestHttps(address: string): string | null {
-  const value = address.trim();
+  const value = str(address).trim();
   if (value.includes('://')) return null;
   return /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(value) ? `https://${value}` : null;
 }
@@ -79,23 +92,28 @@ export type Contact = {
 
 export function vCard(contact: Contact): Result<string> {
   if (blank(contact.given) && blank(contact.family)) return refuse('empty');
-  const given = contact.given.trim();
-  const family = contact.family.trim();
+  const given = str(contact.given).trim();
+  const family = str(contact.family).trim();
   const entries = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     `N:${textValue(family)};${textValue(given)};;;`,
     `FN:${textValue([given, family].filter(Boolean).join(' '))}`,
   ];
-  if (!blank(contact.organisation)) entries.push(`ORG:${textValue(contact.organisation!.trim())}`);
-  if (!blank(contact.title)) entries.push(`TITLE:${textValue(contact.title!.trim())}`);
-  for (const { number, kind } of contact.phones) {
-    if (!blank(number)) entries.push(`TEL;TYPE=${kind.toUpperCase()}:${textValue(number.trim())}`);
+  if (!blank(contact.organisation))
+    entries.push(`ORG:${textValue(str(contact.organisation).trim())}`);
+  if (!blank(contact.title)) entries.push(`TITLE:${textValue(str(contact.title).trim())}`);
+  for (const { number, kind } of list<{ number: unknown; kind: unknown }>(contact.phones).filter(
+    Boolean,
+  )) {
+    const type = ['cell', 'work', 'home'].includes(str(kind)) ? str(kind).toUpperCase() : 'CELL';
+    if (!blank(number)) entries.push(`TEL;TYPE=${type}:${textValue(str(number).trim())}`);
   }
-  for (const address of contact.emails)
-    if (!blank(address)) entries.push(`EMAIL:${textValue(address.trim())}`);
-  if (!blank(contact.website)) entries.push(`URL:${contact.website!.trim()}`);
-  const where = contact.address;
+  for (const address of list<unknown>(contact.emails))
+    if (!blank(address)) entries.push(`EMAIL:${textValue(str(address).trim())}`);
+  if (!blank(contact.website)) entries.push(`URL:${str(contact.website).trim()}`);
+  const where =
+    contact.address && typeof contact.address === 'object' ? contact.address : undefined;
   if (
     where &&
     [where.street, where.city, where.region, where.postcode, where.country].some(
@@ -103,11 +121,11 @@ export function vCard(contact: Contact): Result<string> {
     )
   ) {
     const parts = [where.street, where.city, where.region, where.postcode, where.country].map(
-      (part) => textValue(part?.trim() ?? ''),
+      (part) => textValue(str(part).trim()),
     );
     entries.push(`ADR:;;${parts.join(';')}`);
   }
-  if (!blank(contact.note)) entries.push(`NOTE:${textValue(contact.note!)}`);
+  if (!blank(contact.note)) entries.push(`NOTE:${textValue(str(contact.note))}`);
   entries.push('END:VCARD');
   return ok(lines(entries));
 }
@@ -117,21 +135,22 @@ const meValue = (value: string): string => value.replace(/[\\;,:]/g, (char) => `
 
 export function meCard(contact: Contact): Result<string> {
   if (blank(contact.given) && blank(contact.family)) return refuse('empty');
-  const fields = [`N:${meValue(contact.family.trim())},${meValue(contact.given.trim())}`];
-  if (!blank(contact.organisation)) fields.push(`ORG:${meValue(contact.organisation!.trim())}`);
-  for (const { number } of contact.phones)
-    if (!blank(number)) fields.push(`TEL:${meValue(number.trim())}`);
-  for (const address of contact.emails)
-    if (!blank(address)) fields.push(`EMAIL:${meValue(address.trim())}`);
-  if (!blank(contact.website)) fields.push(`URL:${meValue(contact.website!.trim())}`);
-  const where = contact.address;
+  const fields = [`N:${meValue(str(contact.family).trim())},${meValue(str(contact.given).trim())}`];
+  if (!blank(contact.organisation)) fields.push(`ORG:${meValue(str(contact.organisation).trim())}`);
+  for (const { number } of list<{ number: unknown }>(contact.phones).filter(Boolean))
+    if (!blank(number)) fields.push(`TEL:${meValue(str(number).trim())}`);
+  for (const address of list<unknown>(contact.emails))
+    if (!blank(address)) fields.push(`EMAIL:${meValue(str(address).trim())}`);
+  if (!blank(contact.website)) fields.push(`URL:${meValue(str(contact.website).trim())}`);
+  const where =
+    contact.address && typeof contact.address === 'object' ? contact.address : undefined;
   if (where) {
     const joined = [where.street, where.city, where.region, where.postcode, where.country]
       .filter((part) => !blank(part))
       .join(', ');
     if (joined) fields.push(`ADR:${meValue(joined)}`);
   }
-  if (!blank(contact.note)) fields.push(`NOTE:${meValue(contact.note!)}`);
+  if (!blank(contact.note)) fields.push(`NOTE:${meValue(str(contact.note))}`);
   return ok(`MECARD:${fields.join(';')};;`);
 }
 
@@ -174,7 +193,8 @@ function civilFromDays(days: number): [number, number, number] {
 }
 
 /** Minutes since 1970 for `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`, or null for an impossible date. */
-function minutesOf(value: string, timed: boolean): number | null {
+function minutesOf(value: unknown, timed: boolean): number | null {
+  if (typeof value !== 'string') return null;
   const match = timed
     ? /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value)
     : /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -209,13 +229,13 @@ export function calendarEvent(event: CalendarEvent): Result<string> {
     'VERSION:2.0',
     'PRODID:-//pokerji//Code maker//EN',
     'BEGIN:VEVENT',
-    `SUMMARY:${textValue(event.title.trim())}`,
+    `SUMMARY:${textValue(str(event.title).trim())}`,
   ];
   if (timed) {
     const offset = event.utcOffsetMinutes;
-    const utc = offset !== null;
-    if (utc && !Number.isInteger(offset)) return refuse('bad-date');
-    const shift = utc ? offset : 0;
+    const utc = offset !== null && offset !== undefined;
+    if (utc && (!Number.isInteger(offset) || Math.abs(offset) > 1440)) return refuse('bad-date');
+    const shift = utc ? (offset as number) : 0;
     entries.push(
       `DTSTART:${stamp(start - shift, true, utc)}`,
       `DTEND:${stamp(end - shift, true, utc)}`,
@@ -227,8 +247,8 @@ export function calendarEvent(event: CalendarEvent): Result<string> {
       `DTEND;VALUE=DATE:${stamp(end + 1440, false, false)}`,
     );
   }
-  if (!blank(event.place)) entries.push(`LOCATION:${textValue(event.place!.trim())}`);
-  if (!blank(event.description)) entries.push(`DESCRIPTION:${textValue(event.description!)}`);
+  if (!blank(event.place)) entries.push(`LOCATION:${textValue(str(event.place).trim())}`);
+  if (!blank(event.description)) entries.push(`DESCRIPTION:${textValue(str(event.description))}`);
   entries.push('END:VEVENT', 'END:VCALENDAR');
   return ok(lines(entries));
 }
@@ -246,13 +266,14 @@ export type Wifi = {
 const wifiValue = (value: string): string => value.replace(/[\\;,:"]/g, (char) => `\\${char}`);
 
 export function wifi(network: Wifi): Result<string> {
-  if (network.ssid === '') return refuse('empty');
+  if (!network || typeof network !== 'object' || str(network.ssid) === '') return refuse('empty');
+  if (!['wpa', 'wep', 'none'].includes(network.security)) return refuse('out-of-range');
   const parts = [
     `T:${network.security === 'none' ? 'nopass' : network.security.toUpperCase()}`,
-    `S:${wifiValue(network.ssid)}`,
+    `S:${wifiValue(str(network.ssid))}`,
   ];
-  if (network.security !== 'none') parts.push(`P:${wifiValue(network.password)}`);
-  if (network.hidden) parts.push('H:true');
+  if (network.security !== 'none') parts.push(`P:${wifiValue(str(network.password))}`);
+  if (network.hidden === true) parts.push('H:true');
   return ok(`WIFI:${parts.join(';')};;`);
 }
 
@@ -272,6 +293,7 @@ const MAPS = {
 const degrees = (value: number): string => String(Number(value.toFixed(6)));
 
 export function place(where: Place): Result<string> {
+  if (!where || typeof where !== 'object') return refuse('empty');
   if (where.kind === 'coordinates') {
     const { latitude, longitude } = where;
     if (
@@ -285,7 +307,8 @@ export function place(where: Place): Result<string> {
     return ok(`geo:${degrees(latitude)},${degrees(longitude)}`);
   }
   if (blank(where.address)) return refuse('empty');
-  return ok(MAPS[where.as] + encodeURIComponent(where.address.trim()));
+  if (!Object.hasOwn(MAPS, where.as)) return refuse('out-of-range');
+  return ok(MAPS[where.as] + encode(str(where.address).trim()));
 }
 
 // ---- Email, SMS, phone ----
@@ -294,24 +317,24 @@ const crlf = (value: string): string => value.replace(/\r\n|\r|\n/g, '\r\n');
 
 export function email(to: string, subject?: string, body?: string): Result<string> {
   if (blank(to)) return refuse('empty');
-  const address = to.trim();
+  const address = str(to).trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return refuse('bad-email');
   const query: string[] = [];
-  if (!blank(subject)) query.push(`subject=${encodeURIComponent(crlf(subject!))}`);
-  if (!blank(body)) query.push(`body=${encodeURIComponent(crlf(body!))}`);
+  if (!blank(subject)) query.push(`subject=${encode(crlf(str(subject)))}`);
+  if (!blank(body)) query.push(`body=${encode(crlf(str(body)))}`);
   return ok(`mailto:${address}${query.length ? `?${query.join('&')}` : ''}`);
 }
 
 function tidyNumber(number: string): Result<string> {
   if (blank(number)) return refuse('empty');
-  const tidy = number.replace(/[\s().-]/g, '');
+  const tidy = str(number).replace(/[\s().-]/g, '');
   return /^\+?[0-9]{3,20}$/.test(tidy) ? ok(tidy) : refuse('bad-phone');
 }
 
 export function sms(number: string, message?: string): Result<string> {
   const tidy = tidyNumber(number);
   if (!tidy.ok) return tidy;
-  return ok(`SMSTO:${tidy.value}:${message ?? ''}`);
+  return ok(`SMSTO:${tidy.value}:${str(message)}`);
 }
 
 export function phone(number: string): Result<string> {

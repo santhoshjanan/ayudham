@@ -26,6 +26,7 @@ const SIMPLE: Record<string, string> = { n: '\n', r: '\r', t: '\t', '\\': '\\' }
 
 /** Reads backslash sequences. Anything after a backslash that is not one of them is refused. */
 export function readEscapes(text: string): Result<string> {
+  if (typeof text !== 'string') return refuse('bad-escape');
   let out = '';
   for (let at = 0; at < text.length; at++) {
     const char = text[at]!;
@@ -73,6 +74,7 @@ export function prepareText(
   options: TextOptions,
   capability: TextCapability,
 ): Result<PreparedText> {
+  if (typeof text !== 'string') return refuse('empty');
   let value = text;
   if (options.escapes) {
     const read = readEscapes(value);
