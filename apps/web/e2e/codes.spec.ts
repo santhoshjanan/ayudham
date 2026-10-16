@@ -744,6 +744,9 @@ test('refused export disables Copy image and every download', async ({ browser }
   await expect(copyImage(page)).toBeDisabled();
   for (const name of ['PNG', 'JPG', 'SVG', 'PDF', 'All as ZIP'])
     await expect(page.getByRole('button', { name, exact: true })).toBeDisabled();
+  // A code that may not be taken away is not read back, and nothing claims the browser lacks a reader.
+  await page.waitForTimeout(1_000);
+  await expect(page.getByTestId('read-back')).toHaveCount(0);
 });
 
 const READ_BACK =

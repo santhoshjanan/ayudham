@@ -81,6 +81,95 @@ async function pages(name, viewport, colorScheme) {
   await mo.getByLabel('Text', { exact: true }).fill('Hello, wide world');
   await shot(mo, 'text-count');
 
+  // The code maker: empty, each family, styled, a logo, a warning and a refusal.
+  // A fresh load for each kind: a change of fragment alone keeps the page's state.
+  const kind = async (id) => {
+    await mo.goto('about:blank');
+    await mo.goto(`${base}/codes#${id}`);
+    await mo.locator('[data-ready]').waitFor();
+  };
+  const settle = () => mo.locator('[data-testid="preview"]:not([aria-busy="true"])').waitFor();
+  const field = (label) =>
+    mo.getByLabel(label, { exact: true }).and(mo.locator('input, textarea, select'));
+  const press = (group, name) =>
+    mo
+      .getByRole('group', { name: group, exact: true })
+      .getByRole('button', { name, exact: true })
+      .click();
+  await kind('qr-link');
+  await shot(mo, 'codes-empty');
+  await field('Address').fill('https://example.com/menu');
+  await settle();
+  await shot(mo, 'codes-link');
+  await kind('qr-wifi');
+  await field('Network name').fill('Guest network');
+  await field('Password').fill('correct horse battery');
+  await settle();
+  await shot(mo, 'codes-wifi');
+  await kind('qr-card');
+  await field('Given name').fill('Ada');
+  await field('Family name').fill('Lovelace');
+  await field('Organisation').fill('Analytical Engines');
+  await field('Mobile phone').fill('+44 20 7946 0000');
+  await field('Email').fill('ada@example.com');
+  await settle();
+  await shot(mo, 'codes-card');
+  await kind('ean-13');
+  await field('Text').fill('590123412345');
+  await settle();
+  await shot(mo, 'codes-ean13');
+  await kind('pdf417');
+  await field('Text').fill('Boarding pass: seat 14C, gate 22, departs 09:40');
+  await settle();
+  await shot(mo, 'codes-pdf417');
+  await kind('qr-link');
+  await field('Address').fill('https://example.com/menu');
+  await press('Themes', 'Ocean');
+  await press('Dots', 'Circle');
+  await press('Corner rings', 'Leaf');
+  await settle();
+  await shot(mo, 'codes-styled');
+  const logo = await mo.evaluate(async () => {
+    const canvas = new OffscreenCanvas(96, 96);
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#0e6f8c';
+    context.beginPath();
+    context.arc(48, 48, 44, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#ffffff';
+    context.font = 'bold 52px sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('P', 48, 52);
+    const bytes = new Uint8Array(await (await canvas.convertToBlob()).arrayBuffer());
+    return btoa(String.fromCharCode(...bytes));
+  });
+  await mo.getByLabel('Choose image').setInputFiles({
+    name: 'logo.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(logo, 'base64'),
+  });
+  await mo.getByRole('button', { name: 'Remove logo' }).waitFor();
+  await settle();
+  await shot(mo, 'codes-logo');
+  await mo.getByRole('button', { name: 'Transparent' }).click();
+  await settle();
+  await shot(mo, 'codes-transparent');
+  await kind('qr-link');
+  await field('Address').fill('https://example.com/menu');
+  await mo.getByRole('textbox', { name: 'Foreground', exact: true }).fill('#777777');
+  await settle();
+  await shot(mo, 'codes-warning');
+  await mo.getByRole('textbox', { name: 'Foreground', exact: true }).fill('#cccccc');
+  await settle();
+  await shot(mo, 'codes-refused');
+  await kind('code-39');
+  await field('Text').fill('AB');
+  await settle();
+  await field('Text').fill('ABé');
+  await settle();
+  await shot(mo, 'codes-character');
+
   await mo.goto(`${base}/poker`);
   await mo.getByLabel('Your name').fill('Mo');
   await mo.getByRole('button', { name: 'Create room' }).click();

@@ -74,8 +74,9 @@
   let readBackSaid = $state<ReadBack | 'reading'>('reading');
   let readings = 0;
   $effect(() => {
-    const current = maker.current;
-    if (!current?.ok) return;
+    // Each new code is read back; only a code that may be taken away.
+    void maker.current;
+    if (!exportable) return;
     const asked = ++readings;
     readBackSaid = 'reading';
     const matches = matcher();
@@ -161,7 +162,7 @@
           <span class="sr-only" role="status">{copied === 'Copied' ? 'Copied' : ''}</span>
           {#if copied && copied !== 'Copied'}<p role="status">{copied}</p>{/if}
           <Downloads {maker} disabled={!exportable} />
-          {#if maker.current?.ok}
+          {#if exportable}
             <p class="hint" data-testid="read-back" aria-live="polite">{READ_BACK[readBackSaid]}</p>
           {/if}
           {#if refusal}
