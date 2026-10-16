@@ -12,3 +12,4 @@ export * from './themes.ts';
 export * from './style.ts';
 export * from './checks.ts';
 export * from './svg.ts';
+export * from './pdf.ts';
