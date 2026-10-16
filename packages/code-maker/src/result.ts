@@ -21,11 +21,24 @@ export const PROBLEMS = [
 
 export type Problem = (typeof PROBLEMS)[number];
 
-export type Result<T> = { ok: true; value: T } | { ok: false; problem: Problem };
+/**
+ * A refusal may carry where the trouble is: the first character a symbology cannot carry, and its
+ * position. It stays on the page (shown as text); the sentence for the problem never includes it.
+ */
+export type Detail = { at: number; character: string };
+
+export type Result<T> = { ok: true; value: T } | { ok: false; problem: Problem; detail?: Detail };
 
 export const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 
 export const refuse = (problem: Problem): Result<never> => ({ ok: false, problem });
+
+/** A character refusal, naming the first character that cannot be carried and its position. */
+export const refuseCharacter = (at: number, character: string): Result<never> => ({
+  ok: false,
+  problem: 'bad-character',
+  detail: { at, character },
+});
 
 /** Fixed sentences: nothing typed ever reaches them. */
 const SENTENCES: Record<Problem, string> = {

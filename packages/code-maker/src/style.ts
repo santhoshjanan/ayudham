@@ -136,9 +136,10 @@ function plateFor(grid: Grid, logo: StyleLogo | null): Plate | null {
     side > 0;
     side--
   ) {
+    // On whole modules, so the plate clears whole cells and the logo can sit exactly on them.
     const plate: Plate = {
-      left: grid.columns / 2 - side / 2,
-      top: grid.rows / 2 - side / 2,
+      left: Math.floor((grid.columns - side) / 2),
+      top: Math.floor((grid.rows - side) / 2),
       side,
       shape: logo.plate,
     };
@@ -340,11 +341,30 @@ export function styleGrid(grid: Grid, style: Style): Drawing {
 
   let logo: Logo | null = null;
   if (plate && style.logo) {
+    // The largest centred square whose every cell the plate cleared: on a rounded or circular plate
+    // that is smaller than the plate, so no corner of the image covers a module still in use.
+    const cleared = (column: number, row: number): boolean =>
+      inPlate(plate, column + 0.5, row + 0.5);
+    const fits = (k: number): boolean => {
+      for (let row = plate.top + k; row < plate.top + plate.side - k; row++) {
+        for (let column = plate.left + k; column < plate.left + plate.side - k; column++) {
+          if (!cleared(column, row)) return false;
+        }
+      }
+      return true;
+    };
+    let inset = 0;
+    while (inset * 2 < plate.side && !fits(inset)) inset++;
     const padding = Math.max(0, style.logo.padding);
-    const size = plate.side - 2 * padding;
+    const size = plate.side - 2 * inset - 2 * padding;
     if (size > 0) {
       const { share: _share, padding: _padding, plate: _shape, ...image } = style.logo;
-      logo = { ...image, x: plate.left + padding + q, y: plate.top + padding + q, size };
+      logo = {
+        ...image,
+        x: plate.left + inset + padding + q,
+        y: plate.top + inset + padding + q,
+        size,
+      };
     }
   }
 

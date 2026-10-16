@@ -3,8 +3,8 @@ import { checkOptions, RMQR_SIZES, symbology, type Symbology } from './catalogue
 import type { Drawing } from './drawing.ts';
 import { LIMITS } from './limits.ts';
 import { record } from './recorder.ts';
-import { ok, refuse, type Problem, type Result } from './result.ts';
-import { prepareText, type TextOptions } from './text.ts';
+import { ok, refuse, refuseCharacter, type Problem, type Result } from './result.ts';
+import { firstOutside, prepareText, type TextOptions } from './text.ts';
 
 /** bwip-js, passed in by whoever loaded it: the package itself ships no encoder. */
 export type Bwip = Pick<typeof BwipJs, 'raw' | 'render' | 'FontLib'>;
@@ -102,6 +102,10 @@ export function encode(bwip: Bwip, request: EncodeRequest): Result<Encoded> {
   if (request.text.length > LIMITS.text) return refuse('too-long');
   const prepared = prepareText(request.text, request.textOptions, found.capability);
   if (!prepared.ok) return prepared;
+  if (found.characters) {
+    const outside = firstOutside(prepared.value.text, found.characters);
+    if (outside) return refuseCharacter(outside.at, outside.character);
+  }
   const all = { ...options.value, ...found.fixed, ...prepared.value.bwip };
   try {
     if (found.family === 'drawn') {

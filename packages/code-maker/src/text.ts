@@ -1,4 +1,4 @@
-import { ok, refuse, type Result } from './result.ts';
+import { ok, refuse, refuseCharacter, type Result } from './result.ts';
 
 export type TextOptions = {
   /** Read \n, \t, \xHH and the rest as the characters they name. */
@@ -68,6 +68,19 @@ function utf8Bytes(text: string): string {
 
 const ASCII = /^[\x20-\x7e\r\n\t]*$/;
 
+/** The first character (a whole code point) that does not match, and its position, or null. */
+export function firstOutside(
+  text: string,
+  allowed: RegExp,
+): { at: number; character: string } | null {
+  let at = 0;
+  for (const character of text) {
+    if (!allowed.test(character)) return { at, character };
+    at += 1;
+  }
+  return null;
+}
+
 /** Text as bwip-js should receive it, for a symbology with the given capability. */
 export function prepareText(
   text: string,
@@ -84,22 +97,21 @@ export function prepareText(
   value = value.replace(/\r\n|\r|\n/g, options.newline === 'crlf' ? '\r\n' : '\n');
   if (options.trim) value = value.trim();
 
-  if (capability === 'digits') {
-    return /^[0-9]*$/.test(value)
-      ? ok({ text: value, bwip: {}, warnings: [] })
-      : refuse('bad-character');
-  }
-  if (capability === 'ascii') {
-    return ASCII.test(value)
-      ? ok({ text: value, bwip: {}, warnings: [] })
-      : refuse('bad-character');
+  if (capability === 'digits' || capability === 'ascii') {
+    const outside = firstOutside(
+      value,
+      capability === 'digits' ? /^[0-9]$/ : /^[\x20-\x7e\r\n\t]$/,
+    );
+    return outside
+      ? refuseCharacter(outside.at, outside.character)
+      : ok({ text: value, bwip: {}, warnings: [] });
   }
   const plain = ASCII.test(value);
   if (plain || !options.eci) return ok({ text: value, bwip: {}, warnings: [] });
   if (capability === 'utf8') return ok({ text: value, bwip: {}, warnings: ['no-eci'] });
-  // The marker form: a caret starts a command in this form, so a typed caret is written ^094.
+  // The marker form: a caret starts a command in this form, so a typed caret is doubled.
   return ok({
-    text: '^ECI000026' + utf8Bytes(value).replaceAll('^', '^094'),
+    text: '^ECI000026' + utf8Bytes(value).replaceAll('^', '^^'),
     bwip: { parsefnc: true, binarytext: true },
     warnings: [],
   });

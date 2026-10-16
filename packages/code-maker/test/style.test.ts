@@ -220,3 +220,72 @@ describe('the logo plate', () => {
     expect(at(0.3)).toBeGreaterThan(at(0.1));
   });
 });
+
+describe('the logo image stays on cleared modules', () => {
+  /** Cells the logo box overlaps, even partly. */
+  const underLogo = (logo: NonNullable<Drawing['logo']>, quiet: number, columns: number) => {
+    const cells: number[] = [];
+    for (
+      let row = Math.floor(logo.y - quiet);
+      row < Math.ceil(logo.y - quiet + logo.size - 1e-9);
+      row++
+    ) {
+      for (
+        let column = Math.floor(logo.x - quiet);
+        column < Math.ceil(logo.x - quiet + logo.size - 1e-9);
+        column++
+      )
+        cells.push(row * columns + column);
+    }
+    return cells;
+  };
+
+  it('for odd and even sizes and every plate shape, the logo covers only cells the plate cleared', () => {
+    for (const size of [20, 21, 24, 25, 30, 33]) {
+      const dark: Grid = {
+        kind: 'grid',
+        symbology: 'test',
+        columns: size,
+        rows: size,
+        cells: new Uint8Array(size * size).fill(1),
+        finders: [],
+      };
+      for (const plate of ['square', 'rounded', 'circle'] as const) {
+        for (const share of [0.2, 0.25, 0.3, 0.37]) {
+          const drawing = styleGrid(dark, {
+            ...BASE,
+            quietZone: 2,
+            logo: { ...LOGO, share, padding: 0, plate },
+          });
+          expect(drawing.logo, `${size} ${plate} ${share}`).not.toBeNull();
+          // Square dots: each dark module is one unit rectangle, so their corners give the grid.
+          const drawn = new Set(
+            drawing.layers
+              .flatMap((layer) => rectangles(layer.d))
+              .map(([x, y]) => `${x! - 2},${y! - 2}`),
+          );
+          for (const cell of underLogo(drawing.logo!, 2, size)) {
+            const at = `${cell % size},${Math.floor(cell / size)}`;
+            expect(drawn.has(at), `${size} ${plate} ${share} cell ${cell}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it('on QR versions 1 and 2, the logo box never reaches a protected cell', async () => {
+    for (const version of [1, 2]) {
+      const qr = await grid('qr', 'hi', { version, eclevel: 'H' });
+      const guarded = protectedCells(qr, 'qr');
+      for (const share of [0.2, 0.3, 0.4]) {
+        const drawing = styleGrid(qr, {
+          ...BASE,
+          logo: { ...LOGO, share, padding: 0, plate: 'square' },
+        });
+        if (!drawing.logo) continue;
+        for (const cell of underLogo(drawing.logo, 0, qr.columns))
+          expect(guarded[cell], `v${version} ${share} cell ${cell}`).toBe(0);
+      }
+    }
+  });
+});

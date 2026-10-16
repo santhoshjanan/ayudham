@@ -36,6 +36,8 @@ export type Symbology = {
   quietZone: number;
   /** Options always passed to bwip-js. */
   fixed?: Readonly<Record<string, string | number | boolean>>;
+  /** The only characters it can carry, where narrower than its capability: one character per test. */
+  characters?: RegExp;
 };
 
 /** Every rMQR size, smallest area first, so the first that fits is the smallest. */
@@ -83,6 +85,7 @@ const row = (
   options: OptionSpec[],
   quietZone: number,
   fixed?: Symbology['fixed'],
+  characters?: RegExp,
 ): Symbology => ({
   id,
   label,
@@ -94,6 +97,7 @@ const row = (
   options,
   quietZone,
   ...(fixed ? { fixed } : {}),
+  ...(characters ? { characters } : {}),
 });
 
 export const SYMBOLOGIES: readonly Symbology[] = [
@@ -332,11 +336,47 @@ export const SYMBOLOGIES: readonly Symbology[] = [
   row('ean-8', 'EAN-8', 'product', 'ean8', 'drawn', 'digits', 'EAN8', product, 7),
   row('upc-a', 'UPC-A', 'product', 'upca', 'drawn', 'digits', 'EAN13', product, 9),
   row('upc-e', 'UPC-E', 'product', 'upce', 'drawn', 'digits', 'UPCE', product, 9),
-  row('isbn', 'ISBN', 'product', 'isbn', 'drawn', 'ascii', 'EAN13', product, 11),
-  row('issn', 'ISSN', 'product', 'issn', 'drawn', 'ascii', 'EAN13', product, 11),
+  row(
+    'isbn',
+    'ISBN',
+    'product',
+    'isbn',
+    'drawn',
+    'ascii',
+    'EAN13',
+    product,
+    11,
+    undefined,
+    /^[0-9X-]$/,
+  ),
+  row(
+    'issn',
+    'ISSN',
+    'product',
+    'issn',
+    'drawn',
+    'ascii',
+    'EAN13',
+    product,
+    11,
+    undefined,
+    /^[0-9X-]$/,
+  ),
   row('code-128', 'Code 128', 'linear', 'code128', 'drawn', 'ascii', 'Code128', linear(false), 10),
   row('gs1-128', 'GS1-128', 'linear', 'gs1-128', 'drawn', 'ascii', 'Code128', linear(false), 10),
-  row('code-39', 'Code 39', 'linear', 'code39', 'drawn', 'ascii', 'Code39', linear(true), 10),
+  row(
+    'code-39',
+    'Code 39',
+    'linear',
+    'code39',
+    'drawn',
+    'ascii',
+    'Code39',
+    linear(true),
+    10,
+    undefined,
+    /^[0-9A-Z .$/+%-]$/,
+  ),
   row(
     'code-39-ext',
     'Code 39 extended',
@@ -374,6 +414,8 @@ export const SYMBOLOGIES: readonly Symbology[] = [
     'Codabar',
     linear(true),
     10,
+    undefined,
+    /^[0-9A-D$:/.+-]$/,
   ),
   row(
     'databar-omni',
@@ -385,6 +427,8 @@ export const SYMBOLOGIES: readonly Symbology[] = [
     'DataBarOmni',
     linear(false),
     1,
+    undefined,
+    /^[0-9()]$/,
   ),
   row(
     'databar-limited',
@@ -396,6 +440,8 @@ export const SYMBOLOGIES: readonly Symbology[] = [
     'DataBarLtd',
     linear(false),
     1,
+    undefined,
+    /^[0-9()]$/,
   ),
   row(
     'databar-expanded',

@@ -121,7 +121,7 @@ describe('encode', () => {
         options: {},
         colours: COLOURS,
       }),
-    ).toEqual(refuse('bad-character'));
+    ).toEqual({ ok: false, problem: 'bad-character', detail: { at: 11, character: 'X' } });
   });
 
   it('refuses an EAN add-on: no test decoder can confirm one scans', async () => {
@@ -134,20 +134,35 @@ describe('encode', () => {
         options: {},
         colours: COLOURS,
       }),
-    ).toEqual(refuse('bad-character'));
+    ).toEqual({ ok: false, problem: 'bad-character', detail: { at: 13, character: ' ' } });
   });
 
-  it('refuses a character Code 39 cannot carry, without echoing what was typed', async () => {
+  it('names the character a symbology cannot carry, before bwip-js sees it', async () => {
     const bwip = await loadBwip();
-    const made = encode(bwip, {
-      id: 'code-39',
-      text: 'secret é',
-      textOptions: PLAIN,
-      options: {},
-      colours: COLOURS,
+    const run = (id: string, text: string) =>
+      encode(bwip, { id, text, textOptions: PLAIN, options: {}, colours: COLOURS });
+    expect(run('code-39', 'ABé')).toEqual({
+      ok: false,
+      problem: 'bad-character',
+      detail: { at: 2, character: 'é' },
     });
-    expect(made).toEqual(refuse('bad-character'));
-    expect(explain('bad-character')).not.toContain('secret');
+    expect(run('code-39', 'abc')).toEqual({
+      ok: false,
+      problem: 'bad-character',
+      detail: { at: 0, character: 'a' },
+    });
+    expect(run('codabar', 'A40X56B')).toEqual({
+      ok: false,
+      problem: 'bad-character',
+      detail: { at: 3, character: 'X' },
+    });
+    expect(run('isbn', '978-1-5658Z-231-4')).toEqual({
+      ok: false,
+      problem: 'bad-character',
+      detail: { at: 10, character: 'Z' },
+    });
+    // The sentence itself stays fixed: the character goes to the page as detail, never into a message.
+    expect(explain('bad-character')).not.toContain('é');
   });
 
   it('refuses text too long for QR, and empty text', async () => {
