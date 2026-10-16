@@ -13,3 +13,4 @@ export * from './style.ts';
 export * from './checks.ts';
 export * from './svg.ts';
 export * from './pdf.ts';
+export * from './bundle.ts';
