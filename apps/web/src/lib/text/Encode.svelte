@@ -2,7 +2,7 @@
   import type { Encoding } from '@pokerji/text-tools';
   import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
-  import TextBox from './TextBox.svelte';
+  import TextBox from '#lib/ui/TextBox.svelte';
 
   const FORM_NAMES: Array<[Encoding, string]> = [
     ['base64', 'Base64'],

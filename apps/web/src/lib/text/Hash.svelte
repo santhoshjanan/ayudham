@@ -1,7 +1,7 @@
 <script lang="ts">
   import { checkText, explain, toHex, utf8 } from '@pokerji/text-tools';
   import Frame from './Frame.svelte';
-  import TextBox from './TextBox.svelte';
+  import TextBox from '#lib/ui/TextBox.svelte';
   import type { Row } from './tools.ts';
 
   const ALGORITHMS = ['SHA-256', 'SHA-384', 'SHA-512'] as const;

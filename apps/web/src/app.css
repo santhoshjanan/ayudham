@@ -649,22 +649,27 @@ textarea:hover {
 
 /* Scoped to the tools' own wrapper: the builder has fields of the same name. */
 
-/* One labelled control and its hint. */
-.text-tools .field {
+/* One labelled control and its hint. The code maker sets its fields out the same way. */
+.text-tools .field,
+.code-maker .field {
   margin: 0 0 1.1rem;
 }
-.text-tools .field .hint {
+.text-tools .field .hint,
+.code-maker .field .hint {
   display: block;
   margin-top: 0.3rem;
 }
 /* A number or a choice does not need the column's whole width. */
 .text-tools .field input[type='number'],
-.text-tools .field select {
+.text-tools .field select,
+.code-maker .field input[type='number'],
+.code-maker .field select {
   max-width: 16rem;
 }
 
 /* A set of on-or-off buttons, wrapping as the builder's types do. */
-.text-tools .switches {
+.text-tools .switches,
+.code-maker .switches {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;

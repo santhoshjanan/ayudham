@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
-  import TextBox from './TextBox.svelte';
+  import TextBox from '#lib/ui/TextBox.svelte';
 
   let text = $state('');
   const work = new Background();

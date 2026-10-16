@@ -1,9 +1,9 @@
 <script lang="ts">
   import { coins, dice, LIMITS, pick } from '@pokerji/text-tools';
   import Frame from './Frame.svelte';
-  import NumberField from './NumberField.svelte';
+  import NumberField from '#lib/ui/NumberField.svelte';
   import { random } from './random.ts';
-  import TextBox from './TextBox.svelte';
+  import TextBox from '#lib/ui/TextBox.svelte';
   import { say, type Row } from './tools.ts';
 
   let mode = $state<'dice' | 'coin' | 'pick'>('dice');

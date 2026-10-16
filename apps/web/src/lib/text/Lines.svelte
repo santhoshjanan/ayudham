@@ -3,8 +3,8 @@
   import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
   import { random } from './random.ts';
-  import TextBox from './TextBox.svelte';
-  import Toggle from './Toggle.svelte';
+  import TextBox from '#lib/ui/TextBox.svelte';
+  import Toggle from '#lib/ui/Toggle.svelte';
 
   const ORDER_NAMES: Array<[LineOrder, string]> = [
     ['keep', 'As typed'],

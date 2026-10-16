@@ -7,8 +7,8 @@ Date: 2026-10-16
 | Package | Version | Shipped to visitors | Dependencies |
 |---|---|---|---|
 | `fflate` | 0.8.3 | yes | none |
-| `bwip-js` | 4.11.4 | yes, from Plan 2, inside the page's worker | none |
-| `zxing-wasm` | 3.1.5 | no, tests only | type packages only |
+| `bwip-js` | 4.11.4 | yes, inside the code maker's worker (bundled into the worker script), and on the page only where workers are missing | none |
+| `zxing-wasm` | 3.1.5 | no, tests only (this package's and `apps/web`'s browser tests) | type packages only |
 | `pdf-lib` | 1.17.1 | no, tests only | four |
 
 ## Command
@@ -33,5 +33,5 @@ grep -nE "$PAT" node_modules/bwip-js/dist/bwip-js-gen.mjs node_modules/bwip-js/d
 
 ## Test-only packages
 
-- `zxing-wasm` downloads its WebAssembly file from jsDelivr unless given the bytes. The tests always give it `node_modules/zxing-wasm/dist/reader/zxing_reader.wasm` and replace `globalThis.fetch` with a function that throws, so a test can never reach the network.
+- `zxing-wasm` downloads its WebAssembly file from jsDelivr unless given the bytes. The tests always give it `node_modules/zxing-wasm/dist/reader/zxing_reader.wasm` and replace `globalThis.fetch` with a function that throws, so a test can never reach the network. `apps/web/e2e/decode.ts` does the same in the browser tests, decoding screenshots in Node, never in the page.
 - `pdf-lib` is used only to load the PDFs this tool writes, proving they parse. It is not shipped: its last release was in 2021 and it brings four dependencies.
