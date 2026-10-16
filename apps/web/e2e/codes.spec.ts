@@ -271,7 +271,7 @@ test('a refused character is named, and the last code stays marked as old', asyn
   await field(page, 'Text').fill('AB');
   await expectCode(page, 'AB', 'Code39');
   await field(page, 'Text').fill('ABé');
-  await expect(rail(page).getByRole('status')).toContainText(
+  await expect(rail(page).locator('p[role="status"]')).toContainText(
     'é at position 3 cannot be carried by Code 39',
   );
   await expect(image(page)).toHaveClass(/old/);
@@ -281,7 +281,7 @@ test('a refused character is named, and the last code stays marked as old', asyn
 test('too long says by how much', async ({ browser }) => {
   const page = await open(browser, '#qr-text');
   await field(page, 'Text').fill('a'.repeat(3000));
-  await expect(rail(page).getByRole('status')).toContainText(
+  await expect(rail(page).locator('p[role="status"]')).toContainText(
     'characters more than this code can hold',
   );
 });
@@ -425,7 +425,9 @@ test('options change the code', async ({ browser }) => {
   await expect.poll(size).toBeGreaterThan(low);
 
   await field(page, 'Size').fill('2');
-  await expect(rail(page).getByRole('status')).toContainText('more than this code can hold');
+  await expect(rail(page).locator('p[role="status"]')).toContainText(
+    'more than this code can hold',
+  );
 });
 
 test('drawn codes show colours and the shapes note, not shape buttons', async ({ browser }) => {
