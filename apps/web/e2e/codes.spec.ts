@@ -317,3 +317,119 @@ test('escapes and the UTF-8 marker are honoured', async ({ browser }) => {
   await page.getByRole('button', { name: 'UTF-8 marker' }).click();
   await expect.poll(async () => (await readPreview(page))?.hasECI).toBe(false);
 });
+
+const group = (page: Page, name: string) => page.getByRole('group', { name, exact: true });
+const press = (page: Page, groupName: string, name: string) =>
+  group(page, groupName).getByRole('button', { name, exact: true }).click();
+const LINK = 'https://example.com/shapes';
+
+test('every dot shape, corner shape and theme still scans', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  for (const dots of [
+    'Rounded',
+    'Circle',
+    'Diamond',
+    'Connected',
+    'Vertical bars',
+    'Horizontal bars',
+    'Square',
+  ]) {
+    await press(page, 'Dots', dots);
+    await expectCode(page, LINK);
+  }
+  for (const ring of ['Rounded', 'Circle', 'Leaf', 'Square']) {
+    await press(page, 'Corner rings', ring);
+    await expectCode(page, LINK);
+  }
+  // Diamond eyes are not offered: they did not decode.
+  await expect(group(page, 'Corner eyes').getByRole('button', { name: 'Diamond' })).toHaveCount(0);
+  for (const eye of ['Rounded', 'Circle', 'Square']) {
+    await press(page, 'Corner eyes', eye);
+    await expectCode(page, LINK);
+  }
+  for (const theme of ['Rainbow', 'Sunset', 'Ocean', 'Forest', 'Pool', 'Ink', 'Neon']) {
+    await press(page, 'Themes', theme);
+    await expect(group(page, 'Themes').getByRole('button', { name: theme })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expectCode(page, LINK);
+  }
+  await press(page, 'Themes', 'Surprise me');
+  await expectCode(page, LINK);
+});
+
+test('the colour field takes a picker or a typed hex, and refuses nonsense', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  const hex = page.getByRole('textbox', { name: 'Foreground', exact: true });
+  const swatch = page.locator('input[type="color"]').and(page.getByLabel('Foreground'));
+  await hex.fill('0E6F8C');
+  await expect(swatch).toHaveValue('#0e6f8c');
+  await expectCode(page, LINK);
+  await hex.fill('zz');
+  await expect(page.getByText('That is not a colour')).toBeVisible();
+  await expect(swatch).toHaveValue('#0e6f8c');
+
+  await swatch.fill('#5a2d82');
+  await expect(hex).toHaveValue('#5a2d82');
+});
+
+test('contrast below 4.5:1 warns, below 2:1 stops export', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  const hex = page.getByRole('textbox', { name: 'Foreground', exact: true });
+  await hex.fill('#777777');
+  const findings = page.getByTestId('finding');
+  await expect(findings.filter({ hasText: 'contrast' })).toHaveAttribute('data-level', 'warning');
+  await expect(copyImage(page)).toBeEnabled();
+  await hex.fill('#bbbbbb');
+  await expect(findings.filter({ hasText: 'too close' })).toHaveAttribute('data-level', 'refusal');
+  await expect(findings.filter({ hasText: 'too close' })).toContainText('Stops export');
+  await expect(copyImage(page)).toBeDisabled();
+});
+
+test('Invert swaps the colours and warns light on dark', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await page.getByRole('button', { name: 'Invert', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Foreground', exact: true })).toHaveValue(
+    '#ffffff',
+  );
+  await expect(page.getByRole('textbox', { name: 'Background', exact: true })).toHaveValue(
+    '#111417',
+  );
+  await expect(page.getByTestId('finding').filter({ hasText: 'light on dark' })).toBeVisible();
+});
+
+test('options change the code', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill('https://example.com/a-rather-longer-address/for/density');
+  const size = async () => {
+    await expect(preview(page)).not.toHaveAttribute('aria-busy', 'true');
+    const src = (await image(page).getAttribute('src')) ?? '';
+    return Number(/viewBox="0 0 (\d+)/.exec(decodeURIComponent(src))?.[1]);
+  };
+  await field(page, 'Error correction').selectOption('L');
+  await expect.poll(size).toBeGreaterThan(0);
+  const low = await size();
+  await field(page, 'Error correction').selectOption('H');
+  await expect.poll(size).toBeGreaterThan(low);
+
+  await field(page, 'Size').fill('2');
+  await expect(rail(page).getByRole('status')).toContainText('more than this code can hold');
+});
+
+test('drawn codes show colours and the shapes note, not shape buttons', async ({ browser }) => {
+  const page = await open(browser, '#code-128');
+  await expect(page.getByRole('textbox', { name: 'Foreground', exact: true })).toBeVisible();
+  await expect(page.getByText('Bar and stacked codes take colours and a quiet zone')).toBeVisible();
+  await expect(group(page, 'Dots')).toHaveCount(0);
+  await expect(group(page, 'Themes')).toHaveCount(0);
+  await expect(field(page, 'Bar height (mm)')).toHaveValue('15');
+});

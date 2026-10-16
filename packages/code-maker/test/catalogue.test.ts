@@ -84,3 +84,12 @@ describe('checkOptions', () => {
     expect(checkOptions('code-39', { includetext: 'yes' })).toEqual(refuse('out-of-range'));
   });
 });
+
+describe('optional check digits', () => {
+  it('are off by default, so a scanner never passes one on as part of the data', () => {
+    for (const entry of SYMBOLOGIES) {
+      const spec = entry.options.find((option) => option.key === 'includecheck');
+      if (spec) expect(spec.default, entry.id).toBe(false);
+    }
+  });
+});

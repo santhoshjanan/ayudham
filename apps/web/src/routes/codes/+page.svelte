@@ -13,6 +13,8 @@
   import SymbologyFields from '#lib/codes/fields/SymbologyFields.svelte';
   import WifiFields from '#lib/codes/fields/WifiFields.svelte';
   import { headingOf, kindFrom, symbologyOf } from '#lib/codes/kinds.ts';
+  import LookSection from '#lib/codes/LookSection.svelte';
+  import OptionsSection from '#lib/codes/OptionsSection.svelte';
   import { Maker } from '#lib/codes/maker.svelte.ts';
   import PreviewBox from '#lib/codes/PreviewBox.svelte';
   import type { Refusal } from '#lib/codes/work.ts';
@@ -95,7 +97,7 @@
             label={symbologyOf(maker.kind).label}
             old={!!refusal}
             busy={maker.busy}
-            transparent={maker.look.background === null}
+            transparent={maker.design.transparent}
           />
           <button type="button" class="primary" disabled={!exportable}>Copy image</button>
           {#if refusal}
@@ -137,6 +139,8 @@
               {/key}
             {/if}
           </section>
+          <OptionsSection {symbology} chosen={maker.options[symbology.id]!} />
+          <LookSection design={maker.design} {symbology} />
         </div>
       </div>
     </div>
@@ -230,12 +234,12 @@
     min-width: 0;
   }
   /* Sections are separated by a rule, as the builder's are. */
-  .sections > section + :global(section) {
+  .sections > :global(section + section) {
     margin-top: 2.75rem;
     padding-top: 1.75rem;
     border-top: 1px solid var(--line);
   }
-  .sections h2 {
+  .sections :global(section > h2:first-child) {
     margin-top: 0;
   }
   .about {

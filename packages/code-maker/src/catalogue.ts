@@ -58,7 +58,9 @@ const linear = (check: boolean): OptionSpec[] => [
   { key: 'includetext', label: 'Show the text', kind: 'boolean', default: true },
   ...(check
     ? ([
-        { key: 'includecheck', label: 'Add a check digit', kind: 'boolean', default: true },
+        // Off by default: these check digits are optional, and a scanner that does not expect one
+        // passes it on as part of the data.
+        { key: 'includecheck', label: 'Add a check digit', kind: 'boolean', default: false },
         {
           key: 'includecheckintext',
           label: 'Show the check digit',

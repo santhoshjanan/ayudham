@@ -1,5 +1,13 @@
-import type { Bwip } from '@pokerji/code-maker';
-import { OTHER_GROUPS, QR_KINDS, type KindId } from './kinds.ts';
+import {
+  SYMBOLOGIES,
+  type Bwip,
+  type DotShape,
+  type Eye,
+  type Paint,
+  type Ring,
+  type ThemeId,
+} from '@pokerji/code-maker';
+import { OTHER_GROUPS, QR_KINDS, symbologyOf, type KindId } from './kinds.ts';
 import { blankFields, payloadFor } from './payload.ts';
 import { answer, type Answer, type Job, type Look, type Made, type Output } from './work.ts';
 
@@ -70,17 +78,93 @@ function work(job: Job): Promise<Answer> {
   });
 }
 
-export const DEFAULT_LOOK: Look = {
+/** How the code looks, as the Look section sets it out: every colour a hex string. */
+export type Design = {
+  fill: 'solid' | 'linear' | 'radial';
+  foreground: string;
+  /** A gradient's second colour. */
+  second: string;
+  angle: number;
+  background: string;
+  transparent: boolean;
+  /** The corners' own colour, or null for the foreground's. */
+  corners: string | null;
+  /** The theme last chosen, while its colours are untouched. */
+  theme: ThemeId | null;
+  dots: DotShape;
+  ring: Ring;
+  eye: Eye;
+  /** Modules; null is the code's standard minimum. */
+  quietZone: number | null;
+};
+
+export const DEFAULT_DESIGN: Design = {
+  fill: 'solid',
+  foreground: '#111417',
+  second: '#0e6f8c',
+  angle: 45,
+  background: '#ffffff',
+  transparent: false,
+  corners: null,
+  theme: null,
   dots: 'square',
   ring: 'square',
   eye: 'square',
-  foreground: { type: 'solid', colour: '#111417' },
-  background: '#ffffff',
-  corners: null,
-  theme: null,
   quietZone: null,
-  logo: null,
 };
+
+/** The paint a design's colours make. */
+export function paintOf(design: Design): Paint {
+  if (design.fill === 'linear')
+    return { type: 'linear', from: design.foreground, to: design.second, angle: design.angle };
+  if (design.fill === 'radial')
+    return { type: 'radial', inner: design.foreground, outer: design.second };
+  return { type: 'solid', colour: design.foreground };
+}
+
+export function lookOf(design: Design): Look {
+  return {
+    dots: design.dots,
+    ring: design.ring,
+    eye: design.eye,
+    foreground: paintOf(design),
+    background: design.transparent ? null : design.background,
+    corners: design.corners ? { type: 'solid', colour: design.corners } : null,
+    theme: design.theme,
+    quietZone: design.quietZone,
+    logo: null,
+  };
+}
+
+type OptionValue = string | number | boolean | null;
+
+/** Each symbology's options as first offered: its catalogue defaults, automatic as null. */
+const defaultOptions = (): Record<string, Record<string, OptionValue>> =>
+  Object.fromEntries(
+    SYMBOLOGIES.map((entry) => [
+      entry.id,
+      Object.fromEntries(
+        entry.options.map((option) => [
+          option.key,
+          option.default === 'auto' ? null : option.default,
+        ]),
+      ),
+    ]),
+  );
+
+/** The options as the encoder takes them: automatic left out, a choice as the catalogue's own value. */
+function chosenOptions(kind: KindId, chosen: Record<string, OptionValue>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const spec of symbologyOf(kind).options) {
+    const value = chosen[spec.key];
+    if (value === null || value === undefined || value === '' || value === 'auto') continue;
+    out[spec.key] =
+      spec.kind === 'choice'
+        ? (spec.values.find((entry) => String(entry) === String(value)) ?? value)
+        : value;
+  }
+  return out;
+}
 
 const ALL_KINDS: KindId[] = [
   ...QR_KINDS.map((kind) => kind.id),
@@ -98,7 +182,8 @@ export class Maker {
   fields = $state<Record<string, Record<string, unknown>>>(
     Object.fromEntries(ALL_KINDS.map((kind) => [kind, blankFields(kind)])),
   );
-  look = $state<Look>(structuredClone(DEFAULT_LOOK));
+  design = $state<Design>({ ...DEFAULT_DESIGN });
+  options = $state(defaultOptions());
   /** The answer for the latest request: a code, or why there is none. */
   current = $state.raw<Answer | undefined>(undefined);
   /** The last code made, kept on screen beneath a refusal. */
@@ -114,8 +199,11 @@ export class Maker {
     const payload = payloadFor(this.kind, $state.snapshot(this.fields[this.kind]) ?? {});
     if (!payload.ok) return payload.problem === 'empty' ? undefined : payload;
     return {
-      request: { ...payload.value, options: {} },
-      look: $state.snapshot(this.look) as Look,
+      request: {
+        ...payload.value,
+        options: chosenOptions(this.kind, $state.snapshot(this.options[payload.value.id]) ?? {}),
+      },
+      look: lookOf($state.snapshot(this.design) as Design),
       output,
     };
   }
