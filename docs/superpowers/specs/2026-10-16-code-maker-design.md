@@ -110,7 +110,7 @@ EAN-13, EAN-8, UPC-A, UPC-E, ISBN-13, ISSN, each with optional 2- and 5-digit ad
 
 ### Linear
 
-Code 128 (automatic subsets), GS1-128, Code 39, Code 39 extended, Code 93, Interleaved 2 of 5, ITF-14, Codabar, MSI, Code 11, Pharmacode. GS1 DataBar Omnidirectional, Limited and Expanded.
+Code 128 (automatic subsets), GS1-128, Code 39, Code 39 extended, Code 93, Interleaved 2 of 5, ITF-14, Codabar. GS1 DataBar Omnidirectional, Limited and Expanded. (MSI, Code 11 and Pharmacode, first proposed here, were dropped on 2026-10-16: the test decoder cannot read them, so this site cannot prove they scan.)
 
 ### Options per family
 
@@ -145,9 +145,9 @@ Each kind has its own form; the page builds the text a scanner expects, with tha
 ### Text options (every kind that takes text)
 
 - **Unicode.** Text is encoded as UTF-8. The builder's call, by symbology:
-  - QR, Aztec, Data Matrix, PDF417, MaxiCode and DotCode: non-ASCII text carries the ECI header that says "UTF-8" by default, with an option to leave it out for old readers.
+  - QR, rMQR, Aztec, Data Matrix, PDF417, MaxiCode and DotCode: non-ASCII text carries the ECI header that says "UTF-8" by default, with an option to leave it out for old readers.
   - Business card, Wi-Fi and the other structured QR kinds: no ECI header by default, because the phone camera apps that read them expect plain UTF-8; the same option turns it on.
-  - Micro QR and rMQR cannot carry an ECI header: their text is written as plain UTF-8 bytes, and the page says that some readers may show non-ASCII characters wrongly.
+  - Micro QR cannot carry an ECI header: its text is written as plain UTF-8 bytes, and the page says that some readers may show non-ASCII characters wrongly. (Corrected 2026-10-16 after decoding: rMQR can carry one.)
   - Linear and product codes that cannot carry a character refuse it with a sentence naming the character; nothing is replaced silently.
 - **New lines.** Kept as typed; a choice between LF and CRLF where a format cares.
 - **Escape sequences**, off by default: `\n`, `\r`, `\t`, `\\`, `\xHH` and `\u{H…}` are read as the characters they name. A malformed sequence is reported, not passed through.
