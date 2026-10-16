@@ -646,6 +646,10 @@ test('Aztec says it has no room for a logo, and bar codes offer none', async ({ 
   const page = await open(browser, '#aztec');
   await expect(page.getByText('Aztec has no room for a logo')).toBeVisible();
   await expect(page.getByLabel('Choose image')).toHaveCount(0);
+  // Rectangular Micro QR is too short for one: a logo on it did not decode.
+  const short = await open(browser, '#rmqr');
+  await expect(short.getByText('Rectangular Micro QR has no room for a logo')).toBeVisible();
+  await expect(short.getByLabel('Choose image')).toHaveCount(0);
   const bars = await open(browser, '#code-128');
   await expect(bars.getByRole('heading', { name: 'Logo' })).toHaveCount(0);
 });
@@ -1094,4 +1098,272 @@ test('typing never waits', async ({ browser }) => {
   await field(page, 'Note').fill('n'.repeat(994));
   await expect(image(page)).toBeVisible();
   expect(await worstKeystroke(page, field(page, 'Note'))).toBeLessThan(50);
+});
+
+// ---- Review fixes ----
+
+test('the worker script is served with a policy that lets it load and send nothing', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  const scripts: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/workers/')) scripts.push(request.url());
+  });
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  expect(scripts.length).toBeGreaterThan(0);
+  const response = await page.request.get(scripts[0]!);
+  expect(response.headers()['content-security-policy']).toBe("default-src 'none'");
+});
+
+/** A PNG that declares a size and holds no picture: enough for a reader of its header. */
+const declaredPng = (width: number, height: number) => {
+  const ihdr = Buffer.alloc(25);
+  ihdr.writeUInt32BE(13, 0);
+  ihdr.write('IHDR', 4, 'latin1');
+  ihdr.writeUInt32BE(width, 8);
+  ihdr.writeUInt32BE(height, 12);
+  ihdr[16] = 8;
+  ihdr[17] = 6;
+  const end = Buffer.from([0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ihdr, end]);
+};
+
+test('a logo larger than 4,096 pixels a side is refused before it is decoded', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await chooseLogo(page, 'huge.png', 'image/png', declaredPng(16_000, 16_000));
+  await expect(page.getByText('more than 4,096 pixels on a side')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove logo' })).toHaveCount(0);
+
+  const uses = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64" height="64"><defs><rect id="a" width="1" height="1"/></defs>${'<use href="#a"/>'.repeat(2_000)}</svg>`;
+  await chooseLogo(page, 'busy.svg', 'image/svg+xml', Buffer.from(uses));
+  await expect(page.getByText('That SVG is too complex')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove logo' })).toHaveCount(0);
+});
+
+test('an export too large is said before and when it is pressed', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await page.getByRole('button', { name: 'Print size', exact: true }).click();
+  await field(page, 'Resolution').selectOption('600');
+  await field(page, 'Width (mm)').fill('1000');
+  await expect(page.getByText('more than 10,000 pixels on a side')).toBeVisible();
+  await page.getByRole('button', { name: 'PNG', exact: true }).click();
+  await expect(rail(page).locator('p[role="status"]')).toContainText(
+    'That export would be more than 10,000 pixels on a side.',
+  );
+});
+
+test('a bar code warns of a narrow quiet zone, and each code keeps its own', async ({
+  browser,
+}) => {
+  const page = await open(browser, '#ean-13');
+  await field(page, 'Text').fill('590123412345');
+  await expect(image(page)).toBeVisible();
+  await expect(field(page, 'Quiet zone (modules)')).toHaveValue('11');
+  await field(page, 'Quiet zone (modules)').fill('2');
+  await expect(findings(page).filter({ hasText: 'margin round the code' })).toBeVisible();
+  await page.getByRole('link', { name: 'Link', exact: true }).click();
+  await expect(field(page, 'Quiet zone (modules)')).toHaveValue('4');
+  await page.getByLabel('Other codes').selectOption('ean-13');
+  await expect(field(page, 'Quiet zone (modules)')).toHaveValue('2');
+});
+
+test('a pixel size too small to scan warns, and read-back reads the size exported', async ({
+  browser,
+}) => {
+  const context = await browser.newContext(visitor());
+  await context.addInitScript(() => {
+    const seen = window as unknown as { widths: number[] };
+    seen.widths = [];
+    (window as unknown as { BarcodeDetector: unknown }).BarcodeDetector = class {
+      static async getSupportedFormats() {
+        return ['qr_code'];
+      }
+      async detect(source: ImageBitmap) {
+        seen.widths.push(source.width);
+        return [];
+      }
+    };
+  });
+  const page = await context.newPage();
+  await page.goto('/codes');
+  await page.locator('[data-ready]').waitFor();
+  await field(page, 'Address').fill(LINK);
+  await field(page, 'Width (pixels)').fill('800');
+  await expect(page.getByTestId('read-back')).not.toContainText('Reading');
+  expect(await page.evaluate(() => (window as unknown as { widths: number[] }).widths.at(-1))).toBe(
+    800,
+  );
+  await field(page, 'Size').fill('40');
+  await field(page, 'Width (pixels)').fill('100');
+  await expect(page.getByText('fewer than 2 pixels to a module')).toBeVisible();
+});
+
+test('a logo on every other matrix code that takes one still scans at its largest', async ({
+  browser,
+}) => {
+  test.setTimeout(240_000);
+  const page = await open(browser, '#data-matrix');
+  const png = await makeImage(page, { width: 64, height: 64, type: 'image/png' });
+  for (const [id, text] of [
+    ['data-matrix', 'https://example.com/a-longer-address-for-data-matrix'],
+    ['data-matrix-rect', 'https://example.com/rect'],
+    ['micro-qr', 'HELLO 12345'],
+  ] as const) {
+    await page.goto('about:blank');
+    await page.goto(`/codes#${id}`);
+    await page.locator('[data-ready]').waitFor();
+    await field(page, 'Text').fill(text);
+    await expect(image(page)).toBeVisible();
+    await chooseLogo(page, 'logo.png', 'image/png', png);
+    await page.getByRole('button', { name: 'Remove logo' }).waitFor();
+    let largest = 0;
+    for (let share = 10; share <= 40; share++) {
+      await field(page, 'Logo size (%)').fill(String(share));
+      await expect(preview(page)).not.toHaveAttribute('aria-busy', 'true');
+      if ((await findings(page).filter({ hasText: 'logo covers' }).count()) > 0) break;
+      largest = share;
+    }
+    console.log(`logo limit on ${id}: ${largest}%`);
+    if (largest === 0) {
+      // No logo fits: none may be taken away, so none is unproven.
+      await expect(copyImage(page)).toBeDisabled();
+      continue;
+    }
+    await field(page, 'Logo size (%)').fill(String(largest));
+    for (const plate of ['Square', 'Rounded', 'Circle']) {
+      await press(page, 'Plate', plate);
+      await expect
+        .poll(async () => (await readPreview(page))?.text, {
+          message: `${id} ${largest}% ${plate}`,
+        })
+        .toBe(text);
+    }
+  }
+});
+
+const stubReader =
+  (read: (() => { rawValue: string; format: string }[]) | null, formats: string[]) =>
+  async (browser: Browser, hash: string) => {
+    const context = await browser.newContext(visitor());
+    await context.addInitScript(
+      ({ value, formats }) => {
+        (window as unknown as { BarcodeDetector: unknown }).BarcodeDetector = class {
+          static async getSupportedFormats() {
+            return formats;
+          }
+          async detect() {
+            return value;
+          }
+        };
+      },
+      { value: read ? read() : [], formats },
+    );
+    const page = await context.newPage();
+    await page.goto(`/codes${hash}`);
+    await page.locator('[data-ready]').waitFor();
+    return page;
+  };
+
+test('read-back says when the reader read nothing, and a match when it matched', async ({
+  browser,
+}) => {
+  const nothing = await stubReader(null, ['qr_code'])(browser, '');
+  await field(nothing, 'Address').fill(LINK);
+  await expect(nothing.getByTestId('read-back')).toContainText('could not read');
+
+  const same = await stubReader(() => [{ rawValue: LINK, format: 'qr_code' }], ['qr_code'])(
+    browser,
+    '',
+  );
+  await field(same, 'Address').fill(LINK);
+  await expect(same.getByTestId('read-back')).toHaveText('Read back by this browser: it matched.');
+
+  const product = await stubReader(
+    () => [{ rawValue: '5901234123457', format: 'ean_13' }],
+    ['ean_13'],
+  )(browser, '#ean-13');
+  await field(product, 'Text').fill('590123412345');
+  await expect(product.getByTestId('read-back')).toHaveText(
+    'Read back by this browser: it matched.',
+  );
+
+  const checked = await stubReader(() => [{ rawValue: 'CODE39P', format: 'code_39' }], ['code_39'])(
+    browser,
+    '#code-39',
+  );
+  await checked.getByRole('button', { name: 'Add a check digit' }).click();
+  await field(checked, 'Text').fill('CODE39');
+  await expect(checked.getByTestId('read-back')).toHaveText(
+    'Read back by this browser: it matched.',
+  );
+});
+
+test('a download keeps its file address long enough for every browser to save it', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  await page.evaluate(() => {
+    const seen = window as unknown as { revoked: number };
+    seen.revoked = 0;
+    URL.revokeObjectURL = () => {
+      seen.revoked += 1;
+    };
+  });
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await download(page, 'PNG');
+  await page.waitForTimeout(1_500);
+  expect(await page.evaluate(() => (window as unknown as { revoked: number }).revoked)).toBe(0);
+});
+
+test('one export the worker cannot make is refused in words, and the worker carries on', async ({
+  browser,
+}) => {
+  const page = await open(browser);
+  // The worker's canvas fails, as a phone's does past its size limit.
+  await page.route('**/_app/immutable/workers/worker-*.js', async (route) => {
+    const response = await route.fetch();
+    const body = await response.text();
+    await route.fulfill({
+      response,
+      body: `OffscreenCanvas.prototype.convertToBlob = () => Promise.reject(new Error('too big'));\n${body}`,
+    });
+  });
+  await page.evaluate(() => {
+    const seen = window as unknown as { ended: number; sent: number };
+    seen.ended = 0;
+    seen.sent = 0;
+    const terminate = Worker.prototype.terminate;
+    Worker.prototype.terminate = function () {
+      seen.ended += 1;
+      return terminate.call(this);
+    };
+    const post = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (...args: Parameters<Worker['postMessage']>) {
+      seen.sent += 1;
+      return post.apply(this, args);
+    };
+  });
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await page.getByRole('button', { name: 'PNG', exact: true }).click();
+  await expect(rail(page).locator('p[role="status"]')).toContainText(
+    'That export would be more than',
+  );
+  const sentBefore = await page.evaluate(() => (window as unknown as { sent: number }).sent);
+  await field(page, 'Address').fill(`${LINK}/again`);
+  await expectCode(page, `${LINK}/again`);
+  const seen = await page.evaluate(() => {
+    const { ended, sent } = window as unknown as { ended: number; sent: number };
+    return { ended, sent };
+  });
+  expect(seen.ended).toBe(0);
+  expect(seen.sent).toBeGreaterThan(sentBefore);
 });

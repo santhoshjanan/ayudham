@@ -1,5 +1,5 @@
 /** What the browser's own reader made of the code. */
-export type ReadBack = 'matched' | 'different' | 'unavailable';
+export type ReadBack = 'matched' | 'different' | 'unreadable' | 'unavailable';
 
 /** The browser's reader's name for each format the test decoder names. */
 const FORMATS: Record<string, string> = {
@@ -43,6 +43,7 @@ export async function readBack(
     const bitmap = await createImageBitmap(new Blob([png as BlobPart], { type: 'image/png' }));
     const read = await new found({ formats: [format] }).detect(bitmap);
     bitmap.close?.();
+    if (read.length === 0) return 'unreadable';
     return read.some((code) => matches(code.rawValue)) ? 'matched' : 'different';
   } catch {
     return 'unavailable';

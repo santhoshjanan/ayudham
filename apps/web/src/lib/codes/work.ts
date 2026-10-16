@@ -171,6 +171,8 @@ export async function answer(job: Job, bwip: Bwip): Promise<Answer> {
     job,
     job.output === 'zip' ? ['png', 'jpg', 'svg', 'pdf'] : [job.output],
   );
+  // A canvas the device cannot make (phones allow far fewer pixels than the limit here).
+  if (!files) return { ok: false, problem: 'export-too-large' };
   if (job.output === 'zip') {
     return {
       ...made,
@@ -192,7 +194,7 @@ async function write(
   pixels: { width: number; height: number; scale: number },
   job: Job,
   extensions: Extension[],
-): Promise<{ extension: Extension; data: Uint8Array }[]> {
+): Promise<{ extension: Extension; data: Uint8Array }[] | null> {
   const out: { extension: Extension; data: Uint8Array }[] = [];
   for (const extension of extensions) {
     if (extension === 'svg') {
@@ -208,7 +210,9 @@ async function write(
         data: toPdf(drawing, { kind: job.page ?? 'fit', widthMm: widthMm(job.size, pixels.width) }),
       });
     } else {
-      out.push({ extension, data: await raster(drawing, pixels, extension, job.look.matte) });
+      const data = await raster(drawing, pixels, extension, job.look.matte);
+      if (!data) return null;
+      out.push({ extension, data });
     }
   }
   return out;
@@ -220,16 +224,21 @@ async function raster(
   pixels: { width: number; height: number; scale: number },
   extension: 'png' | 'jpg',
   matte: string,
-): Promise<Uint8Array> {
-  const canvas = new OffscreenCanvas(pixels.width, pixels.height);
-  const context = canvas.getContext('2d')!;
-  if (extension === 'jpg' && !drawing.background) {
-    context.fillStyle = /^#[0-9a-f]{6}$/.test(matte) ? matte : '#ffffff';
-    context.fillRect(0, 0, pixels.width, pixels.height);
+): Promise<Uint8Array | null> {
+  try {
+    const canvas = new OffscreenCanvas(pixels.width, pixels.height);
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    if (extension === 'jpg' && !drawing.background) {
+      context.fillStyle = /^#[0-9a-f]{6}$/.test(matte) ? matte : '#ffffff';
+      context.fillRect(0, 0, pixels.width, pixels.height);
+    }
+    drawOn(context, drawing, pixels.scale);
+    const blob = await canvas.convertToBlob(
+      extension === 'jpg' ? { type: 'image/jpeg', quality: 0.92 } : { type: 'image/png' },
+    );
+    return new Uint8Array(await blob.arrayBuffer());
+  } catch {
+    return null;
   }
-  drawOn(context, drawing, pixels.scale);
-  const blob = await canvas.convertToBlob(
-    extension === 'jpg' ? { type: 'image/jpeg', quality: 0.92 } : { type: 'image/png' },
-  );
-  return new Uint8Array(await blob.arrayBuffer());
 }

@@ -61,6 +61,8 @@ export function check(
   if (!background || background === 'transparent')
     findings.push({ level: 'warning', code: 'transparent-measured-as-white' });
 
+  if (!encoded.grid && encoded.quietZone < encoded.symbology.quietZone)
+    findings.push({ level: 'warning', code: 'quiet-zone-small' });
   if (style && encoded.grid) {
     if (style.quietZone < encoded.symbology.quietZone)
       findings.push({ level: 'warning', code: 'quiet-zone-small' });

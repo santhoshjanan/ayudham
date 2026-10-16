@@ -209,8 +209,7 @@
     script that makes codes beside the page, so typing never waits, with bwip-js inside it.
     Your text goes to that script inside your browser and comes back as a picture; it is never
     sent over the network. The maker is not drawn on the server at all, so the server never
-    makes a code. Where your browser has its own barcode reader, the page reads the code back
-    with it, inside the browser. Surprise me draws its colours from your browser’s cryptographic
+    makes a code. Where the browser can use your device’s own barcode reader, the page reads the code back with it, on your device; nothing is sent. Surprise me draws its colours from your browser’s cryptographic
     random source.
   </p>
 </main>

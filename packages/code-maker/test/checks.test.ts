@@ -28,6 +28,7 @@ async function made(
   id: string,
   text: string,
   options: Record<string, unknown> = {},
+  quietZone?: number,
 ): Promise<Encoded> {
   const result = encode(await loadBwip(), {
     id,
@@ -35,6 +36,7 @@ async function made(
     textOptions: PLAIN,
     options,
     colours: { foreground: '#000000', background: '#ffffff' },
+    ...(quietZone === undefined ? {} : { quietZone }),
   });
   if (!result.ok) throw new Error(result.problem);
   return result.value;
@@ -96,6 +98,14 @@ describe('check', () => {
     ).toEqual([]);
   });
 
+  it('warns about the quiet zone of a drawn code below its standard', async () => {
+    const colours = { foreground: '#000000', background: '#ffffff' };
+    const narrow = await made('ean-13', '590123412345', {}, 2);
+    expect(codes(check(narrow, null, colours))).toEqual(['quiet-zone-small']);
+    const standard = await made('ean-13', '590123412345', {}, 11);
+    expect(check(standard, null, colours)).toEqual([]);
+  });
+
   it('measures a transparent background as white, and says so', async () => {
     const qr = await made('qr', 'hello');
     expect(
@@ -121,7 +131,7 @@ describe('check', () => {
         check(micro, style({ quietZone: 2 }), { foreground: '#000000', background: '#ffffff' }),
       ),
     ).toEqual(['no-eci']);
-    const ean = await made('ean-13', '590123412345');
+    const ean = await made('ean-13', '590123412345', {}, 11);
     expect(codes(check(ean, null, { foreground: '#999999', background: '#ffffff' }))).toEqual([
       'contrast-low',
     ]);

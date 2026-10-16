@@ -40,10 +40,12 @@ function connect(): Worker | null {
   try {
     worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
     worker.onmessage = (event: MessageEvent<Reply>) => {
-      if (event.data.failed) return giveUp();
       const asked = waiting.get(event.data.id);
       waiting.delete(event.data.id);
-      if (asked && event.data.answer) asked.resolve(event.data.answer);
+      if (!asked) return;
+      // One job the worker could not finish is worked out here; the worker keeps the rest.
+      if (event.data.failed || !event.data.answer) void here(asked.job).then(asked.resolve);
+      else asked.resolve(event.data.answer);
     };
     worker.onerror = giveUp;
     worker.onmessageerror = giveUp;
@@ -96,8 +98,8 @@ export type Design = {
   dots: DotShape;
   ring: Ring;
   eye: Eye;
-  /** Modules; null is the code's standard minimum. */
-  quietZone: number | null;
+  /** Each code's own quiet zone in modules, by symbology; missing is its standard minimum. */
+  quietZones: Record<string, number | null>;
 };
 
 export const DEFAULT_DESIGN: Design = {
@@ -112,7 +114,7 @@ export const DEFAULT_DESIGN: Design = {
   dots: 'square',
   ring: 'square',
   eye: 'square',
-  quietZone: null,
+  quietZones: {},
 };
 
 /** The paint a design's colours make. */
@@ -124,6 +126,13 @@ export function paintOf(design: Design): Paint {
   return { type: 'solid', colour: design.foreground };
 }
 
+/**
+ * Only codes drawn here from their grid can carry a logo. Aztec's finder is in its middle, and
+ * rectangular Micro QR is too short: a logo on it did not decode.
+ */
+export const takesLogo = (id: string): boolean =>
+  symbologyOf(id).family !== 'drawn' && !id.startsWith('aztec') && id !== 'rmqr';
+
 /** How a logo sits on the code. */
 export type LogoShape = { size: number; padding: number; plate: 'square' | 'rounded' | 'circle' };
 
@@ -131,6 +140,7 @@ export function lookOf(
   design: Design,
   logo: LogoImage | null = null,
   shape: LogoShape = { size: 20, padding: 1, plate: 'square' },
+  id = 'qr',
 ): Look {
   return {
     dots: design.dots,
@@ -141,7 +151,7 @@ export function lookOf(
     matte: design.background,
     corners: design.corners ? { type: 'solid', colour: design.corners } : null,
     theme: design.theme,
-    quietZone: design.quietZone,
+    quietZone: design.quietZones[id] ?? null,
     logo: logo
       ? {
           ...logo,
@@ -226,7 +236,7 @@ export class Maker {
   fields = $state<Record<string, Record<string, unknown>>>(
     Object.fromEntries(ALL_KINDS.map((kind) => [kind, blankFields(kind)])),
   );
-  design = $state<Design>({ ...DEFAULT_DESIGN });
+  design = $state<Design>({ ...DEFAULT_DESIGN, quietZones: {} });
   options = $state(defaultOptions());
   /** The image read from the person's file, kept only in this tab's memory. */
   logo = $state.raw<LogoImage | null>(null);
@@ -275,11 +285,9 @@ export class Maker {
       },
       look: lookOf(
         $state.snapshot(this.design) as Design,
-        // Only codes drawn here from their grid can carry a logo, and Aztec has no room for one.
-        symbologyOf(this.kind).family !== 'drawn' && !payload.value.id.startsWith('aztec')
-          ? this.logo
-          : null,
+        takesLogo(payload.value.id) ? this.logo : null,
         $state.snapshot(this.logoShape) as LogoShape,
+        payload.value.id,
       ),
       output,
     };

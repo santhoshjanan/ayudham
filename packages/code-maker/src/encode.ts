@@ -26,6 +26,8 @@ export type Encoded = {
   symbology: Symbology;
   grid: Grid | null;
   drawing: Drawing | null;
+  /** A drawn code's quiet zone, in modules, as asked for; a grid code's comes from its style. */
+  quietZone: number;
   warnings: 'no-eci'[];
 };
 
@@ -129,6 +131,7 @@ export function encode(bwip: Bwip, request: EncodeRequest): Result<Encoded> {
         symbology: found,
         grid: null,
         drawing,
+        quietZone: quiet,
         warnings: prepared.value.warnings,
       });
     }
@@ -138,6 +141,7 @@ export function encode(bwip: Bwip, request: EncodeRequest): Result<Encoded> {
       symbology: found,
       grid,
       drawing: null,
+      quietZone: quiet,
       warnings: prepared.value.warnings,
     });
   } catch (error) {

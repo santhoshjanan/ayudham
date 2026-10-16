@@ -184,7 +184,10 @@
     min={0}
     max={quietMax}
     hint="The clear margin round the code. Its standard asks for at least {symbology.quietZone}."
-    bind:value={() => design.quietZone ?? symbology.quietZone, (zone) => (design.quietZone = zone)}
+    bind:value={
+      () => design.quietZones[symbology.id] ?? symbology.quietZone,
+      (zone) => (design.quietZones[symbology.id] = zone)
+    }
   />
 </section>
 

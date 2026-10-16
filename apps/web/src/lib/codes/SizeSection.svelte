@@ -6,10 +6,13 @@
   let {
     sizing,
     modules,
+    tall,
   }: {
     sizing: Sizing;
     /** The code's width in modules, quiet zone included, once there is a code. */
     modules: number | undefined;
+    /** Its height in the same units. */
+    tall: number | undefined;
   } = $props();
 
   // A printer cannot make a module much smaller than a quarter of a millimetre reliably.
@@ -17,6 +20,18 @@
   const moduleMm = $derived(
     sizing.by === 'print' && modules && Number(sizing.mm) > 0 ? Number(sizing.mm) / modules : null,
   );
+  // The export's width in pixels, as `pixelsFor` will work it out.
+  const pixels = $derived(
+    sizing.by === 'print'
+      ? Math.round((Number(sizing.mm) / 25.4) * Number(sizing.dpi))
+      : Number(sizing.pixels),
+  );
+  const tooLarge = $derived(
+    pixels > LIMITS.exportPixels ||
+      (!!modules && !!tall && Math.round((pixels * tall) / modules) > LIMITS.exportPixels),
+  );
+  // Below two pixels to a module, resampling blurs modules together and readers fail.
+  const perModule = $derived(modules && pixels > 0 ? pixels / modules : null);
 </script>
 
 <section aria-labelledby="c-size">
@@ -64,6 +79,17 @@
         printers cannot make cleanly. Make it wider, or the code smaller.
       </p>
     {/if}
+  {/if}
+  {#if tooLarge}
+    <p role="status">
+      At this size the image would be more than 10,000 pixels on a side, the most this page makes.
+      Make it smaller{sizing.by === 'print' ? ', or use 300 dpi' : ''}.
+    </p>
+  {:else if perModule !== null && perModule < 2}
+    <p role="status">
+      At this width the image has fewer than 2 pixels to a module, too few to scan reliably. Make it
+      wider.
+    </p>
   {/if}
   <p class="field">
     <label for="c-page">PDF page</label>

@@ -65,7 +65,11 @@
     const meant = prepareText(text, { ...textOptions, eci: false }, 'utf8');
     if (!meant.ok) return null;
     const value = meant.value.text;
-    if (symbology.group !== 'product') return (read) => read === value;
+    // A check digit the person asked for comes back from the reader as one more character.
+    const checked = maker.options[symbology.id]?.includecheck === true;
+    if (symbology.group !== 'product')
+      return (read) =>
+        read === value || (checked && read.length === value.length + 1 && read.startsWith(value));
     // A product code's reader adds the check digit that was left off.
     const digits = value.replace(/-/g, '');
     return (read) => read === digits || (read.startsWith(digits) && read.length === digits.length + 1);
@@ -81,8 +85,16 @@
     readBackSaid = 'reading';
     const matches = matcher();
     const format = symbology.decoder;
+    const sizing = maker.sizing;
+    const wide = Math.max(
+      1,
+      sizing.by === 'print'
+        ? Math.round((Number(sizing.mm) / 25.4) * Number(sizing.dpi))
+        : Number(sizing.pixels),
+    );
     const timer = setTimeout(async () => {
-      const png = await maker.exact('png', { kind: 'pixels', width: 600 });
+      // Read at the size that will be taken away (at most 2,000 pixels wide), not some other.
+      const png = await maker.exact('png', { kind: 'pixels', width: Math.min(2_000, wide) });
       if (asked !== readings) return;
       const said =
         png?.ok && png.file && matches ? await readBack(png.file, matches, format) : 'unavailable';
@@ -93,7 +105,10 @@
   const READ_BACK: Record<ReadBack | 'reading', string> = {
     reading: 'Reading the code back…',
     matched: 'Read back by this browser: it matched.',
-    different: 'Read back by this browser: it did not match what you typed. Change the look before using it.',
+    different:
+      'Read back by this browser: it did not match what you typed. Change the look before using it.',
+    unreadable:
+      'Read back by this browser: it could not read the code. Some scanners may not read it either; see what to check below.',
     unavailable: 'This browser has no barcode reader for this code, so it was not read back here.',
   };
   const symbology = $derived(symbologyOf(maker.kind));
@@ -213,7 +228,7 @@
           {#if symbology.family !== 'drawn'}
             <LogoSection {maker} {symbology} />
           {/if}
-          <SizeSection sizing={maker.sizing} modules={maker.shown?.width} />
+          <SizeSection sizing={maker.sizing} modules={maker.shown?.width} tall={maker.shown?.height} />
         </div>
       </div>
     </div>

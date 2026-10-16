@@ -206,7 +206,7 @@ describe('nothing throws, whatever it is given', () => {
     expect(() => styleGrid(grid, style)).not.toThrow();
     const symbology = SYMBOLOGIES[0]!;
     expect(() =>
-      check({ options: {}, symbology, grid, drawing: null, warnings: [] }, style, {
+      check({ options: {}, symbology, grid, drawing: null, quietZone: 0, warnings: [] }, style, {
         foreground: '#000000',
         background: null,
       }),

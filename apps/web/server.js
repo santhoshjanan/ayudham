@@ -117,6 +117,11 @@ const harden = (req, res) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // A worker takes its policy from its own response, not the page's. The workers hold everything
+  // they need, so they may load and send nothing at all.
+  if (req.url?.startsWith('/_app/immutable/workers/')) {
+    res.setHeader('Content-Security-Policy', "default-src 'none'");
+  }
   // The recordings never change under one name, and are large: let browsers keep them a week.
   if (req.url?.startsWith('/audio/')) {
     res.setHeader('Cache-Control', 'public, max-age=604800');

@@ -2,12 +2,11 @@
   import type { Symbology } from '@pokerji/code-maker';
   import NumberField from '#lib/ui/NumberField.svelte';
   import { LOGO_SAID, readLogo } from './logo.ts';
-  import type { Maker } from './maker.svelte.ts';
+  import { takesLogo, type Maker } from './maker.svelte.ts';
 
   let { maker, symbology }: { maker: Maker; symbology: Symbology } = $props();
 
-  // Aztec's finder sits in its centre, where a logo would go.
-  const roomless = $derived(symbology.id.startsWith('aztec'));
+  const roomless = $derived(!takesLogo(symbology.id));
   let problem = $state('');
   let reading = $state(false);
 
@@ -39,7 +38,9 @@
   <h2 id="c-logo-heading">Logo</h2>
   {#if roomless}
     <p class="hint">
-      Aztec has no room for a logo: its finder pattern is in the middle, where a logo would go.
+      {symbology.id === 'rmqr'
+        ? 'Rectangular Micro QR has no room for a logo: it is too short, and a logo on it did not scan.'
+        : 'Aztec has no room for a logo: its finder pattern is in the middle, where a logo would go.'}
     </p>
   {:else}
     <p class="choose">

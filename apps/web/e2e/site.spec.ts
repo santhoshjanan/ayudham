@@ -233,6 +233,9 @@ test('the privacy page says a chosen logo is read on the device and nothing is k
     page.getByText('A logo you choose is read on your device and never leaves it'),
   ).toBeVisible();
   await expect(page.getByText('Codes are encoded by bwip-js')).toContainText('fflate');
+  // A browser's barcode reader is the device's own; the page must not call it the browser.
+  await expect(page.getByText('your device’s own barcode reader')).toBeVisible();
+  await expect(page.locator('main')).not.toContainText('with it, inside the browser');
 });
 
 test('the text tools are a public page, and nothing beneath them is listed', async ({
