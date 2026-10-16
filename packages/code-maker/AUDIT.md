@@ -6,10 +6,10 @@ Date: 2026-10-16
 
 | Package | Version | Shipped to visitors | Dependencies |
 |---|---|---|---|
-| `fflate` | 0.8.3 | yes | none |
+| `fflate` | 0.8.3 | yes (and in `apps/web`'s browser tests, to unzip a downloaded ZIP) | none |
 | `bwip-js` | 4.11.4 | yes, inside the code maker's worker (bundled into the worker script), and on the page only where workers are missing | none |
 | `zxing-wasm` | 3.1.5 | no, tests only (this package's and `apps/web`'s browser tests) | type packages only |
-| `pdf-lib` | 1.17.1 | no, tests only | four |
+| `pdf-lib` | 1.17.1 | no, tests only (this package's and `apps/web`'s browser tests) | four |
 
 ## Command
 

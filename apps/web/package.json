@@ -40,6 +40,8 @@
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@types/node": "^24.0.0",
     "bwip-js": "4.11.4",
+    "fflate": "0.8.3",
+    "pdf-lib": "1.17.1",
     "svelte": "^5.57.1",
     "svelte-check": "^4.6.0",
     "typescript": "^6.0.3",

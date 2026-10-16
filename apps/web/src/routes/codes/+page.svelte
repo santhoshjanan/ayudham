@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { explain } from '@pokerji/code-maker';
+  import { explain, prepareText } from '@pokerji/code-maker';
   import CodeFindings from '#lib/codes/CodeFindings.svelte';
   import CodePicker from '#lib/codes/CodePicker.svelte';
+  import Downloads from '#lib/codes/Downloads.svelte';
   import CardFields from '#lib/codes/fields/CardFields.svelte';
   import EmailFields from '#lib/codes/fields/EmailFields.svelte';
   import EventFields from '#lib/codes/fields/EventFields.svelte';
@@ -18,6 +19,8 @@
   import OptionsSection from '#lib/codes/OptionsSection.svelte';
   import { Maker } from '#lib/codes/maker.svelte.ts';
   import PreviewBox from '#lib/codes/PreviewBox.svelte';
+  import { readBack, type ReadBack } from '#lib/codes/readBack.ts';
+  import SizeSection from '#lib/codes/SizeSection.svelte';
   import type { Refusal } from '#lib/codes/work.ts';
   import Seo from '#lib/ui/Seo.svelte';
 
@@ -38,6 +41,60 @@
   });
 
   const refusal = $derived(maker.current && !maker.current.ok ? maker.current : undefined);
+
+  // Copy image: the PNG is asked for inside the press, as a promise, so browsers that need the
+  // press itself (Safari) still allow the clipboard while the file is made.
+  let copied = $state('');
+  const copy = () => {
+    copied = '';
+    const png = maker.exact('png').then((made) => {
+      if (!made?.ok || !made.file) throw new Error('no image');
+      return new Blob([made.file as BlobPart], { type: 'image/png' });
+    });
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]).then(
+      () => (copied = 'Copied'),
+      () => (copied = 'Copying was refused. Download the PNG instead.'),
+    );
+  };
+
+  /** Whether what the browser's reader read is what the code was meant to hold. */
+  function matcher(): ((read: string) => boolean) | null {
+    const job = maker.job('preview');
+    if (!job || !('request' in job)) return null;
+    const { text, textOptions } = job.request;
+    const meant = prepareText(text, { ...textOptions, eci: false }, 'utf8');
+    if (!meant.ok) return null;
+    const value = meant.value.text;
+    if (symbology.group !== 'product') return (read) => read === value;
+    // A product code's reader adds the check digit that was left off.
+    const digits = value.replace(/-/g, '');
+    return (read) => read === digits || (read.startsWith(digits) && read.length === digits.length + 1);
+  }
+
+  let readBackSaid = $state<ReadBack | 'reading'>('reading');
+  let readings = 0;
+  $effect(() => {
+    const current = maker.current;
+    if (!current?.ok) return;
+    const asked = ++readings;
+    readBackSaid = 'reading';
+    const matches = matcher();
+    const format = symbology.decoder;
+    const timer = setTimeout(async () => {
+      const png = await maker.exact('png', { kind: 'pixels', width: 600 });
+      if (asked !== readings) return;
+      const said =
+        png?.ok && png.file && matches ? await readBack(png.file, matches, format) : 'unavailable';
+      if (asked === readings) readBackSaid = said;
+    }, 300);
+    return () => clearTimeout(timer);
+  });
+  const READ_BACK: Record<ReadBack | 'reading', string> = {
+    reading: 'Reading the code back…',
+    matched: 'Read back by this browser: it matched.',
+    different: 'Read back by this browser: it did not match what you typed. Change the look before using it.',
+    unavailable: 'This browser has no barcode reader for this code, so it was not read back here.',
+  };
   const symbology = $derived(symbologyOf(maker.kind));
   // The fields of the kind on screen. Each kind keeps its own object for the visit.
   const fields = $derived(maker.fields[maker.kind] as never);
@@ -100,7 +157,13 @@
             busy={maker.busy}
             transparent={maker.design.transparent}
           />
-          <button type="button" class="primary" disabled={!exportable}>Copy image</button>
+          <button type="button" class="primary" disabled={!exportable} onclick={copy}>Copy image</button>
+          <span class="sr-only" role="status">{copied === 'Copied' ? 'Copied' : ''}</span>
+          {#if copied && copied !== 'Copied'}<p role="status">{copied}</p>{/if}
+          <Downloads {maker} disabled={!exportable} />
+          {#if maker.current?.ok}
+            <p class="hint" data-testid="read-back" aria-live="polite">{READ_BACK[readBackSaid]}</p>
+          {/if}
           {#if refusal}
             <p role="status">{say(refusal)}</p>
           {/if}
@@ -149,6 +212,7 @@
           {#if symbology.family !== 'drawn'}
             <LogoSection {maker} {symbology} />
           {/if}
+          <SizeSection sizing={maker.sizing} modules={maker.shown?.width} />
         </div>
       </div>
     </div>

@@ -1,6 +1,11 @@
+import { drawOn } from './raster.ts';
 import {
+  bundle,
   check,
   encode,
+  fileName,
+  pixelsFor,
+  toPdf,
   styleGrid,
   symbology,
   THEMES,
@@ -10,6 +15,8 @@ import {
   type DotShape,
   type Drawing,
   type EncodeRequest,
+  type ExportSize,
+  type PdfPage,
   type Eye,
   type Finding,
   type Paint,
@@ -31,6 +38,8 @@ export type Look = {
   foreground: Paint;
   /** null is transparent. */
   background: string | null;
+  /** What a JPG, which has no transparency, puts beneath a transparent code. */
+  matte: string;
   corners: Paint | null;
   theme: ThemeId | null;
   /** Modules of quiet zone; null is the code's own standard minimum. */
@@ -45,6 +54,13 @@ export type Job = {
   request: Omit<EncodeRequest, 'colours'>;
   look: Look;
   output: Output;
+  /** For a file: its size, its PDF page, and what its name is made from (the kind and the time). */
+  size?: ExportSize;
+  page?: PdfPage['kind'];
+  names?: {
+    kind: string;
+    at: { year: number; month: number; day: number; hour: number; minute: number; second: number };
+  };
 };
 
 export type Made = {
@@ -57,6 +73,8 @@ export type Made = {
   /** What the code holds, for its description; never sent anywhere. */
   text: string;
   file?: Uint8Array;
+  /** The file's name, from the kind of code and the time. */
+  name?: string;
 };
 
 /** Why there is no code: the problem, the character at fault, or how many characters too many. */
@@ -127,7 +145,7 @@ export async function answer(job: Job, bwip: Bwip): Promise<Answer> {
     ? styleGrid(encoded.value.grid, style!)
     : encoded.value.drawing!;
   const findings = check(encoded.value, style, colours);
-  return {
+  const made: Made = {
     ok: true,
     svg: toSvg(drawing, null),
     width: drawing.width,
@@ -135,4 +153,83 @@ export async function answer(job: Job, bwip: Bwip): Promise<Answer> {
     findings,
     text: job.request.text,
   };
+  if (job.output === 'preview') return made;
+  // Nothing is made for a code the checks stop.
+  const stop = findings.find((finding) => finding.level === 'refusal');
+  if (stop) return { ok: false, problem: stop.code as 'contrast-too-low' | 'logo-too-large' };
+  const pixels = pixelsFor(drawing, job.size ?? { kind: 'pixels', width: 1024 });
+  if (!pixels.ok) return pixels;
+  const names = job.names ?? {
+    kind: request.id,
+    at: { year: 1980, month: 1, day: 1, hour: 0, minute: 0, second: 0 },
+  };
+  const name = (extension: 'png' | 'jpg' | 'svg' | 'pdf' | 'zip') =>
+    fileName(request.id, names.kind, names.at, extension);
+  const files = await write(
+    drawing,
+    pixels.value,
+    job,
+    job.output === 'zip' ? ['png', 'jpg', 'svg', 'pdf'] : [job.output],
+  );
+  if (job.output === 'zip') {
+    return {
+      ...made,
+      file: bundle(files.map(({ extension, data }) => ({ name: name(extension), data }))),
+      name: name('zip'),
+    };
+  }
+  return { ...made, file: files[0]!.data, name: name(job.output) };
+}
+
+type Extension = 'png' | 'jpg' | 'svg' | 'pdf';
+
+/** The PDF's width: the print width, or the pixel width at 300 dots to the inch. */
+const widthMm = (size: ExportSize | undefined, pixels: number): number =>
+  size?.kind === 'print' ? size.widthMm : Math.min(1000, Math.max(10, (pixels / 300) * 25.4));
+
+async function write(
+  drawing: Drawing,
+  pixels: { width: number; height: number; scale: number },
+  job: Job,
+  extensions: Extension[],
+): Promise<{ extension: Extension; data: Uint8Array }[]> {
+  const out: { extension: Extension; data: Uint8Array }[] = [];
+  for (const extension of extensions) {
+    if (extension === 'svg') {
+      out.push({
+        extension,
+        data: new TextEncoder().encode(
+          toSvg(drawing, { width: pixels.width, height: pixels.height }),
+        ),
+      });
+    } else if (extension === 'pdf') {
+      out.push({
+        extension,
+        data: toPdf(drawing, { kind: job.page ?? 'fit', widthMm: widthMm(job.size, pixels.width) }),
+      });
+    } else {
+      out.push({ extension, data: await raster(drawing, pixels, extension, job.look.matte) });
+    }
+  }
+  return out;
+}
+
+/** A PNG or JPG through a canvas of the export's size. JPG has no transparency: the matte beneath. */
+async function raster(
+  drawing: Drawing,
+  pixels: { width: number; height: number; scale: number },
+  extension: 'png' | 'jpg',
+  matte: string,
+): Promise<Uint8Array> {
+  const canvas = new OffscreenCanvas(pixels.width, pixels.height);
+  const context = canvas.getContext('2d')!;
+  if (extension === 'jpg' && !drawing.background) {
+    context.fillStyle = /^#[0-9a-f]{6}$/.test(matte) ? matte : '#ffffff';
+    context.fillRect(0, 0, pixels.width, pixels.height);
+  }
+  drawOn(context, drawing, pixels.scale);
+  const blob = await canvas.convertToBlob(
+    extension === 'jpg' ? { type: 'image/jpeg', quality: 0.92 } : { type: 'image/png' },
+  );
+  return new Uint8Array(await blob.arrayBuffer());
 }

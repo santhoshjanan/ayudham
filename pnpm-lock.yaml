@@ -84,6 +84,12 @@ importers:
       bwip-js:
         specifier: 4.11.4
         version: 4.11.4
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
+      pdf-lib:
+        specifier: 1.17.1
+        version: 1.17.1
       svelte:
         specifier: ^5.57.1
         version: 5.57.2

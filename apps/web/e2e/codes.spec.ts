@@ -1,5 +1,8 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { calendarEvent, email, meCard, phone, place, sms, vCard, wifi } from '@pokerji/code-maker';
+import { readFileSync } from 'node:fs';
+import { unzipSync } from 'fflate';
+import { PDFDocument } from 'pdf-lib';
 import { decodePng } from './decode.ts';
 
 let visitors = 0;
@@ -641,4 +644,154 @@ test('Aztec says it has no room for a logo, and bar codes offer none', async ({ 
   await expect(page.getByLabel('Choose image')).toHaveCount(0);
   const bars = await open(browser, '#code-128');
   await expect(bars.getByRole('heading', { name: 'Logo' })).toHaveCount(0);
+});
+
+/** Presses a download button and returns the file it saves, with its suggested name. */
+const download = async (page: Page, name: string) => {
+  const [saved] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name, exact: true }).click(),
+  ]);
+  return { name: saved.suggestedFilename(), bytes: readFileSync((await saved.path())!) };
+};
+const NAME = /^code-qr-link-\d{8}-\d{6}\.(png|jpg|svg|pdf|zip)$/;
+
+test('each download opens and decodes', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+
+  const png = await download(page, 'PNG');
+  expect(png.name).toMatch(NAME);
+  expect((await decodePng(png.bytes))?.text).toBe(LINK);
+  const jpg = await download(page, 'JPG');
+  expect(jpg.name).toMatch(NAME);
+  expect((await decodePng(jpg.bytes))?.text).toBe(LINK);
+
+  const svg = await download(page, 'SVG');
+  const text = svg.bytes.toString('utf8');
+  expect(text).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
+  expect(text).not.toContain('<script');
+  expect(
+    await page.evaluate((markup) => {
+      const parsed = new DOMParser().parseFromString(markup, 'image/svg+xml');
+      return parsed.querySelector('parsererror') === null;
+    }, text),
+  ).toBe(true);
+
+  const pdf = await download(page, 'PDF');
+  expect(pdf.bytes.subarray(0, 8).toString('latin1')).toBe('%PDF-1.4');
+  expect((await PDFDocument.load(pdf.bytes)).getPageCount()).toBe(1);
+
+  const zip = await download(page, 'All as ZIP');
+  expect(zip.name).toMatch(NAME);
+  const files = Object.keys(unzipSync(new Uint8Array(zip.bytes))).sort();
+  expect(files).toHaveLength(4);
+  for (const file of files) expect(file).toMatch(NAME);
+  expect(files.map((file) => file.split('.').pop())).toEqual(['jpg', 'pdf', 'png', 'svg']);
+});
+
+test('a print size gives the right pixels', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await page.getByRole('button', { name: 'Print size', exact: true }).click();
+  await field(page, 'Width (mm)').fill('50');
+  await field(page, 'Resolution').selectOption('600');
+  const png = await download(page, 'PNG');
+  expect(png.bytes.readUInt32BE(16)).toBe(1181);
+});
+
+test('a tiny print size warns that modules are too small', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await field(page, 'Size').fill('40');
+  await page.getByRole('button', { name: 'Print size', exact: true }).click();
+  await field(page, 'Width (mm)').fill('10');
+  await expect(page.getByText('smaller than 0.25 mm')).toBeVisible();
+  await field(page, 'Width (mm)').fill('100');
+  await expect(page.getByText('smaller than 0.25 mm')).toHaveCount(0);
+});
+
+test('Copy image puts a PNG on the clipboard', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await copyImage(page).click();
+  await expect(rail(page).getByText('Copied', { exact: true })).toBeAttached();
+  const copied = await page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read();
+    if (!item?.types.includes('image/png')) return null;
+    const bytes = new Uint8Array(await (await item.getType('image/png')).arrayBuffer());
+    let binary = '';
+    for (let at = 0; at < bytes.length; at += 32768)
+      binary += String.fromCharCode(...bytes.subarray(at, at + 32768));
+    return btoa(binary);
+  });
+  expect(copied).not.toBeNull();
+  expect((await decodePng(Buffer.from(copied!, 'base64')))?.text).toBe(LINK);
+});
+
+test('refused export disables Copy image and every download', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await page.getByRole('textbox', { name: 'Foreground', exact: true }).fill('#eeeeee');
+  await expect(copyImage(page)).toBeDisabled();
+  for (const name of ['PNG', 'JPG', 'SVG', 'PDF', 'All as ZIP'])
+    await expect(page.getByRole('button', { name, exact: true })).toBeDisabled();
+});
+
+const READ_BACK =
+  /Read back by this browser: it matched\.|Read back by this browser: it did not match|This browser has no barcode reader/;
+
+test('read-back says matched, or not available, honestly', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await expect(page.getByTestId('read-back')).toHaveText(READ_BACK);
+
+  // A reader that reads something else must never be reported as a match.
+  const context = await browser.newContext(visitor());
+  await context.addInitScript(() => {
+    (window as unknown as { BarcodeDetector: unknown }).BarcodeDetector = class {
+      static async getSupportedFormats() {
+        return ['qr_code'];
+      }
+      async detect() {
+        return [{ rawValue: 'https://example.com/elsewhere', format: 'qr_code' }];
+      }
+    };
+  });
+  const stubbed = await context.newPage();
+  await stubbed.goto('/codes');
+  await stubbed.locator('[data-ready]').waitFor();
+  await field(stubbed, 'Address').fill(LINK);
+  await expect(stubbed.getByTestId('read-back')).toContainText('did not match');
+});
+
+test('a 600 dpi export at the size limit is ready within 3 seconds and the page stays usable', async ({
+  browser,
+}) => {
+  test.setTimeout(60_000);
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  await page.getByRole('button', { name: 'Print size', exact: true }).click();
+  await field(page, 'Resolution').selectOption('600');
+  await field(page, 'Width (mm)').fill('423');
+  const started = Date.now();
+  const saving = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PNG', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Making…' })).toBeVisible();
+  // The page answers while the file is made.
+  await field(page, 'Address').evaluate((input: HTMLInputElement) => {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
+  await page.keyboard.type('/x');
+  await expect(field(page, 'Address')).toHaveValue(`${LINK}/x`);
+  const saved = await saving;
+  expect(Date.now() - started).toBeLessThan(3_000);
+  expect(readFileSync((await saved.path())!).readUInt32BE(16)).toBe(9992);
 });

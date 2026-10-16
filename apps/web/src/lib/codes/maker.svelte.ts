@@ -1,6 +1,7 @@
 import {
   SYMBOLOGIES,
   type Bwip,
+  type ExportSize,
   type DotShape,
   type Eye,
   type Paint,
@@ -137,6 +138,7 @@ export function lookOf(
     eye: design.eye,
     foreground: paintOf(design),
     background: design.transparent ? null : design.background,
+    matte: design.background,
     corners: design.corners ? { type: 'solid', colour: design.corners } : null,
     theme: design.theme,
     quietZone: design.quietZone,
@@ -148,6 +150,33 @@ export function lookOf(
           plate: shape.plate,
         }
       : null,
+  };
+}
+
+/** How large an export is, as the Size section sets it out. */
+export type Sizing = {
+  by: 'pixels' | 'print';
+  pixels: number | null;
+  mm: number | null;
+  dpi: 300 | 600;
+  page: 'fit' | 'a4' | 'letter';
+};
+
+export const sizeOf = (sizing: Sizing): ExportSize =>
+  sizing.by === 'print'
+    ? { kind: 'print', widthMm: Number(sizing.mm), dpi: Number(sizing.dpi) as 300 | 600 }
+    : { kind: 'pixels', width: Number(sizing.pixels) };
+
+/** The time, as a file name takes it, read from the page's clock at the press. */
+function now() {
+  const at = new Date();
+  return {
+    year: at.getFullYear(),
+    month: at.getMonth() + 1,
+    day: at.getDate(),
+    hour: at.getHours(),
+    minute: at.getMinutes(),
+    second: at.getSeconds(),
   };
 }
 
@@ -202,6 +231,7 @@ export class Maker {
   /** The image read from the person's file, kept only in this tab's memory. */
   logo = $state.raw<LogoImage | null>(null);
   logoShape = $state<LogoShape>({ size: 20, padding: 1, plate: 'square' });
+  sizing = $state<Sizing>({ by: 'pixels', pixels: 1024, mm: 50, dpi: 300, page: 'fit' });
   /** Options the person set themselves, as `id.key`: a logo never overrides them. */
   #fixed = new Set<string>();
 
@@ -294,10 +324,16 @@ export class Maker {
     }
   }
 
-  /** A file (or the preview) for every choice as it is now, never for an older request. */
-  async exact(output: Output): Promise<Answer | undefined> {
+  /** A file for every choice as it is now, never for an older request. */
+  async exact(output: Output, size?: ExportSize): Promise<Answer | undefined> {
     const job = this.job(output);
     if (!job || !('request' in job)) return job;
-    return work(job);
+    const sizing = $state.snapshot(this.sizing) as Sizing;
+    return work({
+      ...job,
+      size: size ?? sizeOf(sizing),
+      page: sizing.page,
+      names: { kind: this.kind, at: now() },
+    });
   }
 }
