@@ -32,8 +32,12 @@ function pathOps(d: string): string {
   return out.join('\n');
 }
 
-const latin1 = (text: string): Uint8Array =>
-  Uint8Array.from(text, (char) => char.charCodeAt(0) & 0xff);
+/** One byte a character, by a plain loop: half a million characters of path data must be quick. */
+function latin1(text: string): Uint8Array {
+  const out = new Uint8Array(text.length);
+  for (let at = 0; at < text.length; at++) out[at] = text.charCodeAt(at) & 0xff;
+  return out;
+}
 
 /** A one-page vector PDF of the drawing. No dates, producer or id: the same drawing, the same bytes. */
 export function toPdf(drawing: Drawing, page: PdfPage): Uint8Array {
@@ -50,7 +54,8 @@ export function toPdf(drawing: Drawing, page: PdfPage): Uint8Array {
     return objects.length;
   };
   const stream = (dictionary: string, data: Uint8Array): Uint8Array => {
-    const packed = zlibSync(data, { level: 6 });
+    // The fastest level: on path data it packs as small as level 6, at a quarter of the time.
+    const packed = zlibSync(data, { level: 1 });
     const head = latin1(
       `<< ${dictionary} /Filter /FlateDecode /Length ${packed.length} >>\nstream\n`,
     );
