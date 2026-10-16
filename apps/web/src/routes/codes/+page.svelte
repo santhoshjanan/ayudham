@@ -1,12 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { explain } from '@pokerji/code-maker';
+  import CodeFindings from '#lib/codes/CodeFindings.svelte';
   import CodePicker from '#lib/codes/CodePicker.svelte';
+  import CardFields from '#lib/codes/fields/CardFields.svelte';
+  import EmailFields from '#lib/codes/fields/EmailFields.svelte';
+  import EventFields from '#lib/codes/fields/EventFields.svelte';
   import LinkFields from '#lib/codes/fields/LinkFields.svelte';
+  import PhoneFields from '#lib/codes/fields/PhoneFields.svelte';
+  import PlaceFields from '#lib/codes/fields/PlaceFields.svelte';
+  import SmsFields from '#lib/codes/fields/SmsFields.svelte';
+  import SymbologyFields from '#lib/codes/fields/SymbologyFields.svelte';
+  import WifiFields from '#lib/codes/fields/WifiFields.svelte';
   import { headingOf, kindFrom, symbologyOf } from '#lib/codes/kinds.ts';
   import { Maker } from '#lib/codes/maker.svelte.ts';
-  import type { LinkFields as Link } from '#lib/codes/payload.ts';
   import PreviewBox from '#lib/codes/PreviewBox.svelte';
+  import type { Refusal } from '#lib/codes/work.ts';
   import Seo from '#lib/ui/Seo.svelte';
 
   // The maker is drawn only once the page is running in a browser: the server never makes a code.
@@ -26,6 +35,26 @@
   });
 
   const refusal = $derived(maker.current && !maker.current.ok ? maker.current : undefined);
+  const symbology = $derived(symbologyOf(maker.kind));
+  // The fields of the kind on screen. Each kind keeps its own object for the visit.
+  const fields = $derived(maker.fields[maker.kind] as never);
+
+  /** A character as a person can see it: invisible ones by their code point. */
+  const shownCharacter = (character: string): string =>
+    /^[\p{L}\p{N}\p{P}\p{S}]$/u.test(character)
+      ? character
+      : `U+${character.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`;
+
+  /** The sentence for a refusal, with what is known about where the trouble is. */
+  const say = (refused: Refusal): string => {
+    if (refused.problem === 'bad-character' && refused.detail) {
+      return `${shownCharacter(refused.detail.character)} at position ${(refused.detail.at + 1).toLocaleString('en')} cannot be carried by ${symbology.label}.`;
+    }
+    if (refused.problem === 'too-long' && refused.over) {
+      return `That is ${refused.over.toLocaleString('en')} ${refused.over === 1 ? 'character' : 'characters'} more than this code can hold at this error correction. Shorten it, or lower the error correction.`;
+    }
+    return explain(refused.problem);
+  };
   const exportable = $derived(
     !!maker.current?.ok && !maker.current.findings.some((finding) => finding.level === 'refusal'),
   );
@@ -70,9 +99,16 @@
           />
           <button type="button" class="primary" disabled={!exportable}>Copy image</button>
           {#if refusal}
-            <p role="status">
-              {explain(refusal.problem)}
+            <p role="status">{say(refusal)}</p>
+          {/if}
+          {#if symbology.decoder === null}
+            <p class="hint">
+              {symbology.label} is drawn to its standard, but no reader is available here to check it.
+              Test it with the reader that will scan it.
             </p>
+          {/if}
+          {#if maker.current?.ok}
+            <CodeFindings findings={maker.current.findings} />
           {/if}
         </aside>
 
@@ -80,7 +116,25 @@
           <section aria-labelledby="c-content">
             <h2 id="c-content">{headingOf(maker.kind)}</h2>
             {#if maker.kind === 'qr-link'}
-              <LinkFields fields={maker.fields['qr-link'] as Link} />
+              <LinkFields {fields} />
+            {:else if maker.kind === 'qr-card'}
+              <CardFields {fields} />
+            {:else if maker.kind === 'qr-event'}
+              <EventFields {fields} />
+            {:else if maker.kind === 'qr-wifi'}
+              <WifiFields {fields} />
+            {:else if maker.kind === 'qr-place'}
+              <PlaceFields {fields} />
+            {:else if maker.kind === 'qr-email'}
+              <EmailFields {fields} />
+            {:else if maker.kind === 'qr-sms'}
+              <SmsFields {fields} />
+            {:else if maker.kind === 'qr-phone'}
+              <PhoneFields {fields} />
+            {:else}
+              {#key maker.kind}
+                <SymbologyFields {fields} {symbology} />
+              {/key}
             {/if}
           </section>
         </div>
@@ -168,7 +222,8 @@
     letter-spacing: 0.03em;
     min-height: 3.5rem;
   }
-  .rail [role='status'] {
+  .rail [role='status'],
+  .rail .hint {
     margin: 0;
   }
   .sections {

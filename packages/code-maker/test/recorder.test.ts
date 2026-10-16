@@ -70,6 +70,35 @@ describe('record', () => {
     expect(bars.map((bar) => Math.round(bar[2]! / unit))).toEqual(expected);
   });
 
+  it('places every bar where bwip-js puts it, odd widths included', async () => {
+    const bwip = await loadBwip();
+    for (const [bcid, text] of [
+      ['upca', '012345678905'],
+      ['ean13', '5901234123457'],
+      ['code128', 'ABC-123'],
+    ] as const) {
+      const drawing = record(bwip, bcid, text, {}, COLOURS);
+      const bars = drawing.layers
+        .flatMap((layer) => rectangles(layer.d))
+        .filter((bar) => bar[3]! > 20)
+        .sort((a, b) => a[0]! - b[0]!)
+        .map((bar) => [bar[0], bar[2]]);
+      const [raw] = bwip.raw(bcid, text, {}) as unknown as Array<{ sbs: number[] }>;
+      // Bars at even indexes, spaces between: each bar's left edge and width, in modules.
+      const expected: number[][] = [];
+      let at = 0;
+      raw!.sbs.forEach((width, index) => {
+        if (index % 2 === 0) expected.push([at, width]);
+        at += width;
+      });
+      const left = bars[0]![0]!;
+      expect(
+        bars.map(([x, w]) => [x! - left, w]),
+        bcid,
+      ).toEqual(expected);
+    }
+  });
+
   it('draws human-readable text as glyph paths in the text colour, never as text', async () => {
     const bwip = await loadBwip();
     const drawing = record(

@@ -78,7 +78,7 @@ export const DEFAULT_LOOK: Look = {
   background: '#ffffff',
   corners: null,
   theme: null,
-  quietZone: 4,
+  quietZone: null,
   logo: null,
 };
 

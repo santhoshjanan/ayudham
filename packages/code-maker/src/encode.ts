@@ -35,6 +35,11 @@ export type EncodeRequest = {
   textOptions: TextOptions;
   options: Record<string, unknown>;
   colours: { foreground: string; background: string | null };
+  /**
+   * Modules of quiet zone on every side of a drawn code, from 0 to `LIMITS.quietZoneMax` or the
+   * code's own standard minimum, whichever is more. A grid code takes its quiet zone from its style.
+   */
+  quietZone?: number;
 };
 
 /** A bwip-js error, by its code name. Its message is never passed on. */
@@ -106,10 +111,19 @@ export function encode(bwip: Bwip, request: EncodeRequest): Result<Encoded> {
     const outside = firstOutside(prepared.value.text, found.characters);
     if (outside) return refuseCharacter(outside.at, outside.character);
   }
+  const quiet = request.quietZone ?? 0;
+  if (
+    !Number.isInteger(quiet) ||
+    quiet < 0 ||
+    quiet > Math.max(LIMITS.quietZoneMax, found.quietZone)
+  )
+    return refuse('out-of-range');
   const all = { ...options.value, ...found.fixed, ...prepared.value.bwip };
   try {
     if (found.family === 'drawn') {
-      const drawing = record(bwip, found.bcid, prepared.value.text, all, request.colours);
+      // bwip-js draws one module to a unit at scale 1, so the padding is the quiet zone itself.
+      const padded = quiet ? { ...all, paddingwidth: quiet, paddingheight: quiet } : all;
+      const drawing = record(bwip, found.bcid, prepared.value.text, padded, request.colours);
       return ok({
         options: options.value,
         symbology: found,

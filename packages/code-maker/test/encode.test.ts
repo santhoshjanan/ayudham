@@ -258,6 +258,48 @@ describe('encode', () => {
     expect(aztec.value.grid!.finders).toEqual([]);
   });
 
+  it('gives a drawn code its quiet zone, in modules, on every side', async () => {
+    const bwip = await loadBwip();
+    const make = (quietZone?: number) =>
+      encode(bwip, {
+        id: 'code-128',
+        text: 'ABC-123',
+        textOptions: PLAIN,
+        options: {},
+        colours: COLOURS,
+        ...(quietZone === undefined ? {} : { quietZone }),
+      });
+    const bare = make();
+    const padded = make(10);
+    if (!bare.ok || !padded.ok) throw new Error('refused');
+    expect(padded.value.drawing!.width).toBe(bare.value.drawing!.width + 20);
+    expect(padded.value.drawing!.height).toBe(bare.value.drawing!.height + 20);
+    // A grid code's quiet zone is the style's, not the encoder's.
+    const grid = encode(bwip, {
+      id: 'qr',
+      text: 'Hi',
+      textOptions: PLAIN,
+      options: {},
+      colours: COLOURS,
+      quietZone: 10,
+    });
+    if (!grid.ok) throw new Error('refused');
+    expect(grid.value.grid!.columns).toBe(21);
+    // Out of range is refused, never clamped silently.
+    expect(make(-1)).toEqual(refuse('out-of-range'));
+    expect(make(11)).toEqual(refuse('out-of-range'));
+    // A code whose standard asks for more than the usual most may always have its standard.
+    const ean = encode(bwip, {
+      id: 'ean-13',
+      text: '590123412345',
+      textOptions: PLAIN,
+      options: {},
+      colours: COLOURS,
+      quietZone: 11,
+    });
+    expect(ean.ok).toBe(true);
+  });
+
   it('refuses options outside their range and an unknown symbology', async () => {
     const bwip = await loadBwip();
     expect(

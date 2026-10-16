@@ -2,6 +2,7 @@ import {
   check,
   encode,
   styleGrid,
+  symbology,
   THEMES,
   toSvg,
   type Bwip,
@@ -32,7 +33,8 @@ export type Look = {
   background: string | null;
   corners: Paint | null;
   theme: ThemeId | null;
-  quietZone: number;
+  /** Modules of quiet zone; null is the code's own standard minimum. */
+  quietZone: number | null;
   logo: StyleLogo | null;
 };
 
@@ -57,13 +59,43 @@ export type Made = {
   file?: Uint8Array;
 };
 
-export type Answer = Made | { ok: false; problem: Problem; detail?: Detail };
+/** Why there is no code: the problem, the character at fault, or how many characters too many. */
+export type Refusal = { ok: false; problem: Problem; detail?: Detail; over?: number };
+
+export type Answer = Made | Refusal;
+
+/** Codes whose capacity depends on their error correction, where "how much too long" is useful. */
+const MEASURED = new Set(['qr', 'micro-qr', 'rmqr', 'pdf417', 'pdf417-compact']);
+
+/**
+ * How many characters past the most this code can hold, by binary search over the text's
+ * beginnings. Run only after a refusal, in the worker, so typing never waits on it.
+ */
+function overBy(bwip: Bwip, request: EncodeRequest): number | undefined {
+  const characters = [...request.text];
+  const fits = (count: number): boolean =>
+    encode(bwip, { ...request, text: characters.slice(0, count).join('') }).ok;
+  let low = 0;
+  let high = characters.length;
+  if (!fits(1)) return undefined;
+  low = 1;
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+    if (fits(middle)) low = middle;
+    else high = middle;
+  }
+  return characters.length - low;
+}
 
 /** The one colour a paint is drawn in where gradients cannot go: its first. */
 export const solidOf = (paint: Paint): string =>
   paint.type === 'solid' ? paint.colour : paint.type === 'linear' ? paint.from : paint.inner;
 
-export function styleOf(look: Look): Style {
+/** The quiet zone a look asks for, in modules: the code's standard minimum unless one was chosen. */
+export const quietZoneOf = (look: Look, id: string): number =>
+  look.quietZone ?? symbology(id)?.quietZone ?? 4;
+
+export function styleOf(look: Look, id: string): Style {
   const perModule = look.theme ? (THEMES[look.theme]?.perModule ?? null) : null;
   return {
     dots: look.dots,
@@ -73,7 +105,7 @@ export function styleOf(look: Look): Style {
     background: look.background,
     corners: look.corners,
     perModule,
-    quietZone: look.quietZone,
+    quietZone: quietZoneOf(look, id),
     logo: look.logo,
   };
 }
@@ -81,9 +113,16 @@ export function styleOf(look: Look): Style {
 /** A job's code: encoded, drawn, checked and written. The same function in the worker and on the page. */
 export async function answer(job: Job, bwip: Bwip): Promise<Answer> {
   const colours = { foreground: solidOf(job.look.foreground), background: job.look.background };
-  const encoded = encode(bwip, { ...job.request, colours });
-  if (!encoded.ok) return encoded;
-  const style = encoded.value.grid ? styleOf(job.look) : null;
+  const request = { ...job.request, colours, quietZone: quietZoneOf(job.look, job.request.id) };
+  const encoded = encode(bwip, request);
+  if (!encoded.ok) {
+    if (encoded.problem === 'too-long' && MEASURED.has(request.id)) {
+      const over = overBy(bwip, request);
+      if (over) return { ...encoded, over };
+    }
+    return encoded;
+  }
+  const style = encoded.value.grid ? styleOf(job.look, request.id) : null;
   const drawing: Drawing = encoded.value.grid
     ? styleGrid(encoded.value.grid, style!)
     : encoded.value.drawing!;

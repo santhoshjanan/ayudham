@@ -1,6 +1,7 @@
 <script lang="ts">
   import { suggestHttps } from '@pokerji/code-maker';
   import type { LinkFields } from '../payload.ts';
+  import Marker from './Marker.svelte';
 
   let { fields }: { fields: LinkFields } = $props();
   const suggestion = $derived(suggestHttps(fields.address));
@@ -29,3 +30,4 @@
     </span>
   {/if}
 </p>
+<Marker bind:on={fields.eci} />

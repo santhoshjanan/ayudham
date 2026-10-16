@@ -84,8 +84,18 @@ export function record(
       dy = n('paddingtop');
     },
     line(x0: number, y0: number, x1: number, y1: number, lw: number, rgb: string) {
-      // A stroke of width lw, recorded as the rectangle it covers.
+      // A stroke of width lw, recorded as the rectangle it covers. bwip-js hands over coordinates
+      // to be snapped as its own drawing does: truncated to whole units, then, for an odd width at
+      // scale 1, moved back half a unit. Without that, every odd-width bar sits half a module late.
       const w = Math.round(lw) || 1;
+      x0 |= 0;
+      y0 |= 0;
+      x1 |= 0;
+      y1 |= 0;
+      if (w & 1) {
+        if (x0 === x1) [x0, x1] = [x0 - 0.5, x1 - 0.5];
+        if (y0 === y1) [y0, y1] = [y0 - 0.5, y1 - 0.5];
+      }
       if (x0 === x1) {
         const top = Math.min(y0, y1);
         const x = x0 - w / 2;
