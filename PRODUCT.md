@@ -18,9 +18,11 @@ The markup builder is used by one person at a time: a site owner or marketer who
 
 The text tools are used by one person in the middle of other work, most often a developer or an administrator at a desk: they open the page, take one result and leave.
 
+The code maker is used by anyone who needs a real code and does not want to hand their data to a code website to get it: a QR code for a menu, a Wi-Fi card for guests, a business card, a product barcode for a label. Mostly at a desk, sometimes on a phone.
+
 ## Product Purpose
 
-pokerji is a suite of small tools, each free and without an account. Its first tool is a public, realtime planning poker service: create a room, share the link, estimate stories together. Success there is a team going from opening the site to a revealed round in under a minute. Its second is a Schema.org markup builder: fill in a form, copy JSON-LD for your own site. Success there is markup on the clipboard without having read any documentation. Its third is a set of text generators and converters: passwords, passphrases, random strings, identifiers, case, encoding, hashes. Success there is a strong password on the clipboard with one press.
+pokerji is a suite of small tools, each free and without an account. Its first tool is a public, realtime planning poker service: create a room, share the link, estimate stories together. Success there is a team going from opening the site to a revealed round in under a minute. Its second is a Schema.org markup builder: fill in a form, copy JSON-LD for your own site. Success there is markup on the clipboard without having read any documentation. Its third is a set of text generators and converters: passwords, passphrases, random strings, identifiers, case, encoding, hashes. Success there is a strong password on the clipboard with one press. Its fourth is a maker of barcodes and QR codes: pick a kind, fill it in, style it, copy or download it. Success there is a scannable QR code for a link on the clipboard in under ten seconds, and no exported code that fails to scan without a warning.
 
 ## Positioning
 
@@ -39,6 +41,7 @@ No accounts, no trackers, no third parties. Nobody, the moderator included, can 
 - Surfaces: suite home, create room, join form and live room, history, moderator settings, moderator recovery, privacy page.
 - The markup builder's behaviour is specified in `docs/superpowers/specs/2026-10-13-schema-builder-design.md`. It runs entirely in the browser: nothing typed into it reaches the server. Surface: `/schema`.
 - The text tools' behaviour is specified in `docs/superpowers/specs/2026-10-14-text-tools-design.md`. They run entirely in the browser: nothing typed or made reaches the server, and nothing is stored anywhere. Surface: `/text`.
+- The code maker's behaviour is specified in `docs/superpowers/specs/2026-10-16-code-maker-design.md`, its design in `2026-10-16-code-maker-design-direction.md`. It runs entirely in the browser: nothing typed, chosen or uploaded reaches the server, nothing is stored anywhere, and every offered style is proven to scan by decoding tests. Surface: `/codes`.
 - Strict Content Security Policy: fonts, images, audio and scripts are self-hosted; no third-party origins.
 - Rooms hold at most 50 participants.
 - English only.

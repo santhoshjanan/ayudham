@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod.ts';
 import { CARD_MAX_CHARS, DECK_MAX_CARDS } from './limits.ts';
 
 /**

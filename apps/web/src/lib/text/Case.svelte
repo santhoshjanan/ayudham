@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
-  import TextBox from './TextBox.svelte';
+  import TextBox from '#lib/ui/TextBox.svelte';
 
   let text = $state('');
   // Twelve forms of 100,000 characters take a while; the worker works them out beside the page.

@@ -1,0 +1,22 @@
+{
+  "name": "@pokerji/code-maker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "fflate": "0.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "bwip-js": "4.11.4",
+    "pdf-lib": "1.17.1",
+    "zxing-wasm": "3.1.5"
+  }
+}

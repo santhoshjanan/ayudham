@@ -7,9 +7,9 @@
     PASSWORD_DEFAULTS,
   } from '@pokerji/text-tools';
   import Frame from './Frame.svelte';
-  import NumberField from './NumberField.svelte';
+  import NumberField from '#lib/ui/NumberField.svelte';
   import { random } from './random.ts';
-  import Toggle from './Toggle.svelte';
+  import Toggle from '#lib/ui/Toggle.svelte';
   import { say } from './tools.ts';
 
   const options = $state({ ...PASSWORD_DEFAULTS });

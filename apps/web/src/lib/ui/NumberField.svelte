@@ -5,7 +5,16 @@
     min,
     max,
     value = $bindable(),
-  }: { id: string; label: string; min: number; max: number; value: number } = $props();
+    hint,
+  }: {
+    id: string;
+    label: string;
+    min: number;
+    max: number;
+    value: number | null;
+    /** Said under the field in place of its range. */
+    hint?: string;
+  } = $props();
 </script>
 
 <p class="field">
@@ -21,8 +30,11 @@
     autocomplete="off"
     autocapitalize="off"
     autocorrect="off"
+    translate="no"
     aria-describedby="{id}-hint"
     bind:value
   />
-  <span class="hint" id="{id}-hint">{min.toLocaleString('en')} to {max.toLocaleString('en')}</span>
+  <span class="hint" id="{id}-hint"
+    >{hint ?? `${min.toLocaleString('en')} to ${max.toLocaleString('en')}`}</span
+  >
 </p>

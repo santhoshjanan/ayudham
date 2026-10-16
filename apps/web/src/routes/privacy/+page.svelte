@@ -184,6 +184,34 @@
     not drawn on the server at all, so the server never makes a password. Every random choice
     comes from your browser’s cryptographic random source.
   </p>
+  <h2>Barcodes and QR codes</h2>
+  <p>
+    The code maker at <a href="/codes">/codes</a> makes every code in your browser. What you type
+    into it, the colours and options you choose and the codes it makes stay there: none of it
+    reaches this site or anyone else, and nothing is kept. There is no account, no draft and no
+    saved style. Close the tab and it is gone.
+  </p>
+  <p>
+    A logo you choose is read on your device and never leaves it. The page reads the image with
+    your browser’s own image decoder, makes a smaller copy in the tab’s memory, and draws the
+    code with that; the file itself is not kept. A code you copy is on your device’s clipboard,
+    and a file you download is wherever your browser saves it, for as long as you keep them.
+    The address of the page says which kind of code is open and nothing more.
+  </p>
+  <p>
+    Codes are encoded by bwip-js, by Mark Warren, and files are packed by fflate, by Arjun
+    Barrett, both under the MIT licence. Both are part of this site’s own files; nothing is
+    fetched from anyone else.
+  </p>
+  <p class="how">
+    <b>How:</b> the page makes no request that carries what you typed, chose or added. After it
+    has loaded it fetches one file from this site, and only when you make your first code: the
+    script that makes codes beside the page, so typing never waits, with bwip-js inside it.
+    Your text goes to that script inside your browser and comes back as a picture; it is never
+    sent over the network. The maker is not drawn on the server at all, so the server never
+    makes a code. Where the browser can use your device’s own barcode reader, the page reads the code back with it, on your device; nothing is sent. Surprise me draws its colours from your browser’s cryptographic
+    random source.
+  </p>
 </main>
 
 <style>

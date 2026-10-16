@@ -9,7 +9,7 @@
     type StringKind,
   } from '@pokerji/text-tools';
   import Frame from './Frame.svelte';
-  import NumberField from './NumberField.svelte';
+  import NumberField from '#lib/ui/NumberField.svelte';
   import { random } from './random.ts';
   import { say } from './tools.ts';
 

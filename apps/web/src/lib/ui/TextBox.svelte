@@ -6,7 +6,8 @@
     label,
     value = $bindable(),
     rows = 8,
-  }: { id: string; label: string; value: string; rows?: number } = $props();
+    max = LIMITS.text,
+  }: { id: string; label: string; value: string; rows?: number; max?: number } = $props();
 </script>
 
 <!-- Nothing typed here may reach a spelling service, a translator or a browser's saved-form store.
@@ -16,7 +17,7 @@
   <textarea
     {id}
     {rows}
-    maxlength={LIMITS.text + 1}
+    maxlength={max + 1}
     translate="no"
     spellcheck="false"
     autocomplete="off"

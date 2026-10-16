@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod.ts';
 import type { ValueKind } from './model.ts';
 
 const Names = z.array(z.string());
