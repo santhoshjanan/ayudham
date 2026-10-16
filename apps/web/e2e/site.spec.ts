@@ -37,6 +37,32 @@ test('every public page ends with links to the source and to its maker', async (
   }
 });
 
+test('no public page breaks the content security policy, from navigation on', async ({
+  browser,
+}) => {
+  const context = await browser.newContext(visitor());
+  await context.addInitScript(() => {
+    const seen = window as unknown as { violations: string[] };
+    seen.violations = [];
+    document.addEventListener('securitypolicyviolation', (event) =>
+      seen.violations.push(`${event.violatedDirective} ${event.blockedURI}`),
+    );
+  });
+  const page = await context.newPage();
+  const messages: string[] = [];
+  page.on('console', (message) => {
+    if (/Content Security Policy/i.test(message.text())) messages.push(message.text());
+  });
+  for (const path of ['/', '/poker', '/schema', '/text', '/codes', '/privacy']) {
+    await page.goto(path, { waitUntil: 'networkidle' });
+    const violations = await page.evaluate(
+      () => (window as unknown as { violations: string[] }).violations,
+    );
+    expect(violations, path).toEqual([]);
+  }
+  expect(messages).toEqual([]);
+});
+
 test('the home page headline says what the site is, and its title names every tool', async ({
   browser,
 }) => {

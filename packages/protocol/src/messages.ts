@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod.ts';
 import { cardSchema, type Deck } from './deck.ts';
 import { TITLE_MAX } from './limits.ts';
 

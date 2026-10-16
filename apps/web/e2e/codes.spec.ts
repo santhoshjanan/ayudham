@@ -916,9 +916,6 @@ test('the content security policy is never broken', async ({ browser }) => {
   });
   await page.goto('/codes');
   await page.locator('[data-ready]').waitFor();
-  // Counted from here: at load every page of the site reports zod's own probe for `Function`,
-  // which the policy blocks as intended and which nothing on this page uses.
-  await page.evaluate(() => ((window as unknown as { violations: string[] }).violations = []));
   await field(page, 'Address').fill(LINK);
   await expectCode(page, LINK);
   await press(page, 'Themes', 'Rainbow');

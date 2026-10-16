@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './zod.ts';
 import { draftProblem } from './changes.ts';
 import { LIMITS } from './limits.ts';
 import type { Draft, Item, Value } from './model.ts';
