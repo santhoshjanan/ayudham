@@ -72,6 +72,7 @@ describe('prepareText', () => {
     expect(prepareText('café', PLAIN, 'ascii')).toEqual(refuse('bad-character'));
     expect(prepareText('12a', PLAIN, 'digits')).toEqual(refuse('bad-character'));
     expect(prepareText('0123', PLAIN, 'digits').ok).toBe(true);
+    expect(prepareText('5901234123457 12345', PLAIN, 'digits')).toEqual(refuse('bad-character'));
   });
 
   it('applies escapes, then line endings, then trimming', () => {

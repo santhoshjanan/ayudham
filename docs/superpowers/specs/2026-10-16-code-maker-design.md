@@ -106,7 +106,7 @@ QR (Model 2, versions 1 to 40), Micro QR (M1 to M4), rectangular Micro QR (rMQR)
 
 ### Product codes
 
-EAN-13, EAN-8, UPC-A, UPC-E, ISBN-13, ISSN, each with optional 2- and 5-digit add-ons. The check digit is worked out if left off; a wrong one is reported, never silently replaced.
+EAN-13, EAN-8, UPC-A, UPC-E, ISBN-13, ISSN. (The 2- and 5-digit add-ons first planned here were left out on 2026-10-16: the test decoder does not read them, so this site cannot prove they scan.) The check digit is worked out if left off; a wrong one is reported, never silently replaced.
 
 ### Linear
 

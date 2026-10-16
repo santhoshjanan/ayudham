@@ -83,7 +83,7 @@ export function prepareText(
   if (options.trim) value = value.trim();
 
   if (capability === 'digits') {
-    return /^[0-9 ]*$/.test(value)
+    return /^[0-9]*$/.test(value)
       ? ok({ text: value, bwip: {}, warnings: [] })
       : refuse('bad-character');
   }
