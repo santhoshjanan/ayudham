@@ -2,6 +2,7 @@ import type * as BwipJs from 'bwip-js/generic';
 import { checkOptions, RMQR_SIZES, symbology, type Symbology } from './catalogue.ts';
 import type { Drawing } from './drawing.ts';
 import { LIMITS } from './limits.ts';
+import { record } from './recorder.ts';
 import { ok, refuse, type Problem, type Result } from './result.ts';
 import { prepareText, type TextOptions } from './text.ts';
 
@@ -98,9 +99,11 @@ export function encode(bwip: Bwip, request: EncodeRequest): Result<Encoded> {
   if (!prepared.ok) return prepared;
   const all = { ...options.value, ...found.fixed, ...prepared.value.bwip };
   try {
-    let grid: Grid | null = null;
-    if (found.family === 'drawn') bwip.raw(found.bcid, prepared.value.text, all as never);
-    else grid = gridOf(bwip, found, prepared.value.text, all);
+    if (found.family === 'drawn') {
+      const drawing = record(bwip, found.bcid, prepared.value.text, all, request.colours);
+      return ok({ symbology: found, grid: null, drawing, warnings: prepared.value.warnings });
+    }
+    const grid = gridOf(bwip, found, prepared.value.text, all);
     return ok({ symbology: found, grid, drawing: null, warnings: prepared.value.warnings });
   } catch (error) {
     return refuse(bwipProblem(error));

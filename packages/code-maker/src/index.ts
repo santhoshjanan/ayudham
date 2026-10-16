@@ -6,3 +6,4 @@ export * from './content.ts';
 export * from './drawing.ts';
 export * from './catalogue.ts';
 export * from './encode.ts';
+export * from './recorder.ts';

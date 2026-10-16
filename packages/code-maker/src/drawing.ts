@@ -4,8 +4,8 @@ export type Paint =
   | { type: 'linear'; from: string; to: string; angle: number }
   | { type: 'radial'; inner: string; outer: string };
 
-/** One fill: path data in absolute M, L, C and Z commands only. */
-export type Layer = { paint: Paint; d: string };
+/** One fill: path data in absolute M, L, C and Z commands only; even-odd where shapes nest as rings. */
+export type Layer = { paint: Paint; d: string; evenOdd?: true };
 
 /** A centre image, already decoded by the page: RGBA pixels for the PDF, PNG bytes for SVG. */
 export type Logo = {
