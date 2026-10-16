@@ -10,7 +10,7 @@ const visitor = () => {
 
 test('every public page ends with links to the source and to its maker', async ({ browser }) => {
   const page = await (await browser.newContext(visitor())).newPage();
-  for (const path of ['/', '/poker', '/schema', '/text', '/privacy']) {
+  for (const path of ['/', '/poker', '/schema', '/text', '/codes', '/privacy']) {
     await page.goto(path);
     const footer = page.getByRole('contentinfo');
     await expect(footer).toContainText('Free and open source');
@@ -45,7 +45,7 @@ test('the home page headline says what the site is, and its title names every to
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Small tools, without the sign-up.',
   );
-  for (const tool of [/planning poker/i, /schema markup/i, /text tools/i]) {
+  for (const tool of [/planning poker/i, /schema markup/i, /text tools/i, /QR code/i]) {
     expect(await page.title()).toMatch(tool);
   }
 });
@@ -66,7 +66,7 @@ test('public pages describe themselves to search engines and link previews', asy
   const page = await (await browser.newContext(visitor())).newPage();
   const origin = new URL((await page.goto('/'))!.url()).origin;
   const seen = new Set<string>();
-  for (const path of ['/', '/poker', '/schema', '/text', '/privacy']) {
+  for (const path of ['/', '/poker', '/schema', '/text', '/codes', '/privacy']) {
     const response = await page.goto(path);
     expect(response?.headers()['x-robots-tag'], `${path} may be indexed`).toBeUndefined();
     const title = await page.title();
@@ -142,7 +142,7 @@ test('rooms are kept out of search engines, by header and by robots.txt', async 
   expect(sitemap.status()).toBe(200);
   expect(sitemap.headers()['content-type']).toContain('xml');
   const xml = await sitemap.text();
-  for (const path of ['/', '/poker', '/schema', '/text', '/privacy'])
+  for (const path of ['/', '/poker', '/schema', '/text', '/codes', '/privacy'])
     expect(xml).toContain(`<loc>${origin}${path}</loc>`);
   expect(xml).not.toContain('/poker/r/');
 });
@@ -165,15 +165,26 @@ test('the site offers every tool from the bar and from the home page', async ({ 
   await expect(bar.getByRole('link', { name: 'Planning poker' })).toHaveAttribute('href', '/poker');
   await expect(bar.getByRole('link', { name: 'Schema markup' })).toHaveAttribute('href', '/schema');
   await expect(bar.getByRole('link', { name: 'Text tools' })).toHaveAttribute('href', '/text');
+  await expect(bar.getByRole('link', { name: 'Codes' })).toHaveAttribute('href', '/codes');
   await expect(bar.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+  // Privacy stays last.
+  await expect(bar.getByRole('link').last()).toHaveText('Privacy');
 
   await expect(page.getByRole('heading', { level: 2, name: 'Planning poker' })).toBeVisible();
   await expect(
     page.getByRole('heading', { level: 2, name: 'Schema markup builder' }),
   ).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: 'Text tools' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Barcodes and QR codes' }),
+  ).toBeVisible();
   // Each row of the programme carries its own next step.
-  await expect(page.locator('.programme a.button')).toHaveCount(3);
+  await expect(page.locator('.programme a.button')).toHaveCount(4);
+
+  await page.getByRole('link', { name: 'Make a code' }).click();
+  await expect(page).toHaveURL(/\/codes$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Barcodes and QR codes');
+  await page.goto('/');
 
   await page.getByRole('link', { name: 'Open the tools' }).click();
   await expect(page).toHaveURL(/\/text$/);
@@ -191,6 +202,7 @@ test('on a phone the bar keeps the wordmark, Privacy and the theme toggle', asyn
   await expect(bar.getByRole('link', { name: 'Planning poker' })).toBeHidden();
   await expect(bar.getByRole('link', { name: 'Schema markup' })).toBeHidden();
   await expect(bar.getByRole('link', { name: 'Text tools' })).toBeHidden();
+  await expect(bar.getByRole('link', { name: 'Codes' })).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
@@ -209,6 +221,18 @@ test('the privacy page says the text tools send nothing and keep nothing', async
   await expect(heading).toBeVisible();
   await expect(page.getByText('nothing is sent to this site and nothing is kept')).toBeVisible();
   await expect(page.getByText('EFF long word list')).toBeVisible();
+});
+
+test('the privacy page says a chosen logo is read on the device and nothing is kept', async ({
+  browser,
+}) => {
+  const page = await (await browser.newContext(visitor())).newPage();
+  await page.goto('/privacy');
+  await expect(page.getByRole('heading', { name: 'Barcodes and QR codes' })).toBeVisible();
+  await expect(
+    page.getByText('A logo you choose is read on your device and never leaves it'),
+  ).toBeVisible();
+  await expect(page.getByText('Codes are encoded by bwip-js')).toContainText('fflate');
 });
 
 test('the text tools are a public page, and nothing beneath them is listed', async ({

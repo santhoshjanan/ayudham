@@ -7,8 +7,8 @@
 </script>
 
 <Seo
-  title="pokerji: free planning poker, schema markup builder and text tools, no sign-up"
-  description="Free tools without the sign-up: planning poker for agile teams, a Schema.org JSON-LD builder, and password and text tools. No account, no trackers."
+  title="pokerji: free planning poker, schema markup, text tools and QR codes, no sign-up"
+  description="Free tools without the sign-up: planning poker, a Schema.org JSON-LD builder, password and text tools, and a QR code and barcode maker. No account, no trackers."
 />
 
 <header class="band wide">
@@ -56,6 +56,17 @@
         </p>
       </div>
       <a class="button" href="/text">Open the tools</a>
+    </li>
+
+    <li>
+      <div>
+        <h2>Barcodes and QR codes</h2>
+        <p>
+          QR codes for links, Wi-Fi, business cards and events; product barcodes, Data Matrix,
+          PDF417 and more, styled and checked to scan. Made in your browser, never sent or kept.
+        </p>
+      </div>
+      <a class="button" href="/codes">Make a code</a>
     </li>
   </ul>
 
