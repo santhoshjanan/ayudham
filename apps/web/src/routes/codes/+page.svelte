@@ -13,6 +13,7 @@
   import SymbologyFields from '#lib/codes/fields/SymbologyFields.svelte';
   import WifiFields from '#lib/codes/fields/WifiFields.svelte';
   import { headingOf, kindFrom, symbologyOf } from '#lib/codes/kinds.ts';
+  import LogoSection from '#lib/codes/LogoSection.svelte';
   import LookSection from '#lib/codes/LookSection.svelte';
   import OptionsSection from '#lib/codes/OptionsSection.svelte';
   import { Maker } from '#lib/codes/maker.svelte.ts';
@@ -139,8 +140,15 @@
               {/key}
             {/if}
           </section>
-          <OptionsSection {symbology} chosen={maker.options[symbology.id]!} />
+          <OptionsSection
+            {symbology}
+            chosen={maker.options[symbology.id]!}
+            onfix={(key) => maker.fix(symbology.id, key)}
+          />
           <LookSection design={maker.design} {symbology} />
+          {#if symbology.family !== 'drawn'}
+            <LogoSection {maker} {symbology} />
+          {/if}
         </div>
       </div>
     </div>

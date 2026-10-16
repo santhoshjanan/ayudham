@@ -433,3 +433,212 @@ test('drawn codes show colours and the shapes note, not shape buttons', async ({
   await expect(group(page, 'Themes')).toHaveCount(0);
   await expect(field(page, 'Bar height (mm)')).toHaveValue('15');
 });
+
+/** An image made in the page and handed back as file bytes. */
+const makeImage = (
+  page: Page,
+  {
+    width,
+    height,
+    type,
+    noise = false,
+  }: { width: number; height: number; type: string; noise?: boolean },
+  quality = 0.92,
+) =>
+  page
+    .evaluate(
+      async ({ width, height, type, noise, quality }) => {
+        const canvas = new OffscreenCanvas(width, height);
+        const context = canvas.getContext('2d')!;
+        if (noise) {
+          const pixels = context.createImageData(width, height);
+          const random = new Uint8Array(65536);
+          for (let at = 0; at < pixels.data.length; at += 65536) {
+            crypto.getRandomValues(random);
+            pixels.data.set(random.subarray(0, Math.min(65536, pixels.data.length - at)), at);
+          }
+          for (let at = 3; at < pixels.data.length; at += 4) pixels.data[at] = 255;
+          context.putImageData(pixels, 0, 0);
+        } else {
+          context.fillStyle = '#c62828';
+          context.fillRect(0, 0, width, height);
+        }
+        const blob = await canvas.convertToBlob({ type, quality });
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let binary = '';
+        for (let at = 0; at < bytes.length; at += 32768)
+          binary += String.fromCharCode(...bytes.subarray(at, at + 32768));
+        return btoa(binary);
+      },
+      { width, height, type, noise, quality },
+    )
+    .then((base64) => Buffer.from(base64, 'base64'));
+
+const chooseLogo = async (page: Page, name: string, mimeType: string, buffer: Buffer) =>
+  page.getByLabel('Choose image').setInputFiles({ name, mimeType, buffer });
+
+const findings = (page: Page) => page.getByTestId('finding');
+
+test('a logo at the largest size each error correction allows still scans', async ({ browser }) => {
+  test.setTimeout(240_000);
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await chooseLogo(
+    page,
+    'logo.png',
+    'image/png',
+    await makeImage(page, { width: 64, height: 64, type: 'image/png' }),
+  );
+  await expect(page.getByRole('button', { name: 'Remove logo' })).toBeVisible();
+  for (const level of ['L', 'M', 'Q', 'H']) {
+    await field(page, 'Error correction').selectOption(level);
+    let largest = 0;
+    for (let share = 10; share <= 40; share++) {
+      await field(page, 'Logo size (%)').fill(String(share));
+      await expect(preview(page)).not.toHaveAttribute('aria-busy', 'true');
+      if ((await findings(page).filter({ hasText: 'logo covers' }).count()) > 0) break;
+      largest = share;
+    }
+    // Every level must allow at least the smallest logo, or the offer is wrong.
+    expect(largest, level).toBeGreaterThanOrEqual(10);
+    console.log(`logo limit at ${level}: ${largest}%`);
+    await field(page, 'Logo size (%)').fill(String(largest));
+    for (const plate of ['Square', 'Rounded', 'Circle']) {
+      await press(page, 'Plate', plate);
+      await expect
+        .poll(async () => (await readPreview(page))?.text, {
+          message: `${level} ${largest}% ${plate}`,
+        })
+        .toBe(LINK);
+    }
+  }
+});
+
+test('a logo too large is refused before export', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await chooseLogo(
+    page,
+    'logo.png',
+    'image/png',
+    await makeImage(page, { width: 64, height: 64, type: 'image/png' }),
+  );
+  await field(page, 'Error correction').selectOption('L');
+  await field(page, 'Logo size (%)').fill('40');
+  await expect(findings(page).filter({ hasText: 'logo covers' })).toHaveAttribute(
+    'data-level',
+    'refusal',
+  );
+  await expect(copyImage(page)).toBeDisabled();
+});
+
+test('choosing a logo raises error correction to H, unless it was chosen', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  const png = await makeImage(page, { width: 64, height: 64, type: 'image/png' });
+  await chooseLogo(page, 'logo.png', 'image/png', png);
+  await expect(field(page, 'Error correction')).toHaveValue('H');
+
+  const other = await open(browser);
+  await field(other, 'Address').fill(LINK);
+  await field(other, 'Error correction').selectOption('Q');
+  await chooseLogo(other, 'logo.png', 'image/png', png);
+  await expect(field(other, 'Error correction')).toHaveValue('Q');
+});
+
+test('a photo is read on the device and the page stays responsive', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await expectCode(page, LINK);
+  const photo = await makeImage(
+    page,
+    { width: 4000, height: 3000, type: 'image/jpeg', noise: true },
+    0.5,
+  );
+  expect(photo.length).toBeGreaterThan(3_000_000);
+  expect(photo.length).toBeLessThan(5_000_000);
+
+  const sent: string[] = [];
+  page.on('request', (request) =>
+    sent.push(`${request.method()} ${request.url()} ${request.postData() ?? ''}`),
+  );
+  const started = Date.now();
+  await chooseLogo(page, 'photo.jpg', 'image/jpeg', photo);
+  await expect(preview(page).locator('img')).toHaveAttribute('src', /image%2Fpng%3Bbase64/, {
+    timeout: 3_000,
+  });
+  expect(Date.now() - started).toBeLessThan(3_000);
+  for (const line of sent) expect(line).not.toMatch(/^POST|photo/);
+
+  // A key press while a code with the photo is made takes no longer than 50 ms.
+  const address = field(page, 'Address');
+  await address.focus();
+  await page.keyboard.press('End');
+  await page.evaluate(() => {
+    const seen = window as unknown as { worst: number };
+    seen.worst = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) seen.worst = Math.max(seen.worst, entry.duration);
+    }).observe({ type: 'event', durationThreshold: 16 } as PerformanceObserverInit);
+  });
+  for (let key = 0; key < 6; key++) {
+    await page.keyboard.type('x');
+    await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => (window as unknown as { worst: number }).worst)).toBeLessThan(
+    50,
+  );
+});
+
+test('a file that is not an image, or over 5 MB, is refused in words', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await page
+    .getByLabel('Choose image')
+    .setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+  await expect(page.getByText('That file is not an image this page can read')).toBeVisible();
+  await page.getByLabel('Choose image').setInputFiles({
+    name: 'huge.png',
+    mimeType: 'image/png',
+    buffer: Buffer.alloc(5_000_001, 1),
+  });
+  await expect(page.getByText('That image is larger than 5 MB')).toBeVisible();
+  await page.getByLabel('Choose image').setInputFiles({
+    name: 'broken.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('not really a png'),
+  });
+  await expect(page.getByText('That file is not an image this page can read')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove logo' })).toHaveCount(0);
+});
+
+test('Invert with a logo warns light on dark and keeps the logo check', async ({ browser }) => {
+  const page = await open(browser);
+  await field(page, 'Address').fill(LINK);
+  await chooseLogo(
+    page,
+    'logo.png',
+    'image/png',
+    await makeImage(page, { width: 64, height: 64, type: 'image/png' }),
+  );
+  await field(page, 'Logo size (%)').fill('40');
+  await page.getByRole('button', { name: 'Invert', exact: true }).click();
+  await expect(findings(page).filter({ hasText: 'light on dark' })).toHaveAttribute(
+    'data-level',
+    'warning',
+  );
+  await expect(findings(page).filter({ hasText: 'logo covers' })).toHaveAttribute(
+    'data-level',
+    'refusal',
+  );
+});
+
+test('Aztec says it has no room for a logo, and bar codes offer none', async ({ browser }) => {
+  const page = await open(browser, '#aztec');
+  await expect(page.getByText('Aztec has no room for a logo')).toBeVisible();
+  await expect(page.getByLabel('Choose image')).toHaveCount(0);
+  const bars = await open(browser, '#code-128');
+  await expect(bars.getByRole('heading', { name: 'Logo' })).toHaveCount(0);
+});

@@ -8,6 +8,7 @@ import {
   type ThemeId,
 } from '@pokerji/code-maker';
 import { OTHER_GROUPS, QR_KINDS, symbologyOf, type KindId } from './kinds.ts';
+import type { LogoImage } from './logo.ts';
 import { blankFields, payloadFor } from './payload.ts';
 import { answer, type Answer, type Job, type Look, type Made, type Output } from './work.ts';
 
@@ -122,7 +123,14 @@ export function paintOf(design: Design): Paint {
   return { type: 'solid', colour: design.foreground };
 }
 
-export function lookOf(design: Design): Look {
+/** How a logo sits on the code. */
+export type LogoShape = { size: number; padding: number; plate: 'square' | 'rounded' | 'circle' };
+
+export function lookOf(
+  design: Design,
+  logo: LogoImage | null = null,
+  shape: LogoShape = { size: 20, padding: 1, plate: 'square' },
+): Look {
   return {
     dots: design.dots,
     ring: design.ring,
@@ -132,7 +140,14 @@ export function lookOf(design: Design): Look {
     corners: design.corners ? { type: 'solid', colour: design.corners } : null,
     theme: design.theme,
     quietZone: design.quietZone,
-    logo: null,
+    logo: logo
+      ? {
+          ...logo,
+          share: (Number(shape.size) || 0) / 100,
+          padding: Number(shape.padding) || 0,
+          plate: shape.plate,
+        }
+      : null,
   };
 }
 
@@ -184,6 +199,31 @@ export class Maker {
   );
   design = $state<Design>({ ...DEFAULT_DESIGN });
   options = $state(defaultOptions());
+  /** The image read from the person's file, kept only in this tab's memory. */
+  logo = $state.raw<LogoImage | null>(null);
+  logoShape = $state<LogoShape>({ size: 20, padding: 1, plate: 'square' });
+  /** Options the person set themselves, as `id.key`: a logo never overrides them. */
+  #fixed = new Set<string>();
+
+  /** Marks an option as the person's own choice. */
+  fix(id: string, key: string): void {
+    this.#fixed.add(`${id}.${key}`);
+  }
+
+  /**
+   * Sets or removes the logo. A new logo raises error correction to its highest, so the code can
+   * recover what the logo covers, unless the person chose a level themselves.
+   */
+  setLogo(image: LogoImage | null): void {
+    this.logo = image;
+    if (!image) return;
+    for (const id of ['qr', 'micro-qr', 'rmqr']) {
+      const spec = symbologyOf(id).options.find((option) => option.key === 'eclevel');
+      if (!spec || spec.kind !== 'choice' || this.#fixed.has(`${id}.eclevel`)) continue;
+      const highest = spec.values.at(-1);
+      if (highest !== undefined) this.options[id]!.eclevel = highest;
+    }
+  }
   /** The answer for the latest request: a code, or why there is none. */
   current = $state.raw<Answer | undefined>(undefined);
   /** The last code made, kept on screen beneath a refusal. */
@@ -203,7 +243,14 @@ export class Maker {
         ...payload.value,
         options: chosenOptions(this.kind, $state.snapshot(this.options[payload.value.id]) ?? {}),
       },
-      look: lookOf($state.snapshot(this.design) as Design),
+      look: lookOf(
+        $state.snapshot(this.design) as Design,
+        // Only codes drawn here from their grid can carry a logo, and Aztec has no room for one.
+        symbologyOf(this.kind).family !== 'drawn' && !payload.value.id.startsWith('aztec')
+          ? this.logo
+          : null,
+        $state.snapshot(this.logoShape) as LogoShape,
+      ),
       output,
     };
   }

@@ -6,10 +6,13 @@
   let {
     symbology,
     chosen,
+    onfix,
   }: {
     symbology: Symbology;
     /** This symbology's options, kept for the visit. Automatic is null. */
     chosen: Record<string, string | number | boolean | null>;
+    /** Told when the person sets an option themselves. */
+    onfix?: (key: string) => void;
   } = $props();
 
   const range = (min: number, max: number) =>
@@ -25,7 +28,11 @@
     {#if spec.kind === 'choice'}
       <p class="field">
         <label for="c-option-{spec.key}">{spec.label}</label>
-        <select id="c-option-{spec.key}" bind:value={chosen[spec.key]}>
+        <select
+          id="c-option-{spec.key}"
+          bind:value={chosen[spec.key]}
+          onchange={() => onfix?.(spec.key)}
+        >
           {#each spec.values as value (value)}
             <option {value}>{value === 'auto' ? 'Automatic' : value}</option>
           {/each}
