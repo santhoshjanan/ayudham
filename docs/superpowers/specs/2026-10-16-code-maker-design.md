@@ -1,7 +1,7 @@
 # Code Maker — Design
 
 Date: 2026-10-16
-Status: written from the conversation of 2026-10-16, checked by a fresh reviewer; awaits the owner's review
+Status: approved by the owner 2026-10-16, with the colour picker, Invert and the contrast warning added
 
 ## 1. Intent
 
@@ -160,13 +160,14 @@ Matrix codes drawn from their grid (QR, Micro QR, rMQR, Data Matrix, Aztec) are 
 
 - **Dot shapes:** square, rounded square, circle, diamond, connected (neighbouring dots join smoothly), vertical bars, horizontal bars.
 - **Corner shapes (QR family's three finder patterns):** outer ring square, rounded, circle or leaf; inner eye square, rounded, circle or diamond. Corners may take their own colour.
-- **Colours:** foreground, background (or transparent), corner colour; solid, or a linear or radial gradient.
+- **Colours:** foreground, background (or transparent), corner colour; solid, or a linear or radial gradient. Every colour is chosen with a colour picker (the browser's own) beside a field for a hex value, and colours apply to every symbology, not only matrix codes.
+- **Invert:** one press swaps foreground and background (owner, 2026-10-16).
 - **Themes:** Rainbow (hue across the code), Sunset, Ocean, Forest, Pool (the suite's aqua), Ink, Neon, and **Surprise me**: a random palette drawn from the browser's cryptographic random source, redrawn until it passes the contrast check.
 - **Centre logo:** an image from the person's own device (PNG, JPG, WebP or SVG, at most 5 MB). Size as a share of the code; a cleared plate behind it, with padding and a square, rounded or circular shape. Choosing a logo raises error correction to H unless the person has fixed it.
 
 ### Scannability, checked before export
 
-- **Contrast.** The darkest foreground against the lightest background must reach a fixed contrast floor; themes never fall below it. Light-on-dark codes are allowed with a warning that some readers cannot read them.
+- **Contrast (owner, 2026-10-16).** When foreground and background fall below WCAG 2.2 AA contrast, the page warns. The builder's call on the threshold: 4.5:1, the AA figure for text, because product and linear codes carry human-readable text and scanners need more contrast than the 3:1 AA asks of graphics. With a gradient or theme, the weakest pair is the one measured. Themes and Surprise me never fall below it. A transparent background is measured against white, and the warning says so. Light-on-dark codes (after Invert, for example) carry a second warning: some readers cannot read them. Export is refused only below a lower floor that the decoding tests show scanners cannot read.
 - **Logo size.** The modules a logo covers must stay well inside what the chosen error correction can recover; past that, export is refused with the reason.
 - **Quiet zone.** Below the standard's minimum, a warning.
 - **Read-back.** Where the browser has a built-in barcode reader (the `BarcodeDetector` interface, today mainly Chrome on macOS, Android and ChromeOS), the page reads its own rendered code back and says whether it matched. Where it has none, the page says so; no decoder is shipped for this.
