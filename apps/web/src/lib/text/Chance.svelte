@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { coins, dice, LIMITS, pick } from '@pokerji/text-tools';
+  import { coins, dice, LIMITS, pick } from '@ayudham/text-tools';
   import Frame from './Frame.svelte';
   import NumberField from '#lib/ui/NumberField.svelte';
   import { random } from './random.ts';

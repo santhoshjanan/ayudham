@@ -6,7 +6,7 @@ import type {
   RoundResult,
   SaveStatus,
   ServerMessage,
-} from '@pokerji/protocol';
+} from '@ayudham/protocol';
 
 export interface Participant {
   id: string;

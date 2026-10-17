@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { recoverModerator } from '@pokerji/poker-server';
+import { recoverModerator } from '@ayudham/poker-server';
 import { actorOf } from '#lib/server/actor.ts';
-import { runtime } from '#lib/server/pokerji.ts';
+import { runtime } from '#lib/server/ayudham.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => ({

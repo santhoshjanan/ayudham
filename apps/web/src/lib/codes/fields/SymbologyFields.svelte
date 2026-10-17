@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LIMITS, type Symbology } from '@pokerji/code-maker';
+  import { LIMITS, type Symbology } from '@ayudham/code-maker';
   import TextBox from '#lib/ui/TextBox.svelte';
   import Toggle from '#lib/ui/Toggle.svelte';
   import type { TextFields } from '../payload.ts';

@@ -1,5 +1,5 @@
 /*
- * pokerji — "Judges' Row"
+ * ayudham.app — "Judges' Row"
  * A judging panel at a diving meet: a pool-aqua stage, white scorecards with
  * scoreboard numerals, one yellow action, red only for flags and deletion.
  * Light is the day session on white tile; dark is the evening final.
@@ -402,16 +402,22 @@ main.bleed {
 .band.wide .band-inner {
   width: min(100% - 2.5rem, 62rem);
 }
-/* The home band: the words, and beside them the row that turns. */
+/* The home band: the headline, and beside it the words, both standing on the same line. */
 .band-inner.split {
   display: grid;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: end;
+}
+.band-inner.split h1 {
+  margin: 0;
+}
+.band-inner.split p:first-child {
+  margin-top: 0;
 }
 @media (min-width: 52rem) {
   .band-inner.split {
-    grid-template-columns: 1fr auto;
-    gap: 3rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 4rem;
   }
 }
 .band h1 {
@@ -423,6 +429,17 @@ main.bleed {
   max-width: 46ch;
   font-size: 1.15rem;
   color: var(--stage-ink-soft);
+}
+/* The home band's second line: what the name means, quieter than the line above it. */
+.band p.meaning {
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+  font-size: 0.95rem;
+}
+/* Tamil and Malayalam come from the device's own fonts, which set small beside Atkinson. */
+.band p.meaning :is([lang='ta'], [lang='ml']) {
+  font-size: 1.12em;
 }
 .band .back {
   display: inline-block;

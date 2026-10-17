@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { findingWords, type Finding } from '@pokerji/schema-builder';
+  import { findingWords, type Finding } from '@ayudham/schema-builder';
   import type { Builder } from './builder.svelte.ts';
 
   let { builder, onreveal }: { builder: Builder; onreveal: (finding: Finding) => void } = $props();

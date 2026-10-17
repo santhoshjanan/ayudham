@@ -6,7 +6,7 @@
     typeLabel,
     valuesOf,
     type Item,
-  } from '@pokerji/schema-builder';
+  } from '@ayudham/schema-builder';
   import type { Builder } from './builder.svelte.ts';
   import { pathId } from './ids.ts';
   import ItemFields from './ItemFields.svelte';

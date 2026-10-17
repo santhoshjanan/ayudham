@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BUILT_IN_DECKS, MUSIC_TRACK_IDS } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, MUSIC_TRACK_IDS } from '@ayudham/protocol';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   anonymiseMe,

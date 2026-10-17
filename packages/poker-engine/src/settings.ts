@@ -1,4 +1,4 @@
-import type { Deck } from '@pokerji/protocol';
+import type { Deck } from '@ayudham/protocol';
 import { freshRound, ok } from './outcome.ts';
 import type { Outcome, RoomSettings, RoomState } from './state.ts';
 

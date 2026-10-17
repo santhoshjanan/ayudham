@@ -6,7 +6,7 @@
     type Item,
     type ItemPath,
     type Value,
-  } from '@pokerji/schema-builder';
+  } from '@ayudham/schema-builder';
   import type { Builder } from './builder.svelte.ts';
   import { fieldId } from './ids.ts';
   import ValueInput from './ValueInput.svelte';

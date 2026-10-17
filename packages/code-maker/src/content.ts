@@ -227,7 +227,7 @@ export function calendarEvent(event: CalendarEvent): Result<string> {
   const entries = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//pokerji//Code maker//EN',
+    'PRODID:-//ayudham//Code maker//EN',
     'BEGIN:VEVENT',
     `SUMMARY:${textValue(str(event.title).trim())}`,
   ];

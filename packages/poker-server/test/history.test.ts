@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BUILT_IN_DECKS } from '@pokerji/protocol';
+import { BUILT_IN_DECKS } from '@ayudham/protocol';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   anonymiseSession,

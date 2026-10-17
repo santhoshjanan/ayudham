@@ -9,7 +9,7 @@ test('the public port never serves metrics', async ({ request }) => {
   for (const path of ['/metrics', '/metrics?x=1']) {
     const response = await request.get(path);
     expect(response.status()).toBe(404);
-    expect(await response.text()).not.toContain('pokerji_');
+    expect(await response.text()).not.toContain('ayudham_');
   }
   expect((await request.post('/metrics')).status()).toBe(404);
 });
@@ -18,7 +18,7 @@ test('the metrics port serves only GET /metrics', async ({ request }) => {
   const scrape = await request.get(`${METRICS}/metrics`);
   expect(scrape.status()).toBe(200);
   expect(scrape.headers()['content-type']).toContain('text/plain');
-  expect(await scrape.text()).toContain('pokerji_build_info');
+  expect(await scrape.text()).toContain('ayudham_build_info');
   for (const path of ['/', '/poker', '/healthz', '/metrics/', '/metrics?x=1', '/robots.txt']) {
     expect((await request.get(`${METRICS}${path}`)).status(), path).toBe(404);
   }
@@ -56,19 +56,19 @@ test('a round played in a browser is counted, and nothing about it is in the scr
   await expect
     .poll(async () => {
       text = await (await request.get(`${METRICS}/metrics`)).text();
-      return /^pokerji_websocket_messages_total\{type="vote"\} [1-9]/m.test(text);
+      return /^ayudham_websocket_messages_total\{type="vote"\} [1-9]/m.test(text);
     })
     .toBe(true);
   const value = (line: string) => {
     const found = text.split('\n').find((entry) => entry.startsWith(`${line} `));
     return found === undefined ? 0 : Number(found.slice(line.length + 1));
   };
-  expect(value('pokerji_rooms_active')).toBeGreaterThanOrEqual(1);
-  expect(value('pokerji_websocket_connections')).toBeGreaterThanOrEqual(1);
-  expect(value('pokerji_websocket_messages_total{type="setTitle"}')).toBeGreaterThanOrEqual(1);
-  expect(value('pokerji_websocket_messages_total{type="vote"}')).toBeGreaterThanOrEqual(1);
+  expect(value('ayudham_rooms_active')).toBeGreaterThanOrEqual(1);
+  expect(value('ayudham_websocket_connections')).toBeGreaterThanOrEqual(1);
+  expect(value('ayudham_websocket_messages_total{type="setTitle"}')).toBeGreaterThanOrEqual(1);
+  expect(value('ayudham_websocket_messages_total{type="vote"}')).toBeGreaterThanOrEqual(1);
   expect(
-    value('pokerji_http_requests_total{route_class="page",status_class="2xx"}'),
+    value('ayudham_http_requests_total{route_class="page",status_class="2xx"}'),
   ).toBeGreaterThanOrEqual(1);
 
   for (const secret of [

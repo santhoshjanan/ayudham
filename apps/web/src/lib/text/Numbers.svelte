@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LIMITS, many, numberBetween, pin } from '@pokerji/text-tools';
+  import { LIMITS, many, numberBetween, pin } from '@ayudham/text-tools';
   import Frame from './Frame.svelte';
   import NumberField from '#lib/ui/NumberField.svelte';
   import { random } from './random.ts';

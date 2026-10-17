@@ -1,4 +1,4 @@
-import type { Deck } from '@pokerji/protocol';
+import type { Deck } from '@ayudham/protocol';
 import { computeResult } from './result.ts';
 
 /**

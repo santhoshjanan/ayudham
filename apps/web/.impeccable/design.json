@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-10-13T00:00:00Z",
-  "title": "Design System: pokerji",
+  "title": "Design System: ayudham.app",
   "extensions": {
     "colorMeta": {
       "stage": {
@@ -630,7 +630,7 @@
         "selector": ":root[data-theme='dark'], and :root:not([data-theme='light']) under prefers-color-scheme: dark",
         "colorScheme": "dark"
       },
-      "storage": "localStorage key 'pj-theme' ('light' or 'dark'); browser only, applied by a nonce-carrying script in app.html before first paint; unset follows the device."
+      "storage": "localStorage key 'ay-theme' ('light' or 'dark'); browser only, applied by a nonce-carrying script in app.html before first paint; unset follows the device."
     },
     "shadows": [
       {
@@ -762,7 +762,7 @@
       "kind": "nav",
       "refersTo": "site-bar",
       "description": "One bar in deep water. In a room it carries the room link, pages, and your name with its role badge.",
-      "html": "<header class=\"ds-bar\"><a class=\"ds-bar-mark\" href=\"#\">pokerji</a><nav class=\"ds-bar-nav\"><button class=\"ds-bar-copy\" type=\"button\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M9 9h10v11H9zM5 15V4h10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Copy room link</span></button><a href=\"#\">History</a><a href=\"#\">Settings</a></nav><span class=\"ds-bar-you\">Mo <span class=\"ds-bar-badge\">Owner</span></span></header>",
+      "html": "<header class=\"ds-bar\"><a class=\"ds-bar-mark\" href=\"#\">ayudham.app</a><nav class=\"ds-bar-nav\"><button class=\"ds-bar-copy\" type=\"button\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M9 9h10v11H9zM5 15V4h10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Copy room link</span></button><a href=\"#\">History</a><a href=\"#\">Settings</a></nav><span class=\"ds-bar-you\">Mo <span class=\"ds-bar-badge\">Owner</span></span></header>",
       "css": ".ds-bar { display: flex; align-items: center; gap: 0.5rem 1.25rem; padding: 0.5rem 1.5rem; background: var(--stage-deep); color: var(--stage-ink); font-family: var(--font-ui, 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif); } .ds-bar a { color: inherit; text-decoration: none; } .ds-bar-mark { font-family: var(--font-display, 'Big Shoulders Variable', 'Arial Narrow', sans-serif); font-weight: 900; font-size: 1.6rem; letter-spacing: 0.01em; margin-right: auto; } .ds-bar-nav { display: flex; align-items: center; gap: 1.25rem; font-size: 0.95rem; } .ds-bar-nav a:hover { text-decoration: underline; } .ds-bar-copy { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.25rem; padding: 0.2rem 0.7rem; background: transparent; color: inherit; border: 1px solid var(--stage-ink-soft); border-radius: var(--radius); font: inherit; font-weight: 650; cursor: pointer; } .ds-bar-copy:hover { background: var(--stage-ink); color: var(--stage-deep); } .ds-bar-copy:focus-visible, .ds-bar a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; } .ds-bar-you { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 650; font-size: 0.95rem; } .ds-bar-badge { padding: 0.05rem 0.4rem; border: 1px solid var(--stage-ink); border-radius: 3px; background: var(--stage-ink); color: var(--stage-deep); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.5; }"
     },
     {
@@ -808,7 +808,7 @@
   ],
   "narrative": {
     "northStar": "Judges' Row",
-    "overview": "Estimation is judging. The interface is a judging panel at a diving meet: one field of pool aqua, the stage, carries the story being scored; below it, on a tiled floor, a row of white scorecards sits face down until every one of them turns in the same instant. The highest and lowest are flagged in red and named on the stage, because they speak first. There is no table, no ring of avatars and no illustration; the scene is made from colour fields, a square tile grid and heavy scoreboard numerals.\n\nThe system has two themes of equal standing. Light is the day session: cool white tile, dark ink. Dark is the evening final: scoreboard black, the pool deepened to a lit teal, the scorecards still white. The first visit follows the device; the toggle in the bar overrides it; the choice is kept in the browser only (`localStorage` key `pj-theme`) and applied before first paint, so no page flashes the wrong theme. Every colour decision is made twice, once per theme.\n\nEverything apart from the stage and the cards is plain: standard web controls, one measured column for reading and forms, sections divided by a rule. The tool sits beside a meeting and must not compete with it.",
+    "overview": "Estimation is judging. The interface is a judging panel at a diving meet: one field of pool aqua, the stage, carries the story being scored; below it, on a tiled floor, a row of white scorecards sits face down until every one of them turns in the same instant. The highest and lowest are flagged in red and named on the stage, because they speak first. There is no table, no ring of avatars and no illustration; the scene is made from colour fields, a square tile grid and heavy scoreboard numerals.\n\nThe system has two themes of equal standing. Light is the day session: cool white tile, dark ink. Dark is the evening final: scoreboard black, the pool deepened to a lit teal, the scorecards still white. The first visit follows the device; the toggle in the bar overrides it; the choice is kept in the browser only (`localStorage` key `ay-theme`) and applied before first paint, so no page flashes the wrong theme. Every colour decision is made twice, once per theme.\n\nEverything apart from the stage and the cards is plain: standard web controls, one measured column for reading and forms, sections divided by a rule. The tool sits beside a meeting and must not compete with it.",
     "keyCharacteristics": [
       "One full-bleed aqua field per page: the stage in the room, a band everywhere else.",
       "Colour is rationed: aqua for the stage, yellow for the one next step, red for flags and deletion.",

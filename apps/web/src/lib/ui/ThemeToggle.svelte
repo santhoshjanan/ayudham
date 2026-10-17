@@ -16,7 +16,7 @@
     document.documentElement.dataset.theme = next;
     dark = next === 'dark';
     try {
-      localStorage.setItem('pj-theme', next);
+      localStorage.setItem('ay-theme', next);
     } catch {
       // Private browsing: the choice lasts for this page only.
     }

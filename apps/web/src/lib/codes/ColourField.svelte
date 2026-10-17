@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { explain, parseColour } from '@pokerji/code-maker';
+  import { explain, parseColour } from '@ayudham/code-maker';
 
   let {
     id,

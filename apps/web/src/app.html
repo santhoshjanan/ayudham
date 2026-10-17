@@ -9,7 +9,7 @@
     <!-- Applies a saved theme before first paint, so a page never flashes the wrong one. -->
     <script nonce="%sveltekit.nonce%">
       try {
-        var saved = localStorage.getItem('pj-theme');
+        var saved = localStorage.getItem('ay-theme');
         if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
       } catch (error) {}
     </script>

@@ -1,5 +1,5 @@
 ---
-name: pokerji
+name: ayudham.app
 description: Planning poker staged as a judging panel at a diving meet.
 colors:
   stage: "#0e6f8c"
@@ -186,7 +186,7 @@ components:
     padding: "1.1rem 1.25rem"
 ---
 
-# Design System: pokerji
+# Design System: ayudham.app
 
 ## Overview
 
@@ -194,7 +194,7 @@ components:
 
 Estimation is judging. The interface is a judging panel at a diving meet: one field of pool aqua, the stage, carries the story being scored; below it, on a tiled floor, a row of white scorecards sits face down until every one of them turns in the same instant. The highest and lowest are flagged in red and named on the stage, because they speak first. There is no table, no ring of avatars and no illustration; the scene is made from colour fields, a square tile grid and heavy scoreboard numerals.
 
-The system has two themes of equal standing. Light is the day session: cool white tile, dark ink. Dark is the evening final: scoreboard black, the pool deepened to a lit teal, the scorecards still white. The first visit follows the device; the toggle in the bar overrides it; the choice is kept in the browser only (`localStorage` key `pj-theme`) and applied before first paint, so no page flashes the wrong theme. Every colour decision is made twice, once per theme.
+The system has two themes of equal standing. Light is the day session: cool white tile, dark ink. Dark is the evening final: scoreboard black, the pool deepened to a lit teal, the scorecards still white. The first visit follows the device; the toggle in the bar overrides it; the choice is kept in the browser only (`localStorage` key `ay-theme`) and applied before first paint, so no page flashes the wrong theme. Every colour decision is made twice, once per theme.
 
 Everything apart from the stage and the cards is plain: standard web controls, one measured column for reading and forms, sections divided by a rule. The tool sits beside a meeting and must not compete with it.
 
@@ -252,7 +252,7 @@ Three signal colours on a cool neutral ground, each with one job.
 - **Count** (900, clamp(9rem, 34dvh, 20rem), 1): the 3, 2, 1. On screens up to 40rem wide, clamp(5rem, 16dvh, 8.5rem), so the numeral fits the shorter stage with its beat.
 - **Numeral** (900, 52% of the card's width, 1): the value on a scorecard face; 2.86rem on the large card. Hand cards use 1.7rem. The tally and history use 800 at 1.35 to 1.4rem.
 - **Headline** (800, clamp(2.25rem, 1.4rem + 3.6vw, 4rem), 1.05): page titles. Inside a band the weight is 900 and the line height 0.98.
-- **Title** (800, 1.75rem, 1.05): section headings. 2.25rem for an entry in the home programme, 1.5rem for dialog headings and claims, 1.25rem inside the room. The wordmark is the word "pokerji" at 900, 1.6rem.
+- **Title** (800, 1.75rem, 1.05): section headings. 2.25rem for an entry in the home programme, 1.5rem for dialog headings and claims, 1.25rem inside the room. The wordmark is the word "ayudham.app" at 900, 1.6rem.
 - **Timer and verdict** (800, clamp(1.75rem, 1.2rem + 2vw, 3rem), 1): the stage clock and the Low/High result line.
 - **Body** (400, 1.0625rem, 1.5): everything read as prose. Band introductions are 1.15rem, held to 46ch; reading columns are 40rem wide.
 - **Label** (650, 1.0625rem): field labels, buttons, names under cards, alerts.
@@ -274,7 +274,7 @@ The hand is docked to the bottom edge of the viewport, a fixed strip that scroll
 
 The moderator's controls move with width. At 64rem and up they are a rail, 18.5rem wide, beside the row. Below 64rem they are a bar in the dock, above the hand: the next step at full width, and a More button that opens the remaining controls as a sheet up to 50dvh tall. The largest control in either place is always the next thing to do.
 
-Every other page opens with a band of aqua holding the page title and at most one supporting line, then one column on the tile: 40rem for forms and reading, 62rem for the home page. The home band holds the words on the left and the turning row on the right (below the words under 52rem). The privacy promises on the home page are a ledger, one promise to a ruled line with its term in an 18rem left column, matching the programme above; they are never equal columns. Sections in a column are separated by 2.75rem and a single rule, not boxed. Fields are spaced 0.9rem apart; grouped buttons 0.6rem.
+Every other page opens with a band of aqua holding the page title and at most one supporting line (the home band alone adds a second, quieter line under a faint rule, saying what the name means), then one column on the tile: 40rem for forms and reading, 62rem for the home page. The home band holds the headline on the left and its words on the right, in two equal columns standing on the same line (the words below the headline under 52rem). There is no picture in it. The privacy promises on the home page are a ledger, one promise to a ruled line with its term in an 18rem left column, matching the programme above; they are never equal columns. Sections in a column are separated by 2.75rem and a single rule, not boxed. Fields are spaced 0.9rem apart; grouped buttons 0.6rem.
 
 Breakpoints, all in rem: 34rem (the bar drops its text labels, the visitor's name and role badge, keeping icons and links; outside a room it drops the links to the tools and keeps Privacy, since the home page lists the tools; the role still shows under the person's own card), 40rem (shorter stage, smaller cards), 44rem (home lists take a term column), 52rem (home band puts the row beside the words), 64rem (rail in place of bar; the same breakpoint turns the markup builder's rail into its dock).
 
@@ -326,7 +326,7 @@ The signature component.
 - **Empty seat:** a 2px dashed outline in the line colour, no fill, no shadow.
 - **Turn:** each card rotates about its vertical axis in one 300 ms move, `cubic-bezier(0.16, 1, 0.3, 1)`. Every card turns on the same state change, so the row turns in unison.
 - **The beat:** only on a screen that watched the cards turn (`data-reveal="live"` on the room), never for someone who opens the room afterwards. 450 ms after the turn the Low flag is stamped on (it drops in from 1.8 times its size in 240 ms), its card dips 0.3rem and takes its red edge, and the Low name lands on the stage; High follows at 850 ms. A unanimous round has no flags: the verdict lands with the count's beat and the row hops, one card 45 ms after the next. Under reduced motion all of it is simply present.
-- **Outside the room:** `Scorecard.svelte` in `apps/web/src/lib/ui` is the one implementation. The home band shows a decorative row of five that turns once, 900 ms after the page opens.
+- **Outside the room:** `Scorecard.svelte` in `apps/web/src/lib/ui` is the one implementation.
 - **Sound:** the reveal count ticks once per number, and a countdown ends in a telegraph key (three short, one long) after the music has faded. All of it is off until a person turns it on.
 - **Away:** the card and name of someone who has left the tab drop to half opacity, with an Away badge.
 - **The break card:** a drawn cup in the numeral's stroke weight, not an emoji.

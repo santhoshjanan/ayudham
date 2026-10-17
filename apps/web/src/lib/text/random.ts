@@ -1,4 +1,4 @@
-import type { RandomSource } from '@pokerji/text-tools';
+import type { RandomSource } from '@ayudham/text-tools';
 
 /**
  * The browser's cryptographic random source, and the only one this page uses. Where a browser

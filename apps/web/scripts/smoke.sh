@@ -5,8 +5,8 @@ set -eu
 
 PORT=4391
 export PORT HOST=127.0.0.1 INSECURE_HTTP=1 PROTOCOL_HEADER=x-forwarded-proto
-export DATABASE_URL="${DATABASE_URL:-postgres://pokerji:pokerji_dev@127.0.0.1:5432/pokerji}"
-export VALKEY_URL="${VALKEY_URL:-redis://:pokerji_dev@127.0.0.1:6379}"
+export DATABASE_URL="${DATABASE_URL:-postgres://ayudham:ayudham_dev@127.0.0.1:5432/ayudham}"
+export VALKEY_URL="${VALKEY_URL:-redis://:ayudham_dev@127.0.0.1:6379}"
 export ADDRESS_HMAC_SECRET="${ADDRESS_HMAC_SECRET:-development-only-address-hmac-secret}"
 export KEY_PREFIX="smoke-$$:"
 METRICS=4396
@@ -88,10 +88,10 @@ M="http://127.0.0.1:$METRICS"
 SCRAPE=$(curl -s -D - -H "Authorization: Bearer $METRICS_TOKEN" "$M/metrics")
 echo "$SCRAPE" | grep -qi "^HTTP/1.1 200" || fail "metrics with the token"
 echo "$SCRAPE" | grep -qi "^content-type: text/plain" || fail "metrics content type"
-echo "$SCRAPE" | grep -q '^pokerji_build_info{version="dev"} 1' || fail "build info in the scrape"
-echo "$SCRAPE" | grep -q '^pokerji_valkey_up 1' || fail "valkey_up in the scrape"
-echo "$SCRAPE" | grep -q '^pokerji_postgres_up 1' || fail "postgres_up in the scrape"
-echo "$SCRAPE" | grep -q '^pokerji_http_requests_total{route_class="healthz",status_class="2xx"}' \
+echo "$SCRAPE" | grep -q '^ayudham_build_info{version="dev"} 1' || fail "build info in the scrape"
+echo "$SCRAPE" | grep -q '^ayudham_valkey_up 1' || fail "valkey_up in the scrape"
+echo "$SCRAPE" | grep -q '^ayudham_postgres_up 1' || fail "postgres_up in the scrape"
+echo "$SCRAPE" | grep -q '^ayudham_http_requests_total{route_class="healthz",status_class="2xx"}' \
   || fail "requests are not counted"
 echo "$SCRAPE" | grep -q '^process_resident_memory_bytes' || fail "process metrics in the scrape"
 if echo "$SCRAPE" | grep -q "AAAAAAAAAAAA"; then fail "a room code reached the scrape"; fi

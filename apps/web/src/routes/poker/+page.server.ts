@@ -1,8 +1,8 @@
 import { fail } from '@sveltejs/kit';
-import { createRoomFlow, SESSION_COOKIE } from '@pokerji/poker-server';
+import { createRoomFlow, SESSION_COOKIE } from '@ayudham/poker-server';
 import { clientAddress } from '#lib/server/address.ts';
 import { sessionCookie } from '#lib/server/cookie.ts';
-import { runtime } from '#lib/server/pokerji.ts';
+import { runtime } from '#lib/server/ayudham.ts';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import type { Vocabulary } from '@pokerji/schema-builder';
+  import type { Vocabulary } from '@ayudham/schema-builder';
   import type { Builder } from './builder.svelte.ts';
 
   // Shows what needs the vocabulary once it is here; says so while it is not.

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LIMITS } from '@pokerji/text-tools';
+  import { LIMITS } from '@ayudham/text-tools';
 
   let {
     id,

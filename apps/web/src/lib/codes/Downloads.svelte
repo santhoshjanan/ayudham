@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explain } from '@pokerji/code-maker';
+  import { explain } from '@ayudham/code-maker';
   import type { Maker } from './maker.svelte.ts';
   import type { Output } from './work.ts';
 

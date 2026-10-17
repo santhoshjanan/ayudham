@@ -9,10 +9,10 @@ import {
   saveSettings,
   SESSION_COOKIE,
   setPasscode,
-} from '@pokerji/poker-server';
-import { BUILT_IN_DECKS, type BuiltInDeckId, type Deck } from '@pokerji/protocol';
+} from '@ayudham/poker-server';
+import { BUILT_IN_DECKS, type BuiltInDeckId, type Deck } from '@ayudham/protocol';
 import { moderatorOf } from '#lib/server/actor.ts';
-import { runtime } from '#lib/server/pokerji.ts';
+import { runtime } from '#lib/server/ayudham.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const builtInId = (deck: Deck): string =>

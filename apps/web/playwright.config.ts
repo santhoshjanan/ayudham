@@ -27,8 +27,8 @@ export default defineConfig({
       // The metrics listener, on its own port, as a private network would reach it.
       METRICS_PORT: String(PORT + 1),
       DATABASE_URL:
-        process.env.DATABASE_URL ?? 'postgres://pokerji:pokerji_dev@127.0.0.1:5432/pokerji',
-      VALKEY_URL: process.env.VALKEY_URL ?? 'redis://:pokerji_dev@127.0.0.1:6379',
+        process.env.DATABASE_URL ?? 'postgres://ayudham:ayudham_dev@127.0.0.1:5432/ayudham',
+      VALKEY_URL: process.env.VALKEY_URL ?? 'redis://:ayudham_dev@127.0.0.1:6379',
       ADDRESS_HMAC_SECRET: 'end-to-end-tests-only-address-hmac-secret',
       // A fresh namespace each run, so rate limits from earlier runs do not carry over.
       KEY_PREFIX: `e2e-${Date.now()}:`,

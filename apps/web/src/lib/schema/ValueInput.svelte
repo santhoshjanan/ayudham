@@ -8,7 +8,7 @@
     type ItemPath,
     type TextKind,
     type Value,
-  } from '@pokerji/schema-builder';
+  } from '@ayudham/schema-builder';
   import type { Builder } from './builder.svelte.ts';
   import { fieldId } from './ids.ts';
   import ItemFields from './ItemFields.svelte';

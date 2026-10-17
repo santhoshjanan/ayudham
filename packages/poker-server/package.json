@@ -1,5 +1,5 @@
 {
-  "name": "@pokerji/poker-server",
+  "name": "@ayudham/poker-server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.1",
-    "@pokerji/poker-engine": "workspace:*",
-    "@pokerji/protocol": "workspace:*",
+    "@ayudham/poker-engine": "workspace:*",
+    "@ayudham/protocol": "workspace:*",
     "iovalkey": "^0.4.0",
     "pg": "^8.23.1",
     "prom-client": "15.1.3",

@@ -166,7 +166,7 @@ describe('process metrics', () => {
     // The app in this file was started without them.
     const text = await app.metrics.render();
     expect(text).not.toContain('nodejs_eventloop_lag_seconds');
-    expect(text).toContain('pokerji_rooms_active');
+    expect(text).toContain('ayudham_rooms_active');
   });
 });
 

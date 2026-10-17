@@ -10,7 +10,7 @@
     type Finding,
     RULES_CHECKED,
     typeLabel,
-  } from '@pokerji/schema-builder';
+  } from '@ayudham/schema-builder';
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import { Builder } from './builder.svelte.ts';
   import Findings from './Findings.svelte';

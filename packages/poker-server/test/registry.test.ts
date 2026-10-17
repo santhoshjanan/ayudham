@@ -1,4 +1,4 @@
-import { BUILT_IN_DECKS, ROOM_UNLOAD_MS } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, ROOM_UNLOAD_MS } from '@ayudham/protocol';
 import { afterAll, describe, expect, it } from 'vitest';
 import { createKv, RoomHost, RoomRegistry, type RoomRow } from '../src/index.ts';
 import { fakeClock, fakeConnection, fakeStore } from './fakes.ts';

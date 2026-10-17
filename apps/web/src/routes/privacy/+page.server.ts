@@ -1,4 +1,4 @@
-import { runtime } from '#lib/server/pokerji.ts';
+import { runtime } from '#lib/server/ayudham.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {

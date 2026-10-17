@@ -1,4 +1,4 @@
-import type { ClientMessage } from '@pokerji/protocol';
+import type { ClientMessage } from '@ayudham/protocol';
 import { describe, expect, it } from 'vitest';
 import { apply } from '../src/index.ts';
 import { forbidden, msg, seeded } from './helpers.ts';

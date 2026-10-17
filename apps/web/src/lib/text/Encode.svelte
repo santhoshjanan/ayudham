@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Encoding } from '@pokerji/text-tools';
+  import type { Encoding } from '@ayudham/text-tools';
   import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
   import TextBox from '#lib/ui/TextBox.svelte';

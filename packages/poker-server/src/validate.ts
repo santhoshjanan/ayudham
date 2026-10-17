@@ -1,5 +1,5 @@
 import { isIPv4, isIPv6 } from 'node:net';
-import { NAME_MAX, NAME_MIN, PASSCODE_MAX, PASSCODE_MIN } from '@pokerji/protocol';
+import { NAME_MAX, NAME_MIN, PASSCODE_MAX, PASSCODE_MIN } from '@ayudham/protocol';
 import { z } from 'zod';
 
 /** Control, format (zero-width, direction), surrogate and line or paragraph separator characters. */

@@ -1,4 +1,4 @@
-import { BUILT_IN_DECKS, NAME_MAX, PASSCODE_MAX, roleSchema } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, NAME_MAX, PASSCODE_MAX, roleSchema } from '@ayudham/protocol';
 import type { Db } from './db.ts';
 import { KEY_PREFIX, type Kv } from './kv.ts';
 import { LIMITS, overLimit, withinLimit, type Limit } from './limiter.ts';
@@ -73,7 +73,7 @@ const isUniqueViolation = (error: unknown) =>
 
 let dummyHash: Promise<string> | undefined;
 /** A real Argon2 hash that no passcode matches, verified against when there is nothing else to check. */
-const dummy = () => (dummyHash ??= hashPasscode('pokerji: there is no such passcode'));
+const dummy = () => (dummyHash ??= hashPasscode('ayudham: there is no such passcode'));
 
 /**
  * The name to store: the one asked for, or that name with a number when someone

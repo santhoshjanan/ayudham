@@ -17,19 +17,19 @@ describe('metrics', () => {
     metrics.roomUnloaded('idle');
     metrics.roomLoaded();
     metrics.roomUnloaded('closed');
-    expect(await sample('pokerji_room_unloads_total{reason="closed"}')).toBe(1);
-    expect(await sample('pokerji_rooms_active')).toBe(1);
-    expect(await sample('pokerji_room_loads_total')).toBe(3);
-    expect(await sample('pokerji_room_unloads_total{reason="idle"}')).toBe(1);
+    expect(await sample('ayudham_room_unloads_total{reason="closed"}')).toBe(1);
+    expect(await sample('ayudham_rooms_active')).toBe(1);
+    expect(await sample('ayudham_room_loads_total')).toBe(3);
+    expect(await sample('ayudham_room_unloads_total{reason="idle"}')).toBe(1);
   });
 
   it('counts connections, and why each one closed', async () => {
     metrics.socketOpened();
     metrics.socketOpened();
     metrics.socketClosed('rate_limited');
-    expect(await sample('pokerji_websocket_connections')).toBe(1);
-    expect(await sample('pokerji_websocket_connections_total')).toBe(2);
-    expect(await sample('pokerji_websocket_closes_total{reason="rate_limited"}')).toBe(1);
+    expect(await sample('ayudham_websocket_connections')).toBe(1);
+    expect(await sample('ayudham_websocket_connections_total')).toBe(2);
+    expect(await sample('ayudham_websocket_closes_total{reason="rate_limited"}')).toBe(1);
   });
 
   it('counts messages by type, rejected ones by reason, and refused upgrades', async () => {
@@ -37,9 +37,9 @@ describe('metrics', () => {
     metrics.messageReceived('vote');
     metrics.messageRejected('oversize');
     metrics.upgradeRefused('auth');
-    expect(await sample('pokerji_websocket_messages_total{type="vote"}')).toBe(2);
-    expect(await sample('pokerji_websocket_messages_rejected_total{reason="oversize"}')).toBe(1);
-    expect(await sample('pokerji_websocket_upgrades_refused_total{reason="auth"}')).toBe(1);
+    expect(await sample('ayudham_websocket_messages_total{type="vote"}')).toBe(2);
+    expect(await sample('ayudham_websocket_messages_rejected_total{reason="oversize"}')).toBe(1);
+    expect(await sample('ayudham_websocket_upgrades_refused_total{reason="auth"}')).toBe(1);
   });
 
   it('never lets a value that is not on the fixed list become a label', async () => {
@@ -54,8 +54,8 @@ describe('metrics', () => {
     metrics.httpRequest(secret, `/${secret}`, 999);
     const text = await metrics.render();
     expect(text).not.toContain(secret);
-    expect(await sample('pokerji_websocket_messages_total{type="other"}')).toBe(1);
-    expect(await sample('pokerji_rate_limit_hits_total{bucket="other"}')).toBe(1);
+    expect(await sample('ayudham_websocket_messages_total{type="other"}')).toBe(1);
+    expect(await sample('ayudham_rate_limit_hits_total{bucket="other"}')).toBe(1);
   });
 
   it('names a rate-limit bucket by the fixed first part of its key, dropping the rest', async () => {
@@ -66,12 +66,12 @@ describe('metrics', () => {
     const text = await metrics.render();
     expect(text).not.toContain('Zm9vYmFy');
     expect(text).not.toContain('0b0e4a52');
-    expect(await sample('pokerji_rate_limit_hits_total{bucket="join"}')).toBe(2);
+    expect(await sample('ayudham_rate_limit_hits_total{bucket="join"}')).toBe(2);
     // A passcode lockout is counted with joins: on its own it would tell a reader of the
     // metrics that a room exists, has a passcode and is locked, which the site never says.
-    expect(await sample('pokerji_rate_limit_hits_total{bucket="pass"}')).toBeUndefined();
-    expect(await sample('pokerji_rate_limit_hits_total{bucket="create"}')).toBe(1);
-    expect(await sample('pokerji_rate_limit_errors_total')).toBe(1);
+    expect(await sample('ayudham_rate_limit_hits_total{bucket="pass"}')).toBeUndefined();
+    expect(await sample('ayudham_rate_limit_hits_total{bucket="create"}')).toBe(1);
+    expect(await sample('ayudham_rate_limit_errors_total')).toBe(1);
   });
 
   it('records the wait for a room lock, and failures to get one', async () => {
@@ -79,10 +79,10 @@ describe('metrics', () => {
     metrics.lockWaited(2);
     metrics.lockFailed();
     metrics.lockLost();
-    expect(await sample('pokerji_room_lock_wait_seconds_count')).toBe(2);
-    expect(await sample('pokerji_room_lock_wait_seconds_bucket{le="0.005"}')).toBe(1);
-    expect(await sample('pokerji_room_lock_failures_total')).toBe(1);
-    expect(await sample('pokerji_room_lock_lost_total')).toBe(1);
+    expect(await sample('ayudham_room_lock_wait_seconds_count')).toBe(2);
+    expect(await sample('ayudham_room_lock_wait_seconds_bucket{le="0.005"}')).toBe(1);
+    expect(await sample('ayudham_room_lock_failures_total')).toBe(1);
+    expect(await sample('ayudham_room_lock_lost_total')).toBe(1);
   });
 
   it('counts requests by a coarse class and status class only', async () => {
@@ -90,17 +90,17 @@ describe('metrics', () => {
     metrics.httpRequest('POST', '/poker', 303);
     metrics.httpRequest('GET', '/healthz', 200);
     metrics.httpRequest('GET', '/_app/immutable/chunk.js', 304);
-    expect(await sample('pokerji_http_requests_total{route_class="page",status_class="2xx"}')).toBe(
+    expect(await sample('ayudham_http_requests_total{route_class="page",status_class="2xx"}')).toBe(
       1,
     );
-    expect(await sample('pokerji_http_requests_total{route_class="api",status_class="3xx"}')).toBe(
+    expect(await sample('ayudham_http_requests_total{route_class="api",status_class="3xx"}')).toBe(
       1,
     );
     expect(
-      await sample('pokerji_http_requests_total{route_class="healthz",status_class="2xx"}'),
+      await sample('ayudham_http_requests_total{route_class="healthz",status_class="2xx"}'),
     ).toBe(1);
     expect(
-      await sample('pokerji_http_requests_total{route_class="static",status_class="3xx"}'),
+      await sample('ayudham_http_requests_total{route_class="static",status_class="3xx"}'),
     ).toBe(1);
   });
 
@@ -114,8 +114,8 @@ describe('metrics', () => {
         throw new Error('down');
       },
     });
-    expect(await sample('pokerji_valkey_up')).toBe(1);
-    expect(await sample('pokerji_postgres_up')).toBe(0);
+    expect(await sample('ayudham_valkey_up')).toBe(1);
+    expect(await sample('ayudham_postgres_up')).toBe(0);
     await metrics.render();
     await metrics.render();
     expect(asked).toBe(1);
@@ -127,24 +127,24 @@ describe('metrics', () => {
       postgres: async () => undefined,
     });
     const started = Date.now();
-    expect(await sample('pokerji_valkey_up')).toBe(0);
+    expect(await sample('ayudham_valkey_up')).toBe(0);
     expect(Date.now() - started).toBeLessThan(3_000);
   }, 10_000);
 
   it('carries the build version, and refuses one that is not a plain version string', async () => {
     metrics.setVersion('1.4.2');
-    expect(await sample('pokerji_build_info{version="1.4.2"}')).toBe(1);
+    expect(await sample('ayudham_build_info{version="1.4.2"}')).toBe(1);
     metrics.setVersion('1.0"} injected{x="');
     const text = await metrics.render();
     expect(text).not.toContain('injected');
-    expect(await sample('pokerji_build_info{version="unknown"}')).toBe(1);
+    expect(await sample('ayudham_build_info{version="unknown"}')).toBe(1);
   });
 
   it('swallows a failure inside a metric call and counts it', async () => {
     // A histogram refuses a value that is not a number.
     expect(() => metrics.lockWaited(Number.NaN)).not.toThrow();
     expect(() => metrics.lockWaited('soon' as unknown as number)).not.toThrow();
-    expect(await sample('pokerji_metrics_errors_total')).toBeGreaterThanOrEqual(1);
+    expect(await sample('ayudham_metrics_errors_total')).toBeGreaterThanOrEqual(1);
   });
 
   it('says nothing, and counts the failure, when the scrape itself cannot be written', async () => {
@@ -155,21 +155,21 @@ describe('metrics', () => {
       postgres: async () => undefined,
     });
     // A probe that throws outright is still only "down".
-    expect(await sample('pokerji_valkey_up')).toBe(0);
+    expect(await sample('ayudham_valkey_up')).toBe(0);
   });
 
   it('writes the Prometheus text format, with every metric prefixed and described', async () => {
     metrics.roomLoaded();
     const text = await metrics.render();
     expect(metrics.contentType).toContain('text/plain');
-    expect(text).toContain('# TYPE pokerji_rooms_active gauge');
-    expect(text).toContain('# HELP pokerji_rooms_active ');
+    expect(text).toContain('# TYPE ayudham_rooms_active gauge');
+    expect(text).toContain('# HELP ayudham_rooms_active ');
     const names = text
       .split('\n')
       .filter((line) => line.startsWith('# TYPE '))
       .map((line) => line.split(' ')[2] ?? '');
     expect(names.length).toBeGreaterThan(10);
-    for (const name of names) expect(name).toMatch(/^pokerji_[a-z_]+$/);
+    for (const name of names) expect(name).toMatch(/^ayudham_[a-z_]+$/);
   });
 });
 

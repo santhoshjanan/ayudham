@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>History · pokerji</title>
+  <title>History · ayudham.app</title>
 </svelte:head>
 
 <header class="band">

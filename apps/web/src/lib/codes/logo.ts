@@ -1,4 +1,4 @@
-import { LIMITS } from '@pokerji/code-maker';
+import { LIMITS } from '@ayudham/code-maker';
 
 /**
  * A logo as the writers take it: RGBA pixels for the PDF, PNG bytes for SVG, and a small PNG for

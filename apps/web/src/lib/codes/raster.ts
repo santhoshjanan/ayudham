@@ -1,4 +1,4 @@
-import { gradientAxis, gradientRadius, type Drawing, type Paint } from '@pokerji/code-maker';
+import { gradientAxis, gradientRadius, type Drawing, type Paint } from '@ayudham/code-maker';
 
 type Context = OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
 

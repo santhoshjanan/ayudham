@@ -25,7 +25,7 @@ import {
   type Style,
   type StyleLogo,
   type ThemeId,
-} from '@pokerji/code-maker';
+} from '@ayudham/code-maker';
 
 /**
  * How a code looks, as plain data. It crosses into the worker by structured clone, so it holds no

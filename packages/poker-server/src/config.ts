@@ -10,7 +10,7 @@ const schema = z.object({
   KEY_PREFIX: z
     .string()
     .regex(/^[a-z0-9:_-]{0,31}:$/)
-    .default('pokerji:'),
+    .default('ayudham:'),
   // A compose file passes an unset optional value as an empty string.
   BACKUP_ROTATION_DAYS: z.preprocess(
     (value) => (value === '' ? undefined : value),
@@ -18,7 +18,7 @@ const schema = z.object({
   ),
   MIGRATIONS: z.enum(['apply', 'check']).default('apply'),
   // Shown as a metrics label, so it must look like a version and nothing else.
-  POKERJI_VERSION: z
+  AYUDHAM_VERSION: z
     .string()
     .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/)
     .default('dev'),
@@ -59,7 +59,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     keyPrefix: parsed.data.KEY_PREFIX,
     backupRotationDays: parsed.data.BACKUP_ROTATION_DAYS ?? null,
     migrations: parsed.data.MIGRATIONS,
-    version: parsed.data.POKERJI_VERSION,
+    version: parsed.data.AYUDHAM_VERSION,
     metrics: (parsed.data.METRICS_PORT ?? '') !== '',
   };
 }

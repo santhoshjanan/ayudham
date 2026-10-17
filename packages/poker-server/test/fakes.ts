@@ -1,4 +1,4 @@
-import type { Role, ServerMessage } from '@pokerji/protocol';
+import type { Role, ServerMessage } from '@ayudham/protocol';
 import type { Connection, HostStore, RoundToSave } from '../src/index.ts';
 
 export function fakeClock(start = 0) {

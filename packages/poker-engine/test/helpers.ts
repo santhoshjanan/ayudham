@@ -1,4 +1,4 @@
-import { BUILT_IN_DECKS, type ClientMessage } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, type ClientMessage } from '@ayudham/protocol';
 import { apply, createRoom, type Command, type RoomState } from '../src/index.ts';
 
 export const FIB = BUILT_IN_DECKS.fibonacci.deck;

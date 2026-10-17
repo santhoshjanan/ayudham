@@ -1,5 +1,5 @@
 {
-  "name": "@pokerji/poker-engine",
+  "name": "@ayudham/poker-engine",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,6 +11,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@pokerji/protocol": "workspace:*"
+    "@ayudham/protocol": "workspace:*"
   }
 }

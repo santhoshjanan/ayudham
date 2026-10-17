@@ -1,4 +1,4 @@
-import { SYMBOLOGIES, type Symbology } from '@pokerji/code-maker';
+import { SYMBOLOGIES, type Symbology } from '@ayudham/code-maker';
 
 /** What a QR code can hold, in the order the page offers them. An id is also its fragment. */
 export const QR_KINDS = [

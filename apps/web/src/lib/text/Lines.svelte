@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explain, LINE_DEFAULTS, lines, type LineOrder } from '@pokerji/text-tools';
+  import { explain, LINE_DEFAULTS, lines, type LineOrder } from '@ayudham/text-tools';
   import { Background } from './background.svelte.ts';
   import Frame from './Frame.svelte';
   import { random } from './random.ts';

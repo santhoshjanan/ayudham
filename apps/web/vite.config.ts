@@ -7,12 +7,12 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
  * Loading the module through Vite gives the same runtime object the pages use.
  */
 const devSockets = (): Plugin => ({
-  name: 'pokerji-dev-sockets',
+  name: 'ayudham-dev-sockets',
   configureServer(server) {
     server.httpServer?.on('upgrade', (req, socket, head) => {
       if (!req.url?.startsWith('/poker/r/')) return;
       server
-        .ssrLoadModule('/src/lib/server/pokerji.ts')
+        .ssrLoadModule('/src/lib/server/ayudham.ts')
         .then((module) => module.runtime().upgrade(req, socket, head))
         .catch(() => socket.destroy());
     });

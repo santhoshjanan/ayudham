@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { THEMES, type Paint, type ThemeId } from '@pokerji/code-maker';
+  import { THEMES, type Paint, type ThemeId } from '@ayudham/code-maker';
   import { cssVar } from '#lib/ui/cssVar.ts';
 
   let {

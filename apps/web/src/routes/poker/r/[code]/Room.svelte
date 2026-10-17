@@ -7,7 +7,7 @@
     type ClientMessage,
     type RoomSnapshot,
     type ServerMessage,
-  } from '@pokerji/protocol';
+  } from '@ayudham/protocol';
   import { cssVar } from '#lib/ui/cssVar.ts';
   import Scorecard from '#lib/ui/Scorecard.svelte';
   import { roomBar } from '#lib/ui/roomBar.svelte.ts';

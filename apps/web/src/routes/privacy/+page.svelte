@@ -6,15 +6,15 @@
 </script>
 
 <Seo
-  title="Privacy · pokerji planning poker"
-  description="Exactly what pokerji stores, for how long and who can see it. No accounts, no analytics, no third parties. Unused rooms are deleted after {data.retentionDays} days."
+  title="Privacy · ayudham.app"
+  description="Exactly what ayudham.app stores, for how long and who can see it. No accounts, no analytics, no third parties. Unused rooms are deleted after {data.retentionDays} days."
 />
 
 <header class="band">
   <div class="band-inner">
     <h1>Privacy</h1>
     <p>
-      What pokerji stores, for how long, and who can see it. Each promise is followed by how it is
+      What ayudham.app stores, for how long, and who can see it. Each promise is followed by how it is
       kept.
     </p>
   </div>
@@ -155,7 +155,7 @@
   <p class="how">
     <b>How:</b> the page makes no request that carries your text. The only thing it fetches after
     it has loaded is the list of Schema.org types, a file served by this site. The draft is one
-    entry in your browser’s local storage, named <code class="inline">pj-schema-draft</code>.
+    entry in your browser’s local storage, named <code class="inline">ay-schema-draft</code>.
   </p>
   <h2>The text tools</h2>
   <p>

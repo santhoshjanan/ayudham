@@ -124,8 +124,8 @@ describe('serialize', () => {
       make('WebSite', {
         inLanguage: text('en'),
         alternateName: text('PJ'),
-        url: text('https://pokerji.example', 'url'),
-        name: text('pokerji'),
+        url: text('https://ayudham.example', 'url'),
+        name: text('ayudham'),
       }),
     );
     expect(Object.keys(serialize(draft) ?? {})).toEqual([

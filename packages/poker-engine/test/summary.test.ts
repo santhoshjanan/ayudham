@@ -1,4 +1,4 @@
-import { BUILT_IN_DECKS } from '@pokerji/protocol';
+import { BUILT_IN_DECKS } from '@ayudham/protocol';
 import { describe, expect, it } from 'vitest';
 import { summariseRound } from '../src/index.ts';
 

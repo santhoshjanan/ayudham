@@ -1,5 +1,5 @@
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
-import { runtime } from '#lib/server/pokerji.ts';
+import { runtime } from '#lib/server/ayudham.ts';
 
 export const init: ServerInit = async () => {
   await runtime().started;

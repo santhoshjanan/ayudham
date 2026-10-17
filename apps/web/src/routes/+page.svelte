@@ -1,5 +1,4 @@
 <script lang="ts">
-  import DemoRow from '#lib/ui/DemoRow.svelte';
   import Seo from '#lib/ui/Seo.svelte';
   import type { PageProps } from './$types';
 
@@ -7,20 +6,24 @@
 </script>
 
 <Seo
-  title="pokerji: free planning poker, schema markup, text tools and QR codes, no sign-up"
+  title="ayudham.app: free planning poker, schema markup, text tools and QR codes, no sign-up"
   description="Free tools without the sign-up: planning poker, a Schema.org JSON-LD builder, password and text tools, and a QR code and barcode maker. No account, no trackers."
 />
 
 <header class="band wide">
   <div class="band-inner split">
+    <h1>Small tools, without the sign-up.</h1>
     <div>
-      <h1>Small tools, without the sign-up.</h1>
       <p>
         Free small tools for teams. No accounts, no trackers: open one, use it, get on with the
         work.
       </p>
+      <p class="meaning">
+        <i>ayudham</i> (<span lang="ta">ஆயுதம்</span>, <span lang="ml">ആയുധം</span>) is Tamil and
+        Malayalam for the tools of a trade: the carpenter's hammer and chisel, the aruval in
+        Karuppasamy's hand. The things you keep sharp and put to work.
+      </p>
     </div>
-    <DemoRow />
   </div>
 </header>
 

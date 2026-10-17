@@ -1,5 +1,5 @@
-import type { RoomSettings } from '@pokerji/poker-engine';
-import type { Deck } from '@pokerji/protocol';
+import type { RoomSettings } from '@ayudham/poker-engine';
+import type { Deck } from '@ayudham/protocol';
 import type { Db } from './db.ts';
 
 export interface RoomRow {

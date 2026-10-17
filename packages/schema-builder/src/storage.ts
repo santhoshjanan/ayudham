@@ -4,7 +4,7 @@ import { LIMITS } from './limits.ts';
 import type { Draft, Item, Value } from './model.ts';
 import { TEXT_KINDS } from './model.ts';
 
-export const STORAGE_KEY = 'pj-schema-draft';
+export const STORAGE_KEY = 'ay-schema-draft';
 export const STORAGE_VERSION = 1;
 
 export type OutputForm = 'script' | 'json';

@@ -27,7 +27,7 @@ const open = async (browser: Browser, viewport = WIDE): Promise<Page> => {
 
 const markup = (page: Page) => page.getByLabel('The markup', { exact: true });
 const clipboard = (page: Page) => page.evaluate(() => navigator.clipboard.readText());
-const stored = (page: Page) => page.evaluate(() => localStorage.getItem('pj-schema-draft'));
+const stored = (page: Page) => page.evaluate(() => localStorage.getItem('ay-schema-draft'));
 const rawJson = async (page: Page) => {
   await page.getByRole('button', { name: 'Raw JSON' }).click();
   return JSON.parse((await markup(page).textContent()) ?? '');
@@ -218,7 +218,7 @@ test('a stored draft that is broken gives an empty page, not an error', async ({
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   for (const broken of ['{not json', '{"version":99,"form":"script","draft":{"items":[]}}', '[]']) {
-    await page.evaluate((value) => localStorage.setItem('pj-schema-draft', value), broken);
+    await page.evaluate((value) => localStorage.setItem('ay-schema-draft', value), broken);
     await page.reload();
     await page.locator('[data-ready]').waitFor();
     await expect(page.getByRole('heading', { name: 'What are you describing?' })).toBeVisible();
@@ -668,7 +668,7 @@ test('a stored draft the editor could never have made gives an empty page', asyn
     ]),
     draft([{ name: '@context', values: [{ kind: 'text', text: 'https://evil.example/' }] }]),
   ]) {
-    await page.evaluate((text) => localStorage.setItem('pj-schema-draft', text), hostile);
+    await page.evaluate((text) => localStorage.setItem('ay-schema-draft', text), hostile);
     await page.reload();
     await page.locator('[data-ready]').waitFor();
     await expect(page.getByRole('heading', { name: 'What are you describing?' })).toBeVisible();

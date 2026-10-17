@@ -2,9 +2,9 @@ import { randomBytes } from 'node:crypto';
 import { createPool, migrate, type Db } from '../src/index.ts';
 
 export const DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgres://pokerji:pokerji_dev@127.0.0.1:5432/pokerji';
+  process.env.TEST_DATABASE_URL ?? 'postgres://ayudham:ayudham_dev@127.0.0.1:5432/ayudham';
 
-export const VALKEY_URL = process.env.TEST_VALKEY_URL ?? 'redis://:pokerji_dev@127.0.0.1:6379';
+export const VALKEY_URL = process.env.TEST_VALKEY_URL ?? 'redis://:ayudham_dev@127.0.0.1:6379';
 
 /** A migrated database in a schema of its own. Call drop() when the test file is done. */
 export async function testDb(): Promise<{ db: Db; drop: () => Promise<void> }> {

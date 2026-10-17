@@ -4,7 +4,7 @@ import {
   TIMER_MAX_SECONDS,
   TIMER_MIN_SECONDS,
   type Deck,
-} from '@pokerji/protocol';
+} from '@ayudham/protocol';
 import { z } from 'zod';
 import type { App } from './app.ts';
 import {

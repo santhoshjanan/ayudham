@@ -11,7 +11,7 @@ import {
   type Encoding,
   type LineOptions,
   type RandomSource,
-} from '@pokerji/text-tools';
+} from '@ayudham/text-tools';
 import type { Row } from './tools.ts';
 
 /**

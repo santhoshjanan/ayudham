@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { symbology } from '@pokerji/code-maker';
+  import { symbology } from '@ayudham/code-maker';
   import { isQrKind, OTHER_GROUPS, QR_KINDS, type KindId } from './kinds.ts';
 
   let { kind = $bindable() }: { kind: KindId } = $props();

@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { dev } from '$app/env';
-import { createApp, createUpgradeHandler, loadConfig, type App } from '@pokerji/poker-server';
+import { createApp, createUpgradeHandler, loadConfig, type App } from '@ayudham/poker-server';
 
 export interface Runtime {
   app: App;
@@ -9,7 +9,7 @@ export interface Runtime {
   started: Promise<void>;
 }
 
-const KEY = Symbol.for('pokerji.runtime');
+const KEY = Symbol.for('ayudham.runtime');
 type Holder = typeof globalThis & { [KEY]?: Runtime };
 
 /**
