@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/santhoshjanan/pokerji/actions/workflows/release.yml?query=branch%3Amain"><img src="https://github.com/santhoshjanan/pokerji/actions/workflows/release.yml/badge.svg?branch=main" alt="CI status on main"></a>
+  <a href="https://github.com/santhoshjanan/ayudham/actions/workflows/release.yml?query=branch%3Amain"><img src="https://github.com/santhoshjanan/ayudham/actions/workflows/release.yml/badge.svg?branch=main" alt="CI status on main"></a>
 </p>
 
 <p align="center">

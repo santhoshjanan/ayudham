@@ -19,7 +19,7 @@ test('every public page ends with links to the source and to its maker', async (
     await expect(footer.getByRole('img', { name: 'love' })).toBeVisible();
     await expect(footer.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute(
       'href',
-      'https://github.com/santhoshjanan/pokerji',
+      'https://github.com/santhoshjanan/ayudham',
     );
     await expect(footer.getByRole('link', { name: 'santhoshj.com' })).toHaveAttribute(
       'href',

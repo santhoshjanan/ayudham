@@ -75,7 +75,7 @@
     <footer class="foot">
       <p>
         Free and open source.
-        <a href="https://github.com/santhoshjanan/pokerji" rel="noopener">Source on GitHub</a>
+        <a href="https://github.com/santhoshjanan/ayudham" rel="noopener">Source on GitHub</a>
       </p>
       <p class="made">
         Made in New Jersey with
