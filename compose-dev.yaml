@@ -4,7 +4,7 @@
 #
 # then open http://localhost:5173/poker
 # Postgres and Valkey are also reachable on 127.0.0.1 for the test suites.
-name: pokerji-dev
+name: ayudham-dev
 
 services:
   web:
@@ -16,8 +16,8 @@ services:
     ports:
       - '127.0.0.1:5173:5173'
     environment:
-      DATABASE_URL: postgres://pokerji:pokerji_dev@postgres:5432/pokerji
-      VALKEY_URL: redis://:pokerji_dev@valkey:6379
+      DATABASE_URL: postgres://ayudham:ayudham_dev@postgres:5432/ayudham
+      VALKEY_URL: redis://:ayudham_dev@valkey:6379
       ADDRESS_HMAC_SECRET: development-only-address-hmac-secret
     # Edits to the source show up without a rebuild.
     volumes:
@@ -36,24 +36,24 @@ services:
   postgres:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: pokerji
-      POSTGRES_PASSWORD: pokerji_dev
-      POSTGRES_DB: pokerji
+      POSTGRES_USER: ayudham
+      POSTGRES_PASSWORD: ayudham_dev
+      POSTGRES_DB: ayudham
     ports:
       - '127.0.0.1:5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U pokerji -d pokerji']
+      test: ['CMD-SHELL', 'pg_isready -U ayudham -d ayudham']
       interval: 2s
       timeout: 3s
       retries: 30
 
   valkey:
     image: valkey/valkey:9-alpine
-    command: ['valkey-server', '--requirepass', 'pokerji_dev', '--save', '', '--appendonly', 'no']
+    command: ['valkey-server', '--requirepass', 'ayudham_dev', '--save', '', '--appendonly', 'no']
     environment:
-      VALKEYCLI_AUTH: pokerji_dev
+      VALKEYCLI_AUTH: ayudham_dev
     ports:
       - '127.0.0.1:6379:6379'
     healthcheck:

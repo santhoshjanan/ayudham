@@ -1,4 +1,4 @@
-import { REVEAL_COUNT_MS, type ClientMessage } from '@pokerji/protocol';
+import { REVEAL_COUNT_MS, type ClientMessage } from '@ayudham/protocol';
 import { deny, find, freshRound, ok, patch, without } from './outcome.ts';
 import type { Outcome, RoomState } from './state.ts';
 

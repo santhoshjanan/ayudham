@@ -1,4 +1,4 @@
-import { BUILT_IN_DECKS, MAX_MESSAGE_BYTES, type ServerMessage } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, MAX_MESSAGE_BYTES, type ServerMessage } from '@ayudham/protocol';
 import { describe, expect, it } from 'vitest';
 import { attachSocket, MAX_STRIKES, MESSAGE_LIMIT, RoomHost, type Socket } from '../src/index.ts';
 import { fakeClock, fakeConnection, fakeStore } from './fakes.ts';

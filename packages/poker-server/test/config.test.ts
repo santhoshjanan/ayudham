@@ -2,19 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/index.ts';
 
 const valid = {
-  DATABASE_URL: 'postgres://app:pw@db:5432/pokerji',
+  DATABASE_URL: 'postgres://app:pw@db:5432/ayudham',
   VALKEY_URL: 'redis://app:pw@valkey:6379',
   ADDRESS_HMAC_SECRET: 'x'.repeat(32),
 };
 
 describe('loadConfig', () => {
-  it('reads the environment, defaulting retention to 30 days and the key prefix to pokerji:', () => {
+  it('reads the environment, defaulting retention to 30 days and the key prefix to ayudham:', () => {
     expect(loadConfig(valid)).toEqual({
       databaseUrl: valid.DATABASE_URL,
       valkeyUrl: valid.VALKEY_URL,
       addressHmacSecret: valid.ADDRESS_HMAC_SECRET,
       retentionDays: 30,
-      keyPrefix: 'pokerji:',
+      keyPrefix: 'ayudham:',
       backupRotationDays: null,
       migrations: 'apply',
       version: 'dev',
@@ -28,9 +28,9 @@ describe('loadConfig', () => {
   });
 
   it('takes a version for the metrics, and refuses one that is not a plain version', () => {
-    expect(loadConfig({ ...valid, POKERJI_VERSION: '1.4.2-rc.1' }).version).toBe('1.4.2-rc.1');
-    expect(() => loadConfig({ ...valid, POKERJI_VERSION: '1.0"} x{y="' })).toThrow(
-      /POKERJI_VERSION/,
+    expect(loadConfig({ ...valid, AYUDHAM_VERSION: '1.4.2-rc.1' }).version).toBe('1.4.2-rc.1');
+    expect(() => loadConfig({ ...valid, AYUDHAM_VERSION: '1.0"} x{y="' })).toThrow(
+      /AYUDHAM_VERSION/,
     );
   });
 
@@ -52,7 +52,7 @@ describe('loadConfig', () => {
   });
 
   it('rejects a key prefix that could collide with or escape its namespace', () => {
-    for (const bad of ['', 'pokerji', 'Has Space:', '*:', 'x'.repeat(40) + ':']) {
+    for (const bad of ['', 'ayudham', 'Has Space:', '*:', 'x'.repeat(40) + ':']) {
       expect(() => loadConfig({ ...valid, KEY_PREFIX: bad })).toThrow(/KEY_PREFIX/);
     }
   });

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { calendarEvent, email, meCard, phone, place, sms, vCard, wifi } from '@pokerji/code-maker';
+import { calendarEvent, email, meCard, phone, place, sms, vCard, wifi } from '@ayudham/code-maker';
 import { readFileSync } from 'node:fs';
 import { unzipSync } from 'fflate';
 import { PDFDocument } from 'pdf-lib';

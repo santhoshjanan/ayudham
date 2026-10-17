@@ -1,4 +1,4 @@
-import { readWordList, toHex, WORD_LIST_SHA256 } from '@pokerji/text-tools';
+import { readWordList, toHex, WORD_LIST_SHA256 } from '@ayudham/text-tools';
 
 const FILE = '/text/eff_large_wordlist.txt';
 

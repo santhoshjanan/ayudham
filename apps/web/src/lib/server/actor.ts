@@ -1,6 +1,6 @@
 import { error, redirect, type RequestEvent } from '@sveltejs/kit';
-import { resumeSession, SESSION_COOKIE, type Actor } from '@pokerji/poker-server';
-import { runtime } from '#lib/server/pokerji.ts';
+import { resumeSession, SESSION_COOKIE, type Actor } from '@ayudham/poker-server';
+import { runtime } from '#lib/server/ayudham.ts';
 
 /** The room and session this request belongs to, or null. Looked up fresh on every request. */
 export function actorOf(event: RequestEvent): Promise<Actor | null> {

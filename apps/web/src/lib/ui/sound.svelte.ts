@@ -2,10 +2,10 @@
 // ticks of the reveal count. Off until a person turns it on. The choice and the
 // volume are kept in this browser's local storage and are never sent anywhere.
 // No audio file is requested, and no audio device is opened, while sound is off.
-import { MUSIC_TRACK_IDS } from '@pokerji/protocol';
+import { MUSIC_TRACK_IDS } from '@ayudham/protocol';
 
-const SOUND_KEY = 'pj-sound';
-const VOLUME_KEY = 'pj-volume';
+const SOUND_KEY = 'ay-sound';
+const VOLUME_KEY = 'ay-volume';
 
 export const sound = $state({ on: false, volume: 0.6 });
 

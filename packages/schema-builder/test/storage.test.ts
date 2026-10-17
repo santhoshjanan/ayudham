@@ -8,7 +8,7 @@ const stored = (draft: unknown, extra: Record<string, unknown> = {}) =>
 
 describe('stored drafts', () => {
   it('uses the key the privacy page names', () => {
-    expect(STORAGE_KEY).toBe('pj-schema-draft');
+    expect(STORAGE_KEY).toBe('ay-schema-draft');
   });
 
   it('reads back exactly what was packed', () => {

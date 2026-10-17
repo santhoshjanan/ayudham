@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { checkText, explain, toHex, utf8 } from '@pokerji/text-tools';
+  import { checkText, explain, toHex, utf8 } from '@ayudham/text-tools';
   import Frame from './Frame.svelte';
   import TextBox from '#lib/ui/TextBox.svelte';
   import type { Row } from './tools.ts';

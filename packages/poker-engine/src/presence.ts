@@ -1,4 +1,4 @@
-import { AWAY_DROP_MS, MAX_PARTICIPANTS, MODERATOR_HEADROOM } from '@pokerji/protocol';
+import { AWAY_DROP_MS, MAX_PARTICIPANTS, MODERATOR_HEADROOM } from '@ayudham/protocol';
 import { find, ok, patch, without } from './outcome.ts';
 import type { Effect, Joiner, Outcome, RoomState } from './state.ts';
 

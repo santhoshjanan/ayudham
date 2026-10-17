@@ -1,4 +1,4 @@
-import { explain, type Problem } from '@pokerji/text-tools';
+import { explain, type Problem } from '@ayudham/text-tools';
 
 export const GROUPS = ['Generate', 'Convert'] as const;
 

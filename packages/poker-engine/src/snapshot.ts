@@ -1,4 +1,4 @@
-import type { RoomSnapshot } from '@pokerji/protocol';
+import type { RoomSnapshot } from '@ayudham/protocol';
 import { find } from './outcome.ts';
 import type { RoomState } from './state.ts';
 

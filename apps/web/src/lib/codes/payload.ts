@@ -11,7 +11,7 @@ import {
   type Contact,
   type Result,
   type TextOptions,
-} from '@pokerji/code-maker';
+} from '@ayudham/code-maker';
 import { isQrKind, symbologyOf, type KindId } from './kinds.ts';
 
 export type Payload = { text: string; id: string; textOptions: TextOptions };

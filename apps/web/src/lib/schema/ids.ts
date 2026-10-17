@@ -1,4 +1,4 @@
-import type { ItemPath } from '@pokerji/schema-builder';
+import type { ItemPath } from '@ayudham/schema-builder';
 
 /** An item's place in the draft as one string, for building DOM ids. */
 export const pathId = (at: ItemPath): string =>

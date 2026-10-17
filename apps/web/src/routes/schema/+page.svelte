@@ -4,7 +4,7 @@
 </script>
 
 <Seo
-  title="Schema markup builder: free JSON-LD generator · pokerji"
+  title="Schema markup builder: free JSON-LD generator · ayudham.app"
   description="Build Schema.org JSON-LD for articles, products, events, local businesses and more. Free, no sign-up, and nothing you type leaves your browser."
 />
 

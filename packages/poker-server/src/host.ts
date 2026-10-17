@@ -8,14 +8,14 @@ import {
   type Joiner,
   type RoomSettings,
   type RoomState,
-} from '@pokerji/poker-engine';
+} from '@ayudham/poker-engine';
 import {
   CLOSE_TOO_MANY_CONNECTIONS,
   ROOM_UNLOAD_MS,
   type ClientMessage,
   type Role,
   type ServerMessage,
-} from '@pokerji/protocol';
+} from '@ayudham/protocol';
 import type { RoundToSave } from './history.ts';
 
 const WRITE_RETRY_MS = 5_000;

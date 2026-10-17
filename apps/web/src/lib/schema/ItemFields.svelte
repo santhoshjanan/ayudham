@@ -11,7 +11,7 @@
     type Item,
     type ItemPath,
     type Vocabulary,
-  } from '@pokerji/schema-builder';
+  } from '@ayudham/schema-builder';
   import type { Builder } from './builder.svelte.ts';
   import FieldRow from './FieldRow.svelte';
   import { pathId } from './ids.ts';

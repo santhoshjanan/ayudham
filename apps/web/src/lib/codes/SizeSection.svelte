@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LIMITS } from '@pokerji/code-maker';
+  import { LIMITS } from '@ayudham/code-maker';
   import NumberField from '#lib/ui/NumberField.svelte';
   import type { Sizing } from './maker.svelte.ts';
 

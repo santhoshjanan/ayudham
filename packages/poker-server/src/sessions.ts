@@ -1,4 +1,4 @@
-import type { Role } from '@pokerji/protocol';
+import type { Role } from '@ayudham/protocol';
 import type { Db } from './db.ts';
 
 export interface SessionRow {

@@ -1,4 +1,4 @@
-import { AWAY_DROP_MS, MAX_PARTICIPANTS, MODERATOR_HEADROOM } from '@pokerji/protocol';
+import { AWAY_DROP_MS, MAX_PARTICIPANTS, MODERATOR_HEADROOM } from '@ayudham/protocol';
 import { describe, expect, it } from 'vitest';
 import { apply, createRoom, snapshotFor, type RoomState } from '../src/index.ts';
 import { ann, FIB, mo, run, seeded } from './helpers.ts';

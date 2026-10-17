@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="apps/web/static/og.jpg" alt="pokerji: planning poker without the sign-up. Five scorecards showing 3, 5, 5, 8 and 13, the lowest and highest flagged." width="840">
+  <img src="apps/web/static/og.jpg" alt="ayudham.app: planning poker without the sign-up. Five scorecards showing 3, 5, 5, 8 and 13, the lowest and highest flagged." width="840">
 </p>
 
-<h1 align="center">pokerji</h1>
+<h1 align="center">ayudham.app</h1>
 
 <p align="center">
   <b>Planning poker without the sign-up.</b><br>
@@ -24,9 +24,9 @@
 
 ---
 
-pokerji is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site. The third is a set of [text generators and converters](#the-text-tools): make a password or an identifier, or turn text into another form. The fourth is a [maker of barcodes and QR codes](#the-code-maker).
+ayudham.app is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site. The third is a set of [text generators and converters](#the-text-tools): make a password or an identifier, or turn text into another form. The fourth is a [maker of barcodes and QR codes](#the-code-maker).
 
-Estimation is judging, so pokerji looks like the judges' row at a diving meet: the story on a field of pool aqua, a row of white scorecards face down, and then every card turned in the same instant. The highest and lowest are flagged, because they speak first.
+Estimation is judging, so planning poker looks like the judges' row at a diving meet: the story on a field of pool aqua, a row of white scorecards face down, and then every card turned in the same instant. The highest and lowest are flagged, because they speak first.
 
 | Voting: cards stay face down | The reveal: every card at once |
 |---|---|
@@ -112,10 +112,10 @@ pnpm install
 pnpm services:up                      # Postgres and Valkey for the tests
 pnpm test                             # unit and integration tests
 pnpm typecheck
-pnpm --filter @pokerji/web e2e        # browser tests against a production build
+pnpm --filter @ayudham/web e2e        # browser tests against a production build
 ```
 
-To run the app outside Docker, copy the development lines from `.env.example` into `.env` and run `pnpm --filter @pokerji/web dev`.
+To run the app outside Docker, copy the development lines from `.env.example` into `.env` and run `pnpm --filter @ayudham/web dev`.
 
 ## How it is built
 
@@ -138,7 +138,7 @@ Going deeper:
 - [docs/superpowers/specs](docs/superpowers/specs): the behaviour spec
 - [docs/deploy.md](docs/deploy.md): running it in production
 
-pokerji is the first tool in a planned suite of small tools for teams.
+ayudham.app is a suite of small tools for teams.
 
 ## Credits
 

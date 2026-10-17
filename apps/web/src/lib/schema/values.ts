@@ -7,7 +7,7 @@ import {
   type TextKind,
   type Value,
   type Vocabulary,
-} from '@pokerji/schema-builder';
+} from '@ayudham/schema-builder';
 
 /**
  * A kind of value a field offers, as the person chooses it: a text kind, 'boolean',

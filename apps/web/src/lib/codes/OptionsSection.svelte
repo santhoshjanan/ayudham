@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Symbology } from '@pokerji/code-maker';
+  import type { Symbology } from '@ayudham/code-maker';
   import NumberField from '#lib/ui/NumberField.svelte';
   import Toggle from '#lib/ui/Toggle.svelte';
 

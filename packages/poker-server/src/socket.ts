@@ -1,10 +1,10 @@
-import type { Joiner } from '@pokerji/poker-engine';
+import type { Joiner } from '@ayudham/poker-engine';
 import {
   CLOSE_TOO_MANY_CONNECTIONS,
   MAX_MESSAGE_BYTES,
   parseClientMessage,
   type ErrorCode,
-} from '@pokerji/protocol';
+} from '@ayudham/protocol';
 import type { Connection, RoomHost } from './host.ts';
 import { metrics, type CloseReason, type RejectReason } from './metrics.ts';
 

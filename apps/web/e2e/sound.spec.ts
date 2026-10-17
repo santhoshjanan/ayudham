@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { MUSIC_TRACK_IDS } from '@pokerji/protocol';
+import { MUSIC_TRACK_IDS } from '@ayudham/protocol';
 
 let visitors = 0;
 const visitor = () => {
@@ -98,11 +98,11 @@ test('music is fetched only for a person who has turned sound on', async ({ brow
   await expect.poll(() => fetched).toContain('/audio/chopin-waltz-op64-1.mp3');
 
   // The choice is remembered in this browser, and only there.
-  expect(await mo.evaluate(() => localStorage.getItem('pj-sound'))).toBe('1');
+  expect(await mo.evaluate(() => localStorage.getItem('ay-sound'))).toBe('1');
   await mo.reload();
   await expect(mo.getByRole('button', { name: 'Turn sound off' })).toBeVisible();
   await mo.getByRole('button', { name: 'Turn sound off' }).click();
-  expect(await mo.evaluate(() => localStorage.getItem('pj-sound'))).toBe('0');
+  expect(await mo.evaluate(() => localStorage.getItem('ay-sound'))).toBe('0');
 });
 
 test('a room with no music fetches no audio even with sound on', async ({ browser }) => {

@@ -31,7 +31,7 @@
 </script>
 
 <Seo
-  title="Text tools: password generator, case converter and more · pokerji"
+  title="Text tools: password generator, case converter and more · ayudham.app"
   description="Generate passwords, passphrases, random strings and UUIDs; convert case, Base64, hex and more. Free, no sign-up, and nothing leaves your browser."
 />
 

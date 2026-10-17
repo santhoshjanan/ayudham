@@ -14,9 +14,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages ./packages
 COPY apps/web ./apps/web
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @pokerji/web build
+RUN pnpm --filter @ayudham/web build
 # The app's production dependencies only, in a folder of their own.
-RUN pnpm --filter @pokerji/web deploy --prod --legacy /out
+RUN pnpm --filter @ayudham/web deploy --prod --legacy /out
 
 # Run: Node, the built app, its dependencies and the migrations. No compiler, no sources.
 FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20

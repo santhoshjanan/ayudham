@@ -1,5 +1,5 @@
 /*
- * pokerji — "Judges' Row"
+ * ayudham.app — "Judges' Row"
  * A judging panel at a diving meet: a pool-aqua stage, white scorecards with
  * scoreboard numerals, one yellow action, red only for flags and deletion.
  * Light is the day session on white tile; dark is the evening final.
@@ -423,6 +423,13 @@ main.bleed {
   max-width: 46ch;
   font-size: 1.15rem;
   color: var(--stage-ink-soft);
+}
+/* The home band's second line: what the name means, quieter than the line above it. */
+.band p.meaning {
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+  font-size: 0.95rem;
 }
 .band .back {
   display: inline-block;

@@ -2,7 +2,7 @@ import Valkey from 'iovalkey';
 
 export type Kv = Valkey;
 
-export const KEY_PREFIX = 'pokerji:';
+export const KEY_PREFIX = 'ayudham:';
 const TROUBLE_EVERY_MS = 60_000;
 
 /**

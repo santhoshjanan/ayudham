@@ -2,7 +2,7 @@
 // the runtime object the app's init hook put on globalThis when handler.js was imported.
 import { createServer } from 'node:http';
 
-const RUNTIME = Symbol.for('pokerji.runtime');
+const RUNTIME = Symbol.for('ayudham.runtime');
 
 // A last resort. Node's own report of an uncaught error prints the error, and a database
 // error can carry names and ids. Nothing reaches here today; this keeps the log promise
@@ -68,8 +68,8 @@ if (process.env.ORIGIN) {
     process.exit(1);
   }
   fixed = url;
-  process.env.PROTOCOL_HEADER = 'x-pokerji-protocol';
-  process.env.HOST_HEADER = 'x-pokerji-host';
+  process.env.PROTOCOL_HEADER = 'x-ayudham-protocol';
+  process.env.HOST_HEADER = 'x-ayudham-host';
   delete process.env.PORT_HEADER;
 }
 
@@ -105,8 +105,8 @@ if (migrateOnly) {
 const mark = (req) => {
   if (insecure) req.headers['x-forwarded-proto'] = 'http';
   if (fixed) {
-    req.headers['x-pokerji-protocol'] = fixed.protocol.slice(0, -1);
-    req.headers['x-pokerji-host'] = fixed.host;
+    req.headers['x-ayudham-protocol'] = fixed.protocol.slice(0, -1);
+    req.headers['x-ayudham-host'] = fixed.host;
   }
 };
 

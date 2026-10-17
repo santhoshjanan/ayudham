@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BUILT_IN_DECKS, MUSIC_TRACKS } from '@pokerji/protocol';
+  import { BUILT_IN_DECKS, MUSIC_TRACKS } from '@ayudham/protocol';
   import { page } from '$app/state';
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { PageProps } from './$types';
@@ -12,7 +12,7 @@
 </script>
 
 <svelte:head>
-  <title>Room settings · pokerji</title>
+  <title>Room settings · ayudham.app</title>
 </svelte:head>
 
 <header class="band">

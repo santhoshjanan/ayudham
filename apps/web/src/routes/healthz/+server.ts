@@ -1,4 +1,4 @@
-import { runtime } from '#lib/server/pokerji.ts';
+import { runtime } from '#lib/server/ayudham.ts';
 
 /** Liveness for the container: answers once the app has started. Touches no room data. */
 export const GET = async () => {

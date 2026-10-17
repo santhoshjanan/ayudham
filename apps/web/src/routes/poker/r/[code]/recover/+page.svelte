@@ -29,7 +29,7 @@
 </script>
 
 <svelte:head>
-  <title>Moderator link · pokerji</title>
+  <title>Moderator link · ayudham.app</title>
 </svelte:head>
 
 <header class="band">

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { suggestHttps } from '@pokerji/code-maker';
+  import { suggestHttps } from '@ayudham/code-maker';
   import type { LinkFields } from '../payload.ts';
   import Marker from './Marker.svelte';
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The suite is now called ayudham.app. *Ayudham* is Tamil and Malayalam for the tools of a trade, and the home page says so.
+- Everything that carried the old name was renamed with it: the `@ayudham/*` packages, the `ayudham_*` metrics, `AYUDHAM_VERSION`, the database and its user, the Valkey key prefix (`ayudham:`), the compose project names and the browser storage keys (`ay-theme`, `ay-sound`, `ay-volume`, `ay-schema-draft`). A saved theme, sound setting or markup draft from before is forgotten once, and an existing deployment needs its database name, user and scrape configuration renamed to match.
+
 ## v0.1.0
 
 The first release: three small tools on one site, run with a single compose file.

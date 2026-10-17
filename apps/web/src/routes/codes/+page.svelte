@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { explain, prepareText } from '@pokerji/code-maker';
+  import { explain, prepareText } from '@ayudham/code-maker';
   import CodeFindings from '#lib/codes/CodeFindings.svelte';
   import CodePicker from '#lib/codes/CodePicker.svelte';
   import Downloads from '#lib/codes/Downloads.svelte';
@@ -137,7 +137,7 @@
 </script>
 
 <Seo
-  title="Barcode and QR code maker: free, private, no sign-up · pokerji"
+  title="Barcode and QR code maker: free, private, no sign-up · ayudham.app"
   description="Make QR codes for links, Wi-Fi, business cards and events, and barcodes such as EAN-13, Code 128, Data Matrix and PDF417. Nothing leaves your browser."
 />
 

@@ -113,7 +113,7 @@ test('public pages describe themselves to search engines and link previews', asy
     );
     await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute(
       'content',
-      'pokerji',
+      'ayudham.app',
     );
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
     // A picture for link previews, by its full address, with its size and a description.
@@ -237,7 +237,7 @@ test('the privacy page says what the builder does with what is typed', async ({ 
   await page.goto('/privacy');
   await expect(page.getByRole('heading', { name: 'The schema markup builder' })).toBeVisible();
   await expect(page.getByText('never sent to this site')).toBeVisible();
-  await expect(page.getByText('pj-schema-draft')).toBeVisible();
+  await expect(page.getByText('ay-schema-draft')).toBeVisible();
 });
 
 test('the privacy page says the text tools send nothing and keep nothing', async ({ browser }) => {

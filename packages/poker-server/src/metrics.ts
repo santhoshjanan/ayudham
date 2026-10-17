@@ -12,7 +12,7 @@ import { collectDefaultMetrics, Counter, Gauge, Histogram, Registry } from 'prom
  * label by mistake.
  *
  * Nothing here can break the app: each call is wrapped, and a failure is
- * swallowed and counted in `pokerji_metrics_errors_total`.
+ * swallowed and counted in `ayudham_metrics_errors_total`.
  */
 
 const MESSAGE_TYPES = [
@@ -106,9 +106,9 @@ export function metricsAuthorized(header: string | undefined, token: string | un
 
 const registry = new Registry();
 const counter = (name: string, help: string, labelNames: string[] = []) =>
-  new Counter({ name: `pokerji_${name}`, help, labelNames, registers: [registry] });
+  new Counter({ name: `ayudham_${name}`, help, labelNames, registers: [registry] });
 const gauge = (name: string, help: string, labelNames: string[] = []) =>
-  new Gauge({ name: `pokerji_${name}`, help, labelNames, registers: [registry] });
+  new Gauge({ name: `ayudham_${name}`, help, labelNames, registers: [registry] });
 
 const errors = counter('metrics_errors_total', 'Metric updates that failed and were ignored.');
 const roomsActive = gauge('rooms_active', 'Rooms currently loaded in memory.');
@@ -136,7 +136,7 @@ const rateLimitErrors = counter(
   'Rate-limit checks that could not reach Valkey and so refused.',
 );
 const lockWait = new Histogram({
-  name: 'pokerji_room_lock_wait_seconds',
+  name: 'ayudham_room_lock_wait_seconds',
   help: 'Time spent asking Valkey for a room lock.',
   buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5],
   registers: [registry],

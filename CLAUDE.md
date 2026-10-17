@@ -12,22 +12,22 @@ Package manager is pnpm (Node 24+).
 
 - Install: `pnpm install`
 - All tests: `pnpm test`
-- One package: `pnpm --filter @pokerji/poker-engine test`
-- One file: `pnpm --filter @pokerji/poker-engine exec vitest run test/rounds.test.ts`
+- One package: `pnpm --filter @ayudham/poker-engine test`
+- One file: `pnpm --filter @ayudham/poker-engine exec vitest run test/rounds.test.ts`
 - One test by name: add `-t "part of the test name"` to the line above
-- The markup builder's package: `pnpm --filter @pokerji/schema-builder test`
-- The text tools' package: `pnpm --filter @pokerji/text-tools test`
-- The code maker's package: `pnpm --filter @pokerji/code-maker test`
+- The markup builder's package: `pnpm --filter @ayudham/schema-builder test`
+- The text tools' package: `pnpm --filter @ayudham/text-tools test`
+- The code maker's package: `pnpm --filter @ayudham/code-maker test`
 - Typecheck: `pnpm typecheck`
 - Format: `pnpm format` (check only: `pnpm format:check`)
 - The whole app in Docker, for development: `docker compose -f compose-dev.yaml up --build`, then http://localhost:5173/poker. Only Postgres and Valkey, for the test suites: `pnpm services:up` (stop: `pnpm services:down`; wipe data: `pnpm services:wipe`).
 - `packages/poker-server` tests need those services running. Each test file uses its own throwaway Postgres schema and Valkey key prefix, so they never touch development data.
-- Run the app: copy `.env.example` to `.env`, then `pnpm --filter @pokerji/web dev` and open http://localhost:5173/poker
-- Web typecheck: `pnpm --filter @pokerji/web typecheck`
-- End-to-end tests: `pnpm --filter @pokerji/web e2e` (builds the app and drives Chromium; first run needs `pnpm --filter @pokerji/web exec playwright install chromium`)
+- Run the app: copy `.env.example` to `.env`, then `pnpm --filter @ayudham/web dev` and open http://localhost:5173/poker
+- Web typecheck: `pnpm --filter @ayudham/web typecheck`
+- End-to-end tests: `pnpm --filter @ayudham/web e2e` (builds the app and drives Chromium; first run needs `pnpm --filter @ayudham/web exec playwright install chromium`)
 - Production: `docker compose up -d --build` with `docker-compose.yaml` in the root, which needs `ORIGIN`, `POSTGRES_PASSWORD` and `ADDRESS_HMAC_SECRET` (see `docs/deploy.md`).
 - CI (`.github/workflows/ci.yml`) runs on every pull request: format check, typecheck, all tests against the development services, build and smoke, the browser tests, and an image build. `release.yml` runs CI on each push to `main` and each `v*` tag, then publishes the image to `ghcr.io/<owner>/<repo>`; for a tag it also creates the GitHub release, with that version's section of `CHANGELOG.md` as its notes (a tag needs a `## vX.Y.Z` section there first). It never deploys. Third-party actions are pinned by commit SHA; keep them pinned.
-- Smoke check of a build: `pnpm --filter @pokerji/web build && pnpm --filter @pokerji/web smoke`
+- Smoke check of a build: `pnpm --filter @ayudham/web build && pnpm --filter @ayudham/web smoke`
 
 Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAgeExclude` entries to install a just-published version; pin the previous release instead.
 
@@ -38,7 +38,7 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - `packages/schema-builder`: the markup builder's rules as pure functions over an immutable draft. `serialize` writes JSON-LD, `check` reports what is missing or malformed, `unpack` reads a stored draft without trusting it. No I/O, no DOM; a test (`purity.test.ts`) enforces that.
 - The builder's page (`apps/web/src/routes/schema`, components in `apps/web/src/lib/schema`) has no server code: no form action, no endpoint, no cookie. Nothing typed into it may be sent anywhere; a browser test checks that no request carries typed text. Keep it that way.
 - The script-tag form of the markup writes every `<` as `\u003c` (`toScriptTag`), so nothing typed can end the script element on the site it is pasted into. Typed values are rendered as text only, never as HTML.
-- The builder's draft lives in local storage under `pj-schema-draft` and is read only through `unpack`, which enforces every limit in `LIMITS` and accepts only plain names (letters and digits) and no repeated property. A tab writes it only after changing the draft itself (`Builder.flush`), so an idle tab cannot remove another tab's draft. The builder's fields set `spellcheck="false"`; keep it, or typed text can reach a browser's spelling service.
+- The builder's draft lives in local storage under `ay-schema-draft` and is read only through `unpack`, which enforces every limit in `LIMITS` and accepts only plain names (letters and digits) and no repeated property. A tab writes it only after changing the draft itself (`Builder.flush`), so an idle tab cannot remove another tab's draft. The builder's fields set `spellcheck="false"`; keep it, or typed text can reach a browser's spelling service.
 - The Schema.org vocabulary is vendored as `apps/web/static/schema/vocabulary.json`, made by `packages/schema-builder/scripts/compact-vocabulary.ts` from a pinned release and recorded with its checksum in `apps/web/static/schema/LICENSES.md` (a test compares them). It is fetched from this site only when the escape hatch is opened. Nothing is fetched from schema.org at build or run time. To move to a new release, follow `LICENSES.md`.
 - A guided type's required and recommended levels come from `packages/schema-builder/RULES.md`. Change a level, that file and `RULES_CHECKED` together.
 - `packages/text-tools`: the text tools' rules as pure functions: unbiased sampling, the generators, the converters and the word list reader. No I/O, no DOM, no dependency. Randomness and the clock are arguments (`random`, `now`), never reached for; a test (`purity.test.ts`) enforces that and allows only the package's own files to be imported. Generator and converter operations validate input and return a `Result`; byte and text helpers return plain values.
@@ -67,13 +67,13 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - Rate limits fail closed when Valkey is unreachable; live rooms keep running.
 - `apps/web` is a thin SvelteKit 3 shell. Rules live in the packages; a route only parses a form, calls a flow, sets a cookie and renders.
 - SvelteKit 3 differences that matter here: configuration is in `vite.config.ts` (no `svelte.config.js`); hook types come from `@sveltejs/kit/hooks`; the library alias is `#lib` and imports through it carry the file extension.
-- One runtime object per process lives on `globalThis` under `Symbol.for('pokerji.runtime')` (`apps/web/src/lib/server/pokerji.ts`). `apps/web/server.js`, the production entry, uses it to hand WebSocket upgrades to `createUpgradeHandler`; a Vite plugin does the same in dev.
+- One runtime object per process lives on `globalThis` under `Symbol.for('ayudham.runtime')` (`apps/web/src/lib/server/ayudham.ts`). `apps/web/server.js`, the production entry, uses it to hand WebSocket upgrades to `createUpgradeHandler`; a Vite plugin does the same in dev.
 - The owner runs and configures the reverse proxy themselves. This repository ships no proxy configuration of any kind. Do not add any unless asked.
 - Production sets `ORIGIN` (the site's one origin), `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`; see `docker-compose.yaml`. Without `ORIGIN` the app works out its origin from `PROTOCOL_HEADER` and `HOST_HEADER`, and without those every form post is refused. `INSECURE_HTTP=1` is for local testing only; `server.js` refuses to start with it unless `HOST` is a loopback address, and refuses to start without `ADDRESS_HEADER` otherwise.
 - Deployment is two compose files in the repository root, at the owner's insistence: `compose-dev.yaml` and `docker-compose.yaml`, each bringing up the whole app (web, Postgres, Valkey) with one command. Keep them bare. Do not add deployment scripts, extra required settings, external networks or anything specific to the owner's server; they adapt the production file themselves. The app still supports a database user that cannot change tables (`MIGRATIONS=check`, with migrations applied by a one-shot `MIGRATE_ONLY=1` run of the image), but nothing in the repository sets that up.
 - `apps/web/server.js` sets the base security headers on every response, because static files never reach `hooks.server.ts`. When `ORIGIN` is set it also states the site's origin on every request, in two headers of its own that it overwrites; this version of the Node adapter takes a fixed origin only at build time. The WebSocket upgrade reads `ORIGIN` directly.
 - The Content Security Policy applies to builds, not to `vite dev`. It forbids inline styles: no `style` attributes and no Svelte `transition:` or `animate:` directives in `apps/web`. The single exception, allowed by hash in `vite.config.ts`, is SvelteKit's own route announcer.
-- Zod reaches the browser through `@pokerji/protocol` and `@pokerji/schema-builder`. Each package imports it only through its own `src/zod.ts`, which sets `jitless` before any schema is made; otherwise zod probes for `Function` and the policy reports a violation on every page. A test in each package enforces it, and a browser test finds no violation on any public page from navigation on.
+- Zod reaches the browser through `@ayudham/protocol` and `@ayudham/schema-builder`. Each package imports it only through its own `src/zod.ts`, which sets `jitless` before any schema is made; otherwise zod probes for `Function` and the policy reports a violation on every page. A test in each package enforces it, and a browser test finds no violation on any public page from navigation on.
 - `Referrer-Policy` must stay `same-origin`, not `no-referrer`: with `no-referrer` browsers send `Origin: null` on same-site form posts and SvelteKit refuses every form.
 - The session cookie is always `Secure` outside local development. Never derive it from the request: a forwarded-protocol header must not be able to switch it off.
 - WebSocket upgrades are authenticated first and rate-limited per session, not per address, so refused attempts from the same network cannot lock a team out.
@@ -94,7 +94,7 @@ Dependencies: pnpm enforces a minimum release age. Do not add `minimumReleaseAge
 - The retention period shown on pages comes from the root layout's data (`retentionDays`), never a hardcoded number.
 - A room has exactly one owner (a database index enforces it): its creator, or whoever last used the moderator link. Only the owner can delete the room, replace the moderator link, or demote a moderator; `deleteRoomNow` and `regenerateRecovery` check `actor.session.owner`, and demotion is the `demoteModerator` flow on the settings page (there is no room message for it, so it works on moderators who are not connected). The moderator link is replaced each time it is used. In the live room, a joiner whose session says `owner` clears that flag from everyone else, and `transferOwnership` clears it even when the new owner is absent: the stored owner is the truth. Every other moderator power is shared.
 - Bundled music is listed in `MUSIC_TRACKS` in `packages/protocol`; an id is also its file name under `apps/web/static/audio/`. Adding a track means a CC0 release by the recording's maker, the file exactly as published, and a row with its checksum in `apps/web/static/audio/LICENSES.md` (a browser test compares them). A Public Domain Mark is not enough.
-- All sound goes through `apps/web/src/lib/ui/sound.svelte.ts`. It opens no audio device and requests no file while a person's sound is off; keep it that way. The toggle and volume live in local storage (`pj-sound`, `pj-volume`) and are never sent to the server.
+- All sound goes through `apps/web/src/lib/ui/sound.svelte.ts`. It opens no audio device and requests no file while a person's sound is off; keep it that way. The toggle and volume live in local storage (`ay-sound`, `ay-volume`) and are never sent to the server.
 - Browser tests give each browser context its own client address (`visitor()` in the spec files), so they do not trip the per-address rate limits. Use it for every new context.
 
 ## Design

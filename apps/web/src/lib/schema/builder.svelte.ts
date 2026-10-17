@@ -30,7 +30,7 @@ import {
   type Step,
   type Value,
   type Vocabulary,
-} from '@pokerji/schema-builder';
+} from '@ayudham/schema-builder';
 
 /** Something the person is asked to confirm before it happens. */
 export type Pending =

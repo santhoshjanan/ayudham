@@ -14,7 +14,7 @@
   <meta name="description" content={description} />
   <link rel="canonical" href={url} />
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="pokerji" />
+  <meta property="og:site_name" content="ayudham.app" />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={url} />
@@ -23,7 +23,7 @@
   <meta property="og:image:height" content="630" />
   <meta
     property="og:image:alt"
-    content="pokerji: planning poker without the sign-up. Five scorecards showing 3, 5, 5, 8 and 13, the lowest and highest flagged."
+    content="ayudham.app: planning poker without the sign-up. Five scorecards showing 3, 5, 5, 8 and 13, the lowest and highest flagged."
   />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content={image} />

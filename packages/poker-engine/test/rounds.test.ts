@@ -1,4 +1,4 @@
-import { AWAY_DROP_MS } from '@pokerji/protocol';
+import { AWAY_DROP_MS } from '@ayudham/protocol';
 import { describe, expect, it } from 'vitest';
 import { apply, snapshotFor } from '../src/index.ts';
 import { forbidden, msg, run, seeded } from './helpers.ts';

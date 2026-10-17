@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { clientMessageSchema } from '@pokerji/protocol';
+import { clientMessageSchema } from '@ayudham/protocol';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import {
@@ -121,27 +121,27 @@ describe('metrics, against real services', () => {
     // A room is loaded when its first socket arrives.
     const first = await open(created.code, created.sessionToken);
     const second = await open(created.code, joined.sessionToken);
-    await until('pokerji_websocket_connections', 2);
-    let text = await until('pokerji_rooms_active', 1);
-    expect(value(text, 'pokerji_room_loads_total')).toBe(1);
-    expect(value(text, 'pokerji_websocket_connections_total')).toBe(2);
-    expect(value(text, 'pokerji_room_lock_wait_seconds_count')).toBe(1);
+    await until('ayudham_websocket_connections', 2);
+    let text = await until('ayudham_rooms_active', 1);
+    expect(value(text, 'ayudham_room_loads_total')).toBe(1);
+    expect(value(text, 'ayudham_websocket_connections_total')).toBe(2);
+    expect(value(text, 'ayudham_room_lock_wait_seconds_count')).toBe(1);
 
     // Messages: accepted ones by type, refused ones by reason.
     first.send(JSON.stringify({ type: 'setTitle', title: TITLE }));
     first.send(JSON.stringify({ type: 'vote', card: '5' }));
     second.send(JSON.stringify({ type: 'vote', card: '8' }));
     second.send(`not json ${NAME}`);
-    await until('pokerji_websocket_messages_total{type="vote"}', 2);
-    text = await until('pokerji_websocket_messages_rejected_total{reason="invalid"}', 1);
-    expect(value(text, 'pokerji_websocket_messages_total{type="setTitle"}')).toBe(1);
+    await until('ayudham_websocket_messages_total{type="vote"}', 2);
+    text = await until('ayudham_websocket_messages_rejected_total{reason="invalid"}', 1);
+    expect(value(text, 'ayudham_websocket_messages_total{type="setTitle"}')).toBe(1);
 
     // Closes: a tab that goes away, and one that sends too much.
     second.close();
-    await until('pokerji_websocket_closes_total{reason="normal"}', 1);
+    await until('ayudham_websocket_closes_total{reason="normal"}', 1);
     first.send('x'.repeat(3_000));
-    await until('pokerji_websocket_closes_total{reason="oversize"}', 1);
-    await until('pokerji_websocket_connections', 0);
+    await until('ayudham_websocket_closes_total{reason="oversize"}', 1);
+    await until('ayudham_websocket_connections', 0);
 
     // Refused upgrades: no session, and another site's origin.
     expect(
@@ -153,24 +153,24 @@ describe('metrics, against real services', () => {
         Cookie: `${SESSION_COOKIE}=${created.sessionToken}`,
       }),
     ).toBe(403);
-    await until('pokerji_websocket_upgrades_refused_total{reason="auth"}', 1);
-    await until('pokerji_websocket_upgrades_refused_total{reason="bad_request"}', 1);
+    await until('ayudham_websocket_upgrades_refused_total{reason="auth"}', 1);
+    await until('ayudham_websocket_upgrades_refused_total{reason="bad_request"}', 1);
 
     // A rate limit: the eleventh room from one address in an hour.
     for (let i = 0; i < 10; i += 1) {
       await createRoomFlow(app.flows, { address: ADDRESS, name: NAME, deckId: 'fibonacci' });
     }
-    await until('pokerji_rate_limit_hits_total{bucket="create"}', 1);
+    await until('ayudham_rate_limit_hits_total{bucket="create"}', 1);
 
     // Unloading.
     await app.registry.close(room.id);
-    text = await until('pokerji_rooms_active', 0);
-    expect(value(text, 'pokerji_room_unloads_total{reason="closed"}')).toBe(1);
+    text = await until('ayudham_rooms_active', 0);
+    expect(value(text, 'ayudham_room_unloads_total{reason="closed"}')).toBe(1);
 
     // The services answer, and the version is there.
-    expect(value(text, 'pokerji_valkey_up')).toBe(1);
-    expect(value(text, 'pokerji_postgres_up')).toBe(1);
-    expect(value(text, 'pokerji_build_info{version="9.8.7"}')).toBe(1);
+    expect(value(text, 'ayudham_valkey_up')).toBe(1);
+    expect(value(text, 'ayudham_postgres_up')).toBe(1);
+    expect(value(text, 'ayudham_build_info{version="9.8.7"}')).toBe(1);
     // The standard Node process metrics are on once the app has started.
     expect(text).toContain('process_resident_memory_bytes');
     expect(text).toContain('nodejs_eventloop_lag_seconds');
@@ -205,8 +205,8 @@ describe('metrics, against real services', () => {
     for (const type of types) metrics.messageReceived(type);
     const text = await app.metrics.render();
     for (const type of types) {
-      expect(value(text, `pokerji_websocket_messages_total{type="${type}"}`)).toBe(1);
+      expect(value(text, `ayudham_websocket_messages_total{type="${type}"}`)).toBe(1);
     }
-    expect(value(text, 'pokerji_websocket_messages_total{type="other"}')).toBeUndefined();
+    expect(value(text, 'ayudham_websocket_messages_total{type="other"}')).toBeUndefined();
   });
 });

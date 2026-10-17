@@ -1,6 +1,6 @@
 <script lang="ts">
   import Seo from '#lib/ui/Seo.svelte';
-  import { BUILT_IN_DECKS } from '@pokerji/protocol';
+  import { BUILT_IN_DECKS } from '@ayudham/protocol';
   import { page } from '$app/state';
   import CopyButton from '#lib/ui/CopyButton.svelte';
   import type { PageProps } from './$types';
@@ -10,7 +10,7 @@
 </script>
 
 <Seo
-  title="Start a planning poker room · pokerji"
+  title="Start a planning poker room · ayudham.app"
   description="Start a free planning poker room in seconds. Pick a deck, share the link, and vote in secret until every card turns at once. No sign-up."
 />
 

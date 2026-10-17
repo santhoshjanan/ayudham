@@ -36,8 +36,8 @@ jobs:
       # Postgres and Valkey from the development compose file, as on a contributor's machine.
       - run: pnpm services:up
       - run: pnpm test
-      - run: pnpm --filter @pokerji/web build
-      - run: pnpm --filter @pokerji/web smoke
+      - run: pnpm --filter @ayudham/web build
+      - run: pnpm --filter @ayudham/web smoke
       - if: always()
         run: pnpm services:down
 
@@ -55,9 +55,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @pokerji/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @ayudham/web exec playwright install --with-deps chromium
       - run: pnpm services:up
-      - run: pnpm --filter @pokerji/web e2e
+      - run: pnpm --filter @ayudham/web e2e
       - if: always()
         run: pnpm services:down
 

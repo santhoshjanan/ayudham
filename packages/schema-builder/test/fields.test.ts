@@ -69,7 +69,7 @@ describe('definitionAt', () => {
 
 describe('fieldsFor', () => {
   it('lists the guided fields, then further properties in the order they were added', () => {
-    const item = make('WebSite', { genre: text('x'), name: text('pokerji'), about: text('y') });
+    const item = make('WebSite', { genre: text('x'), name: text('ayudham'), about: text('y') });
     const fields = fieldsFor(item, topDefinition('WebSite'), vocabulary);
     expect(fields.map((field) => field.property)).toEqual([
       'name',

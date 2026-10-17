@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
-import { MAX_MESSAGE_BYTES } from '@pokerji/protocol';
+import { MAX_MESSAGE_BYTES } from '@ayudham/protocol';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { App } from './app.ts';
 import { resumeSession } from './flows.ts';

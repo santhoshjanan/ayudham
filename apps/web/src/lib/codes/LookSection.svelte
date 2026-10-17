@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { surprise, THEMES, explain, type Symbology, type ThemeId } from '@pokerji/code-maker';
+  import { surprise, THEMES, explain, type Symbology, type ThemeId } from '@ayudham/code-maker';
   import NumberField from '#lib/ui/NumberField.svelte';
   import Toggle from '#lib/ui/Toggle.svelte';
   import ColourField from './ColourField.svelte';

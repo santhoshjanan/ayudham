@@ -119,7 +119,7 @@ describe('events', () => {
       value: [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//pokerji//Code maker//EN',
+        'PRODID:-//ayudham//Code maker//EN',
         'BEGIN:VEVENT',
         'SUMMARY:Review\\, part 1',
         'DTSTART:20261016T090000',

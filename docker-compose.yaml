@@ -9,7 +9,7 @@
 #
 # The app listens on port 3000 over plain HTTP. Put your HTTPS reverse proxy in front
 # of it; the proxy must pass WebSockets and set X-Forwarded-For.
-name: pokerji
+name: ayudham
 
 services:
   web:
@@ -20,7 +20,7 @@ services:
       - '${PORT:-3000}:3000'
     environment:
       ORIGIN: ${ORIGIN:?set ORIGIN}
-      DATABASE_URL: postgres://pokerji:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/pokerji
+      DATABASE_URL: postgres://ayudham:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/ayudham
       VALKEY_URL: redis://valkey:6379
       ADDRESS_HMAC_SECRET: ${ADDRESS_HMAC_SECRET:?set ADDRESS_HMAC_SECRET}
       ADDRESS_HEADER: x-forwarded-for
@@ -35,13 +35,13 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: pokerji
+      POSTGRES_USER: ayudham
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-      POSTGRES_DB: pokerji
+      POSTGRES_DB: ayudham
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U pokerji -d pokerji']
+      test: ['CMD-SHELL', 'pg_isready -U ayudham -d ayudham']
       interval: 5s
       timeout: 3s
       retries: 20

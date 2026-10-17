@@ -7,7 +7,7 @@ import {
   type Paint,
   type Ring,
   type ThemeId,
-} from '@pokerji/code-maker';
+} from '@ayudham/code-maker';
 import { OTHER_GROUPS, QR_KINDS, symbologyOf, type KindId } from './kinds.ts';
 import type { LogoImage } from './logo.ts';
 import { blankFields, payloadFor } from './payload.ts';

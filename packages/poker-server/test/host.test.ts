@@ -1,4 +1,4 @@
-import { BUILT_IN_DECKS, MAX_PARTICIPANTS, ROOM_UNLOAD_MS } from '@pokerji/protocol';
+import { BUILT_IN_DECKS, MAX_PARTICIPANTS, ROOM_UNLOAD_MS } from '@ayudham/protocol';
 import { describe, expect, it } from 'vitest';
 import { BROADCAST_LIMIT, MAX_CONNECTIONS_PER_PARTICIPANT, RoomHost } from '../src/index.ts';
 import { fakeClock, fakeConnection, fakeStore, flush } from './fakes.ts';

@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Planning poker · pokerji</title>
+  <title>Planning poker · ayudham.app</title>
 </svelte:head>
 
 {#if data.joined}

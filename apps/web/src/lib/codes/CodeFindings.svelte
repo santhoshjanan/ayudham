@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explain, type Finding } from '@pokerji/code-maker';
+  import { explain, type Finding } from '@ayudham/code-maker';
 
   let { findings }: { findings: Finding[] } = $props();
 

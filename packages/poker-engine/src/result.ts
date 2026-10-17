@@ -1,4 +1,4 @@
-import { cardValue, type Deck, type RoundResult } from '@pokerji/protocol';
+import { cardValue, type Deck, type RoundResult } from '@ayudham/protocol';
 
 export interface CastVote {
   participantId: string;

@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>{page.status} · pokerji</title>
+  <title>{page.status} · ayudham.app</title>
 </svelte:head>
 
 <header class="band">

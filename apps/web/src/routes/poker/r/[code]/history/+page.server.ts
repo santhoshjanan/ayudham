@@ -1,13 +1,13 @@
 import { fail } from '@sveltejs/kit';
-import { summariseRound } from '@pokerji/poker-engine';
+import { summariseRound } from '@ayudham/poker-engine';
 import {
   anonymiseMe,
   clearRoomHistory,
   deleteHistoryRound,
   roomHistory,
-} from '@pokerji/poker-server';
+} from '@ayudham/poker-server';
 import { memberOf } from '#lib/server/actor.ts';
-import { runtime } from '#lib/server/pokerji.ts';
+import { runtime } from '#lib/server/ayudham.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const REFUSED = 'Only a moderator can do that.';

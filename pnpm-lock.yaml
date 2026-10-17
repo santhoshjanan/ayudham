@@ -51,22 +51,22 @@ importers:
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.64.0
-      '@pokerji/code-maker':
+      '@ayudham/code-maker':
         specifier: workspace:*
         version: link:../../packages/code-maker
-      '@pokerji/poker-engine':
+      '@ayudham/poker-engine':
         specifier: workspace:*
         version: link:../../packages/poker-engine
-      '@pokerji/poker-server':
+      '@ayudham/poker-server':
         specifier: workspace:*
         version: link:../../packages/poker-server
-      '@pokerji/protocol':
+      '@ayudham/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
-      '@pokerji/schema-builder':
+      '@ayudham/schema-builder':
         specifier: workspace:*
         version: link:../../packages/schema-builder
-      '@pokerji/text-tools':
+      '@ayudham/text-tools':
         specifier: workspace:*
         version: link:../../packages/text-tools
       '@sveltejs/adapter-node':
@@ -127,7 +127,7 @@ importers:
 
   packages/poker-engine:
     dependencies:
-      '@pokerji/protocol':
+      '@ayudham/protocol':
         specifier: workspace:*
         version: link:../protocol
 
@@ -136,10 +136,10 @@ importers:
       '@node-rs/argon2':
         specifier: ^2.2.1
         version: 2.2.2
-      '@pokerji/poker-engine':
+      '@ayudham/poker-engine':
         specifier: workspace:*
         version: link:../poker-engine
-      '@pokerji/protocol':
+      '@ayudham/protocol':
         specifier: workspace:*
         version: link:../protocol
       iovalkey:

@@ -27,7 +27,7 @@
 
 <div class="shell">
   <header class="bar">
-    <a class="mark" href="/">pokerji</a>
+    <a class="mark" href="/">ayudham.app</a>
     {#if roomBar.room}
       <!-- In a room, the one bar carries the room's own things. -->
       <nav aria-label="Room">

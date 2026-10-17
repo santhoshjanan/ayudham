@@ -1,7 +1,7 @@
 // The code maker's worker: a script served by this site, running beside the page so that a large
 // code never holds up typing. bwip-js, the encoder, is loaded here the first time a code is made,
 // from this site. The worker makes no other request and keeps nothing.
-import type { Bwip } from '@pokerji/code-maker';
+import type { Bwip } from '@ayudham/code-maker';
 import { answer, type Job } from './work.ts';
 
 const scope = self as unknown as {
