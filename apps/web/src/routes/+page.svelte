@@ -1,5 +1,4 @@
 <script lang="ts">
-  import DemoRow from '#lib/ui/DemoRow.svelte';
   import Seo from '#lib/ui/Seo.svelte';
   import type { PageProps } from './$types';
 
@@ -13,8 +12,8 @@
 
 <header class="band wide">
   <div class="band-inner split">
+    <h1>Small tools, without the sign-up.</h1>
     <div>
-      <h1>Small tools, without the sign-up.</h1>
       <p>
         Free small tools for teams. No accounts, no trackers: open one, use it, get on with the
         work.
@@ -25,7 +24,6 @@
         Karuppasamy's hand. The things you keep sharp and put to work.
       </p>
     </div>
-    <DemoRow />
   </div>
 </header>
 

@@ -204,16 +204,13 @@ test('the outliers get their beat on a live reveal, not when the page is opened 
   await expect(mo.getByTestId('room')).not.toHaveAttribute('data-reveal', 'live');
 });
 
-test('the home page shows a row of scorecards that turns, as decoration only', async ({
-  browser,
-}) => {
+test('the home page says what the name means, in Tamil and Malayalam too', async ({ browser }) => {
   const context = await browser.newContext(visitor());
   const page = await context.newPage();
   await page.goto('/');
-  const row = page.getByTestId('demo-row');
-  await expect(row).toHaveAttribute('aria-hidden', 'true');
-  await expect(row.locator('[data-state="up"]')).toHaveCount(5, { timeout: 5_000 });
-  await expect(row).toContainText('Low');
-  await expect(row).toContainText('High');
+  const band = page.locator('header.band');
+  await expect(band.locator('[lang="ta"]')).toHaveText('ஆயுதம்');
+  await expect(band.locator('[lang="ml"]')).toHaveText('ആയുധം');
+  await expect(band).toContainText('the tools of a trade');
   await expect(page.getByRole('link', { name: 'Start a room' })).toBeVisible();
 });
