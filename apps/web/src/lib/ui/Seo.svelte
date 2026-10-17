@@ -23,7 +23,7 @@
   <meta property="og:image:height" content="630" />
   <meta
     property="og:image:alt"
-    content="ayudham.app: planning poker without the sign-up. Five scorecards showing 3, 5, 5, 8 and 13, the lowest and highest flagged."
+    content="ayudham.app: small tools, without the sign-up. Free tools for teams, no accounts, no trackers. Ayudham is Tamil and Malayalam for the tools of a trade."
   />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content={image} />

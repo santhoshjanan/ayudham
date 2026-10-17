@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/static/og.jpg" alt="ayudham.app: planning poker without the sign-up. Five scorecards showing 3, 5, 5, 8 and 13, the lowest and highest flagged." width="840">
+  <img src="apps/web/static/og.jpg" alt="ayudham.app: small tools, without the sign-up. Free tools for teams, no accounts, no trackers. Ayudham is Tamil and Malayalam for the tools of a trade." width="840">
 </p>
 
 <h1 align="center">ayudham.app</h1>
@@ -24,7 +24,7 @@
 
 ---
 
-ayudham.app is a small suite of free tools. The first is planning poker, shown here. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site. The third is a set of [text generators and converters](#the-text-tools): make a password or an identifier, or turn text into another form. The fourth is a [maker of barcodes and QR codes](#the-code-maker).
+ayudham.app is a small suite of free tools. The first is planning poker. The second is a [Schema.org markup builder](#the-markup-builder): fill in a form, copy JSON-LD for your own site. The third is a set of [text generators and converters](#the-text-tools): make a password or an identifier, or turn text into another form. The fourth is a [maker of barcodes and QR codes](#the-code-maker).
 
 Estimation is judging, so planning poker looks like the judges' row at a diving meet: the story on a field of pool aqua, a row of white scorecards face down, and then every card turned in the same instant. The highest and lowest are flagged, because they speak first.
 
